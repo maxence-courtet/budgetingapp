@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
+import { LogoutButton } from "./logout-button";
 
 export const metadata: Metadata = {
   title: "Budget Tracker",
@@ -32,7 +33,7 @@ export default function RootLayout({
                 <Link href="/" className="text-lg font-bold text-slate-900">
                   Budget Tracker
                 </Link>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-1">
                   {navItems.map((item) => (
                     <Link
                       key={item.href}
@@ -43,6 +44,7 @@ export default function RootLayout({
                     </Link>
                   ))}
                 </div>
+                <LogoutButton />
               </div>
             </div>
           </nav>

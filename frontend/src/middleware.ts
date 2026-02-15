@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
+
+function generateSessionToken(user: string, pass: string): string {
+  return createHash('sha256').update(`${user}:${pass}`).digest('hex');
+}
 
 export function middleware(req: NextRequest) {
   const authUser = process.env.AUTH_USER;
@@ -9,25 +14,24 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const authHeader = req.headers.get('authorization');
+  const { pathname } = req.nextUrl;
 
-  if (authHeader) {
-    const [scheme, encoded] = authHeader.split(' ');
-    if (scheme === 'Basic' && encoded) {
-      // Compare base64-encoded values directly to avoid decoding issues
-      const expected = Buffer.from(`${authUser}:${authPass}`).toString('base64');
-      if (encoded === expected) {
-        return NextResponse.next();
-      }
-    }
+  // Allow login page and auth API routes without authentication
+  if (pathname === '/login' || pathname.startsWith('/api/auth/')) {
+    return NextResponse.next();
   }
 
-  return new NextResponse('Authentication required', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Budget App"',
-    },
-  });
+  // Check session cookie
+  const sessionCookie = req.cookies.get('budget_session')?.value;
+  const expectedToken = generateSessionToken(authUser, authPass);
+
+  if (sessionCookie === expectedToken) {
+    return NextResponse.next();
+  }
+
+  // Redirect to login page
+  const loginUrl = new URL('/login', req.url);
+  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
