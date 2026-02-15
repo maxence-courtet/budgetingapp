@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth0 } from '@/lib/auth0';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow Auth0 routes without session check
-  if (pathname.startsWith('/api/auth/')) {
-    return NextResponse.next();
+  // Let Auth0 SDK handle /api/auth/* routes (login, callback, logout, etc.)
+  // But skip /api/auth/token which is our own route handler
+  if (pathname.startsWith('/api/auth/') && pathname !== '/api/auth/token') {
+    return auth0.middleware(req);
   }
 
   // Check for Auth0 session cookie (v4 default: __session, legacy: appSession)
