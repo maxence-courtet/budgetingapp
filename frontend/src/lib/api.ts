@@ -28,7 +28,7 @@ async function fetchApi(path: string, options?: RequestInit) {
   if (res.status === 401) {
     cachedToken = null;
     if (typeof window !== 'undefined') {
-      window.location.href = '/api/auth/login';
+      window.location.href = '/auth/login';
     }
     throw new Error('Authentication required');
   }

@@ -4,10 +4,14 @@ import { auth0 } from '@/lib/auth0';
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Let Auth0 SDK handle /api/auth/* routes (login, callback, logout, etc.)
-  // But skip /api/auth/token which is our own route handler
-  if (pathname.startsWith('/api/auth/') && pathname !== '/api/auth/token') {
+  // Let Auth0 SDK handle /auth/* routes (login, callback, logout, etc.)
+  if (pathname.startsWith('/auth/')) {
     return auth0.middleware(req);
+  }
+
+  // Skip our custom token endpoint
+  if (pathname === '/api/auth/token') {
+    return NextResponse.next();
   }
 
   // Check for Auth0 session cookie (v4 default: __session, legacy: appSession)
@@ -18,7 +22,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Redirect to Auth0 login
-  const loginUrl = new URL('/api/auth/login', req.url);
+  const loginUrl = new URL('/auth/login', req.url);
   return NextResponse.redirect(loginUrl);
 }
 
