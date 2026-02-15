@@ -4,9 +4,11 @@ import prisma from '../services/prisma';
 const router = Router();
 
 // GET / - list all budget templates with definition count and months used count
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const templates = await prisma.budgetTemplate.findMany({
+      where: { userId },
       include: {
         _count: {
           select: {
@@ -38,9 +40,10 @@ router.get('/', async (_req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
 
-    const template = await prisma.budgetTemplate.findUnique({
-      where: { id },
+    const template = await prisma.budgetTemplate.findFirst({
+      where: { id, userId },
       include: {
         definitions: {
           include: {
@@ -71,13 +74,14 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
+    const userId = req.userId!;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
 
     const template = await prisma.budgetTemplate.create({
-      data: { name },
+      data: { name, userId },
     });
 
     res.status(201).json(template);
@@ -92,12 +96,13 @@ router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
+    const userId = req.userId!;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    const existing = await prisma.budgetTemplate.findUnique({ where: { id } });
+    const existing = await prisma.budgetTemplate.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Budget template not found' });
     }
@@ -118,8 +123,9 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
 
-    const existing = await prisma.budgetTemplate.findUnique({ where: { id } });
+    const existing = await prisma.budgetTemplate.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Budget template not found' });
     }
@@ -138,13 +144,14 @@ router.delete('/:id', async (req: Request, res: Response) => {
 router.post('/:id/definitions', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
     const { type, amount, description, categoryId, fromAccountId, toAccountId, toCategoryId } = req.body;
 
     if (!type || amount === undefined || !categoryId) {
       return res.status(400).json({ error: 'type, amount, and categoryId are required' });
     }
 
-    const template = await prisma.budgetTemplate.findUnique({ where: { id } });
+    const template = await prisma.budgetTemplate.findFirst({ where: { id, userId } });
     if (!template) {
       return res.status(404).json({ error: 'Budget template not found' });
     }
@@ -163,6 +170,7 @@ router.post('/:id/definitions', async (req: Request, res: Response) => {
         fromAccountId,
         toAccountId,
         toCategoryId,
+        userId,
       },
       include: {
         category: true,
@@ -182,10 +190,11 @@ router.post('/:id/definitions', async (req: Request, res: Response) => {
 router.put('/:id/definitions/:defId', async (req: Request, res: Response) => {
   try {
     const { id, defId } = req.params;
+    const userId = req.userId!;
     const { type, amount, description, categoryId, fromAccountId, toAccountId, toCategoryId } = req.body;
 
     const existing = await prisma.budgetTransactionDefinition.findFirst({
-      where: { id: defId, budgetTemplateId: id },
+      where: { id: defId, budgetTemplateId: id, userId },
     });
 
     if (!existing) {
@@ -222,9 +231,10 @@ router.put('/:id/definitions/:defId', async (req: Request, res: Response) => {
 router.delete('/:id/definitions/:defId', async (req: Request, res: Response) => {
   try {
     const { id, defId } = req.params;
+    const userId = req.userId!;
 
     const existing = await prisma.budgetTransactionDefinition.findFirst({
-      where: { id: defId, budgetTemplateId: id },
+      where: { id: defId, budgetTemplateId: id, userId },
     });
 
     if (!existing) {

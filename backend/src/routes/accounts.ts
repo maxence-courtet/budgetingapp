@@ -4,9 +4,11 @@ import prisma from '../services/prisma';
 const router = Router();
 
 // GET / - list all accounts with calculated balances
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const accounts = await prisma.account.findMany({
+      where: { userId },
       orderBy: { name: 'asc' },
     });
 
@@ -14,11 +16,11 @@ router.get('/', async (_req: Request, res: Response) => {
     const result = await Promise.all(
       accounts.map(async (account) => {
         const incoming = await prisma.transaction.aggregate({
-          where: { toAccountId: account.id, status: 'PAID' },
+          where: { toAccountId: account.id, status: 'PAID', userId },
           _sum: { amount: true },
         });
         const outgoing = await prisma.transaction.aggregate({
-          where: { fromAccountId: account.id, status: 'PAID' },
+          where: { fromAccountId: account.id, status: 'PAID', userId },
           _sum: { amount: true },
         });
         const balance = (incoming._sum.amount || 0) - (outgoing._sum.amount || 0);
@@ -37,8 +39,9 @@ router.get('/', async (_req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
 
-    const account = await prisma.account.findUnique({ where: { id } });
+    const account = await prisma.account.findFirst({ where: { id, userId } });
     if (!account) {
       return res.status(404).json({ error: 'Account not found' });
     }
@@ -47,6 +50,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const paidTransactions = await prisma.transaction.findMany({
       where: {
         status: 'PAID',
+        userId,
         OR: [{ fromAccountId: id }, { toAccountId: id }],
       },
       include: { category: true },
@@ -84,6 +88,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     // Get ALL transactions for this account (not just PAID) for display
     const transactions = await prisma.transaction.findMany({
       where: {
+        userId,
         OR: [{ fromAccountId: id }, { toAccountId: id }],
       },
       include: {
@@ -118,13 +123,14 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const { name, type, notes } = req.body;
+    const userId = req.userId!;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Name and type are required' });
     }
 
     const account = await prisma.account.create({
-      data: { name, type, notes },
+      data: { name, type, notes, userId },
     });
 
     res.status(201).json(account);
@@ -139,8 +145,9 @@ router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, type, notes } = req.body;
+    const userId = req.userId!;
 
-    const existing = await prisma.account.findUnique({ where: { id } });
+    const existing = await prisma.account.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Account not found' });
     }
@@ -161,14 +168,15 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
 
-    const existing = await prisma.account.findUnique({ where: { id } });
+    const existing = await prisma.account.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Account not found' });
     }
 
     const transactionCount = await prisma.transaction.count({
-      where: { OR: [{ fromAccountId: id }, { toAccountId: id }] },
+      where: { OR: [{ fromAccountId: id }, { toAccountId: id }], userId },
     });
 
     if (transactionCount > 0) {
@@ -179,7 +187,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
 
     const definitionCount = await prisma.budgetTransactionDefinition.count({
-      where: { OR: [{ fromAccountId: id }, { toAccountId: id }] },
+      where: { OR: [{ fromAccountId: id }, { toAccountId: id }], userId },
     });
 
     if (definitionCount > 0) {

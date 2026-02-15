@@ -6,9 +6,10 @@ const router = Router();
 // GET / - list transactions with query filters
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const { monthId, categoryId, accountId, type, status, limit, offset } = req.query;
 
-    const where: any = {};
+    const where: any = { userId };
 
     if (monthId) where.monthId = monthId as string;
     if (categoryId) where.categoryId = categoryId as string;
@@ -45,9 +46,10 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
 
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, userId },
       include: {
         category: true,
         fromAccount: true,
@@ -70,6 +72,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST / - create transaction
 router.post('/', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const {
       type,
       date,
@@ -109,6 +112,7 @@ router.post('/', async (req: Request, res: Response) => {
         monthId,
         fromAccountId: fromAccountId || null,
         toAccountId: toAccountId || null,
+        userId,
       },
       include: {
         category: true,
@@ -129,6 +133,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
     const {
       type,
       date,
@@ -142,7 +147,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       toCategoryId,
     } = req.body;
 
-    const existing = await prisma.transaction.findUnique({ where: { id } });
+    const existing = await prisma.transaction.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
@@ -181,8 +186,9 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
 
-    const existing = await prisma.transaction.findUnique({ where: { id } });
+    const existing = await prisma.transaction.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
@@ -199,6 +205,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 router.patch('/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
     const { status } = req.body;
 
     const validStatuses = ['PLANNED', 'PAID', 'PENDING', 'SKIPPED'];
@@ -208,7 +215,7 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
       });
     }
 
-    const existing = await prisma.transaction.findUnique({ where: { id } });
+    const existing = await prisma.transaction.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Transaction not found' });
     }

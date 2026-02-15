@@ -4,15 +4,20 @@ import prisma from '../services/prisma';
 const router = Router();
 
 // GET /account-summary - returns all accounts with balances and category breakdowns
-router.get('/account-summary', async (_req: Request, res: Response) => {
+router.get('/account-summary', async (req: Request, res: Response) => {
   try {
-    const accounts = await prisma.account.findMany({ orderBy: { name: 'asc' } });
+    const userId = req.userId!;
+    const accounts = await prisma.account.findMany({
+      where: { userId },
+      orderBy: { name: 'asc' },
+    });
 
     const result = await Promise.all(
       accounts.map(async (account) => {
         const paidTransactions = await prisma.transaction.findMany({
           where: {
             status: 'PAID',
+            userId,
             OR: [{ fromAccountId: account.id }, { toAccountId: account.id }],
           },
           include: { category: true },
@@ -75,18 +80,17 @@ router.get('/account-summary', async (_req: Request, res: Response) => {
 // GET /category-detail?accountId=X&categoryId=Y
 router.get('/category-detail', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const { accountId, categoryId } = req.query;
 
     if (!accountId || !categoryId) {
       return res.status(400).json({ error: 'accountId and categoryId are required' });
     }
 
-    // Find transactions where this account+category combo applies
-    // For fromAccount side: categoryId matches
-    // For toAccount side: categoryId matches OR toCategoryId matches (for transfers)
     const transactions = await prisma.transaction.findMany({
       where: {
         status: 'PAID',
+        userId,
         OR: [
           { fromAccountId: accountId as string, categoryId: categoryId as string },
           { toAccountId: accountId as string, categoryId: categoryId as string },
@@ -128,10 +132,11 @@ router.get('/category-detail', async (req: Request, res: Response) => {
 // GET /monthly-summary/:monthId
 router.get('/monthly-summary/:monthId', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const { monthId } = req.params;
 
-    const month = await prisma.month.findUnique({
-      where: { id: monthId },
+    const month = await prisma.month.findFirst({
+      where: { id: monthId, userId },
       include: {
         transactions: { include: { category: true } },
       },

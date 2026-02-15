@@ -6,6 +6,7 @@ const router = Router();
 // GET / - search transactions with filters
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const {
       query,
       accountId,
@@ -19,7 +20,7 @@ router.get('/', async (req: Request, res: Response) => {
       monthId,
     } = req.query;
 
-    const where: any = {};
+    const where: any = { userId };
 
     // Text search on description
     if (query) {

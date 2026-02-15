@@ -1,13 +1,37 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://budgetingapp-production-3aab.up.railway.app/api';
 
+let cachedToken: string | null = null;
+
+async function getToken(): Promise<string | null> {
+  if (cachedToken) return cachedToken;
+  try {
+    const res = await fetch('/api/auth/token');
+    if (!res.ok) return null;
+    const data = await res.json();
+    cachedToken = data.accessToken;
+    return cachedToken;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchApi(path: string, options?: RequestInit) {
+  const token = await getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });
+  if (res.status === 401) {
+    cachedToken = null;
+    if (typeof window !== 'undefined') {
+      window.location.href = '/api/auth/login';
+    }
+    throw new Error('Authentication required');
+  }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(error.error || 'API request failed');

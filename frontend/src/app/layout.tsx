@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
+import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 
 export const metadata: Metadata = {
   title: "Budget Tracker",
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <Auth0Provider>
         <div className="min-h-screen">
           <nav className="bg-white border-b border-slate-200 shadow-sm">
             <div className="max-w-7xl mx-auto px-4">
@@ -50,6 +52,7 @@ export default function RootLayout({
           </nav>
           <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
         </div>
+        </Auth0Provider>
       </body>
     </html>
   );

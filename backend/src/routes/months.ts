@@ -4,9 +4,11 @@ import prisma from '../services/prisma';
 const router = Router();
 
 // GET / - list all months with transaction counts and summary
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const months = await prisma.month.findMany({
+      where: { userId },
       include: {
         budgetTemplate: { select: { id: true, name: true } },
         transactions: {
@@ -53,9 +55,10 @@ router.get('/', async (_req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
 
-    const month = await prisma.month.findUnique({
-      where: { id },
+    const month = await prisma.month.findFirst({
+      where: { id, userId },
       include: {
         budgetTemplate: { select: { id: true, name: true } },
         transactions: {
@@ -83,6 +86,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST / - create month (with optional budgetTemplateId to auto-apply)
 router.post('/', async (req: Request, res: Response) => {
   try {
+    const userId = req.userId!;
     const { month: monthNum, year, budgetTemplateId } = req.body;
 
     if (monthNum === undefined || year === undefined) {
@@ -94,15 +98,15 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const existing = await prisma.month.findUnique({
-      where: { month_year: { month: monthNum, year } },
+      where: { month_year_userId: { month: monthNum, year, userId } },
     });
     if (existing) {
       return res.status(409).json({ error: 'A month with this month/year already exists' });
     }
 
     if (budgetTemplateId) {
-      const template = await prisma.budgetTemplate.findUnique({
-        where: { id: budgetTemplateId },
+      const template = await prisma.budgetTemplate.findFirst({
+        where: { id: budgetTemplateId, userId },
       });
       if (!template) {
         return res.status(400).json({ error: 'Budget template not found' });
@@ -114,11 +118,12 @@ router.post('/', async (req: Request, res: Response) => {
         month: monthNum,
         year,
         budgetTemplateId: budgetTemplateId || null,
+        userId,
       },
     });
 
     if (budgetTemplateId) {
-      await applyBudgetToMonth(newMonth.id, budgetTemplateId, monthNum, year);
+      await applyBudgetToMonth(newMonth.id, budgetTemplateId, monthNum, year, userId);
     }
 
     const result = await prisma.month.findUnique({
@@ -142,9 +147,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
     const { month: monthNum, year, budgetTemplateId } = req.body;
 
-    const existing = await prisma.month.findUnique({ where: { id } });
+    const existing = await prisma.month.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Month not found' });
     }
@@ -171,14 +177,15 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
 
-    const existing = await prisma.month.findUnique({ where: { id } });
+    const existing = await prisma.month.findFirst({ where: { id, userId } });
     if (!existing) {
       return res.status(404).json({ error: 'Month not found' });
     }
 
     await prisma.$transaction([
-      prisma.transaction.deleteMany({ where: { monthId: id } }),
+      prisma.transaction.deleteMany({ where: { monthId: id, userId } }),
       prisma.month.delete({ where: { id } }),
     ]);
 
@@ -193,25 +200,26 @@ router.delete('/:id', async (req: Request, res: Response) => {
 router.post('/:id/apply-budget', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.userId!;
     const { budgetTemplateId } = req.body;
 
     if (!budgetTemplateId) {
       return res.status(400).json({ error: 'budgetTemplateId is required' });
     }
 
-    const month = await prisma.month.findUnique({ where: { id } });
+    const month = await prisma.month.findFirst({ where: { id, userId } });
     if (!month) {
       return res.status(404).json({ error: 'Month not found' });
     }
 
-    const template = await prisma.budgetTemplate.findUnique({
-      where: { id: budgetTemplateId },
+    const template = await prisma.budgetTemplate.findFirst({
+      where: { id: budgetTemplateId, userId },
     });
     if (!template) {
       return res.status(404).json({ error: 'Budget template not found' });
     }
 
-    await applyBudgetToMonth(id, budgetTemplateId, month.month, month.year);
+    await applyBudgetToMonth(id, budgetTemplateId, month.month, month.year, userId);
 
     await prisma.month.update({
       where: { id },
@@ -242,6 +250,7 @@ async function applyBudgetToMonth(
   budgetTemplateId: string,
   monthNum: number,
   year: number,
+  userId: string,
 ) {
   const definitions = await prisma.budgetTransactionDefinition.findMany({
     where: { budgetTemplateId },
@@ -262,6 +271,7 @@ async function applyBudgetToMonth(
         monthId,
         fromAccountId: def.fromAccountId,
         toAccountId: def.toAccountId,
+        userId,
       },
     })
   );
