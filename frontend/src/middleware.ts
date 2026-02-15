@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 
-function generateSessionToken(user: string, pass: string): string {
-  return createHash('sha256').update(`${user}:${pass}`).digest('hex');
+async function generateSessionToken(user: string, pass: string): Promise<string> {
+  const data = new TextEncoder().encode(`${user}:${pass}`);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const authUser = process.env.AUTH_USER;
   const authPass = process.env.AUTH_PASSWORD;
 
@@ -23,7 +26,7 @@ export function middleware(req: NextRequest) {
 
   // Check session cookie
   const sessionCookie = req.cookies.get('budget_session')?.value;
-  const expectedToken = generateSessionToken(authUser, authPass);
+  const expectedToken = await generateSessionToken(authUser, authPass);
 
   if (sessionCookie === expectedToken) {
     return NextResponse.next();

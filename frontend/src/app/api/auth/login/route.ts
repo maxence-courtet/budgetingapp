@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "crypto";
 
-function generateSessionToken(user: string, pass: string): string {
-  return createHash("sha256").update(`${user}:${pass}`).digest("hex");
+async function generateSessionToken(user: string, pass: string): Promise<string> {
+  const data = new TextEncoder().encode(`${user}:${pass}`);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export async function POST(req: NextRequest) {
@@ -17,7 +20,7 @@ export async function POST(req: NextRequest) {
   const { username, password } = body;
 
   if (username === authUser && password === authPass) {
-    const token = generateSessionToken(authUser, authPass);
+    const token = await generateSessionToken(authUser, authPass);
     const response = NextResponse.json({ success: true });
     response.cookies.set("budget_session", token, {
       httpOnly: true,
