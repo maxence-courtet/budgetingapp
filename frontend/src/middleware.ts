@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth0 } from '@/lib/auth0';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Let Auth0 SDK handle /auth/* routes (login, callback, logout, etc.)
-  if (pathname.startsWith('/auth/')) {
-    return auth0.middleware(req);
-  }
-
-  // Skip our custom token endpoint
-  if (pathname === '/api/auth/token') {
+  // Allow auth routes and token endpoint through
+  if (pathname.startsWith('/auth/') || pathname === '/api/auth/token') {
     return NextResponse.next();
   }
 
