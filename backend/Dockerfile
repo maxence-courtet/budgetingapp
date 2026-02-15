@@ -12,6 +12,5 @@ RUN npx prisma generate
 
 COPY . .
 
-ENV PORT=3001
-
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npx tsx src/server.ts"]
+# Do NOT set PORT - Railway injects its own
+CMD ["sh", "-c", "npx prisma db push --skip-generate || echo 'db push failed, continuing anyway' && npx tsx src/server.ts"]
