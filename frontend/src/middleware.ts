@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth0 } from '@/lib/auth0';
 
 export async function middleware(req: NextRequest) {
-  const { pathname, searchParams } = req.nextUrl;
+  const { pathname } = req.nextUrl;
 
-  // Allow auth routes and token endpoint through
-  if (pathname.startsWith('/auth/') || pathname === '/api/auth/token') {
+  // Let Auth0 SDK handle /auth/* routes (login, callback, logout)
+  if (pathname.startsWith('/auth/')) {
+    return auth0.middleware(req);
+  }
+
+  // Allow token endpoint through
+  if (pathname === '/api/auth/token') {
     return NextResponse.next();
   }
 
@@ -12,11 +18,6 @@ export async function middleware(req: NextRequest) {
   const hasSession = req.cookies.get('__session')?.value || req.cookies.get('appSession')?.value;
 
   if (hasSession) {
-    return NextResponse.next();
-  }
-
-  // If there's an auth error param, show it instead of redirect-looping
-  if (searchParams.get('error')) {
     return NextResponse.next();
   }
 
