@@ -14,8 +14,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for Auth0 session cookie (v4 default: __session, legacy: appSession)
-  const hasSession = req.cookies.get('__session')?.value || req.cookies.get('appSession')?.value;
+  // Check for Auth0 session cookie (v4 default: __session, chunked: __session__0, legacy: appSession)
+  const hasSession = req.cookies.get('__session')?.value
+    || req.cookies.get('__session__0')?.value
+    || req.cookies.get('appSession')?.value;
 
   if (hasSession) {
     return NextResponse.next();
