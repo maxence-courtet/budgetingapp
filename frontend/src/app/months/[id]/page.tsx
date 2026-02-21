@@ -64,6 +64,7 @@ interface Transaction {
   fromAccount: Account | null;
   toAccountId: string | null;
   toAccount: Account | null;
+  fromTemplate: boolean;
 }
 
 interface MonthData {
@@ -91,6 +92,300 @@ const emptyTxForm = {
   toAccountId: "",
   status: "PLANNED",
 };
+
+function TransactionTable({
+  txList,
+  editingTxId,
+  editTxForm,
+  setEditTxForm,
+  handleUpdateTx,
+  setEditingTxId,
+  handleStatusCycle,
+  startEditTx,
+  confirmDeleteTxId,
+  handleDeleteTx,
+  setConfirmDeleteTxId,
+  categories,
+  accounts,
+}: {
+  txList: Transaction[];
+  editingTxId: string | null;
+  editTxForm: typeof emptyTxForm;
+  setEditTxForm: (f: typeof emptyTxForm) => void;
+  handleUpdateTx: (e: React.FormEvent) => void;
+  setEditingTxId: (id: string | null) => void;
+  handleStatusCycle: (tx: Transaction) => void;
+  startEditTx: (tx: Transaction) => void;
+  confirmDeleteTxId: string | null;
+  handleDeleteTx: (id: string) => void;
+  setConfirmDeleteTxId: (id: string | null) => void;
+  categories: Category[];
+  accounts: Account[];
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 bg-slate-50">
+            <th className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
+            <th className="text-left px-4 py-3 font-medium text-slate-600">Description</th>
+            <th className="text-left px-4 py-3 font-medium text-slate-600">Type</th>
+            <th className="text-right px-4 py-3 font-medium text-slate-600">Amount</th>
+            <th className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
+            <th className="text-left px-4 py-3 font-medium text-slate-600">Account(s)</th>
+            <th className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
+            <th className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {txList.map((tx) => {
+            if (editingTxId === tx.id) {
+              return (
+                <tr key={tx.id} className="border-b border-slate-100 bg-slate-50">
+                  <td className="px-4 py-2">
+                    <input
+                      type="date"
+                      value={editTxForm.date}
+                      onChange={(e) => setEditTxForm({ ...editTxForm, date: e.target.value })}
+                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      required
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <input
+                      type="text"
+                      value={editTxForm.description}
+                      onChange={(e) => setEditTxForm({ ...editTxForm, description: e.target.value })}
+                      placeholder="Optional"
+                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <select
+                      value={editTxForm.type}
+                      onChange={(e) => setEditTxForm({ ...editTxForm, type: e.target.value })}
+                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    >
+                      <option value="INCOME">INCOME</option>
+                      <option value="SPENDING">SPENDING</option>
+                      <option value="TRANSFER">TRANSFER</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editTxForm.amount}
+                      onChange={(e) => setEditTxForm({ ...editTxForm, amount: e.target.value })}
+                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      required
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <select
+                      value={editTxForm.categoryId}
+                      onChange={(e) => setEditTxForm({ ...editTxForm, categoryId: e.target.value })}
+                      className={`w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400${editTxForm.type === "TRANSFER" ? " mb-1" : ""}`}
+                      required
+                    >
+                      <option value="">From category</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    {editTxForm.type === "TRANSFER" && (
+                      <select
+                        value={editTxForm.toCategoryId}
+                        onChange={(e) => setEditTxForm({ ...editTxForm, toCategoryId: e.target.value })}
+                        className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      >
+                        <option value="">To category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+                  <td className="px-4 py-2">
+                    {(editTxForm.type === "SPENDING" || editTxForm.type === "TRANSFER") && (
+                      <select
+                        value={editTxForm.fromAccountId}
+                        onChange={(e) => setEditTxForm({ ...editTxForm, fromAccountId: e.target.value })}
+                        className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 mb-1"
+                      >
+                        <option value="">From...</option>
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>{a.name}</option>
+                        ))}
+                      </select>
+                    )}
+                    {(editTxForm.type === "INCOME" || editTxForm.type === "TRANSFER") && (
+                      <select
+                        value={editTxForm.toAccountId}
+                        onChange={(e) => setEditTxForm({ ...editTxForm, toAccountId: e.target.value })}
+                        className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      >
+                        <option value="">To...</option>
+                        {accounts.map((a) => (
+                          <option key={a.id} value={a.id}>{a.name}</option>
+                        ))}
+                      </select>
+                    )}
+                    {editTxForm.type !== "SPENDING" && editTxForm.type !== "INCOME" && editTxForm.type !== "TRANSFER" && (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2">
+                    <select
+                      value={editTxForm.status}
+                      onChange={(e) => setEditTxForm({ ...editTxForm, status: e.target.value })}
+                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    >
+                      {STATUS_ORDER.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={handleUpdateTx}
+                        className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingTxId(null)}
+                        className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            }
+
+            const accountStr =
+              tx.type === "TRANSFER"
+                ? `${tx.fromAccount?.name ?? "-"} → ${tx.toAccount?.name ?? "-"}`
+                : tx.type === "SPENDING"
+                ? tx.fromAccount?.name ?? "-"
+                : tx.toAccount?.name ?? "-";
+
+            const amountPrefix =
+              tx.type === "INCOME"
+                ? "+"
+                : tx.type === "SPENDING"
+                ? "-"
+                : "";
+
+            const amountColor =
+              tx.type === "INCOME"
+                ? "text-green-600"
+                : tx.type === "SPENDING"
+                ? "text-red-600"
+                : "text-blue-600";
+
+            return (
+              <tr
+                key={tx.id}
+                className={`border-b border-slate-100 hover:bg-slate-50 ${
+                  tx.status === "SKIPPED" ? "opacity-50" : ""
+                }`}
+              >
+                <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                  {new Date(tx.date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </td>
+                <td className="px-4 py-3 text-slate-900">
+                  {tx.description || "-"}
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                      TYPE_COLORS[tx.type] || ""
+                    }`}
+                  >
+                    {tx.type}
+                  </span>
+                </td>
+                <td
+                  className={`px-4 py-3 text-right font-mono ${amountColor}`}
+                >
+                  {amountPrefix}
+                  {fmt(tx.amount)}
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  {tx.category?.name ?? "-"}
+                  {tx.toCategoryId && (
+                    <span className="text-slate-400">
+                      {" "}
+                      /{" "}
+                      {categories.find((c) => c.id === tx.toCategoryId)
+                        ?.name ?? ""}
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                  {accountStr}
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => handleStatusCycle(tx)}
+                    className={`inline-block px-2 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${
+                      STATUS_COLORS[tx.status as Status] || ""
+                    }`}
+                    title="Click to cycle status"
+                  >
+                    {tx.status}
+                  </button>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {confirmDeleteTxId === tx.id ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="text-sm text-slate-600">Sure?</span>
+                      <button
+                        onClick={() => handleDeleteTx(tx.id)}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteTxId(null)}
+                        className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => startEditTx(tx)}
+                        className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteTxId(tx.id)}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function MonthDetailPage({
   params,
@@ -288,6 +583,8 @@ export default function MonthDetailPage({
   const sortedTx = [...transactions].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
+  const templateTx = sortedTx.filter((t) => t.fromTemplate);
+  const manualTx = sortedTx.filter((t) => !t.fromTemplate);
 
   // Summaries
   const paidIncome = transactions
@@ -570,295 +867,64 @@ export default function MonthDetailPage({
         </div>
       )}
 
-      {/* Transactions Table */}
+      {/* Budget Transactions Table */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
         <div className="px-5 py-4 border-b border-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">
-            Transactions ({transactions.length})
+            Budget Transactions ({templateTx.length})
           </h2>
         </div>
 
-        {sortedTx.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Date
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Description
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Type
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
-                    Amount
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Category
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Account(s)
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Status
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedTx.map((tx) => {
-                  if (editingTxId === tx.id) {
-                    return (
-                      <tr key={tx.id} className="border-b border-slate-100 bg-slate-50">
-                        <td className="px-4 py-2">
-                          <input
-                            type="date"
-                            value={editTxForm.date}
-                            onChange={(e) => setEditTxForm({ ...editTxForm, date: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                            required
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input
-                            type="text"
-                            value={editTxForm.description}
-                            onChange={(e) => setEditTxForm({ ...editTxForm, description: e.target.value })}
-                            placeholder="Optional"
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <select
-                            value={editTxForm.type}
-                            onChange={(e) => setEditTxForm({ ...editTxForm, type: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                          >
-                            <option value="INCOME">INCOME</option>
-                            <option value="SPENDING">SPENDING</option>
-                            <option value="TRANSFER">TRANSFER</option>
-                          </select>
-                        </td>
-                        <td className="px-4 py-2">
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={editTxForm.amount}
-                            onChange={(e) => setEditTxForm({ ...editTxForm, amount: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
-                            required
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <select
-                            value={editTxForm.categoryId}
-                            onChange={(e) => setEditTxForm({ ...editTxForm, categoryId: e.target.value })}
-                            className={`w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400${editTxForm.type === "TRANSFER" ? " mb-1" : ""}`}
-                            required
-                          >
-                            <option value="">From category</option>
-                            {categories.map((c) => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                          </select>
-                          {editTxForm.type === "TRANSFER" && (
-                            <select
-                              value={editTxForm.toCategoryId}
-                              onChange={(e) => setEditTxForm({ ...editTxForm, toCategoryId: e.target.value })}
-                              className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                            >
-                              <option value="">To category</option>
-                              {categories.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </select>
-                          )}
-                        </td>
-                        <td className="px-4 py-2">
-                          {(editTxForm.type === "SPENDING" || editTxForm.type === "TRANSFER") && (
-                            <select
-                              value={editTxForm.fromAccountId}
-                              onChange={(e) => setEditTxForm({ ...editTxForm, fromAccountId: e.target.value })}
-                              className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 mb-1"
-                            >
-                              <option value="">From...</option>
-                              {accounts.map((a) => (
-                                <option key={a.id} value={a.id}>{a.name}</option>
-                              ))}
-                            </select>
-                          )}
-                          {(editTxForm.type === "INCOME" || editTxForm.type === "TRANSFER") && (
-                            <select
-                              value={editTxForm.toAccountId}
-                              onChange={(e) => setEditTxForm({ ...editTxForm, toAccountId: e.target.value })}
-                              className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                            >
-                              <option value="">To...</option>
-                              {accounts.map((a) => (
-                                <option key={a.id} value={a.id}>{a.name}</option>
-                              ))}
-                            </select>
-                          )}
-                          {editTxForm.type !== "SPENDING" && editTxForm.type !== "INCOME" && editTxForm.type !== "TRANSFER" && (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2">
-                          <select
-                            value={editTxForm.status}
-                            onChange={(e) => setEditTxForm({ ...editTxForm, status: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                          >
-                            {STATUS_ORDER.map((s) => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={handleUpdateTx}
-                              className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingTxId(null)}
-                              className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const accountStr =
-                    tx.type === "TRANSFER"
-                      ? `${tx.fromAccount?.name ?? "-"} → ${tx.toAccount?.name ?? "-"}`
-                      : tx.type === "SPENDING"
-                      ? tx.fromAccount?.name ?? "-"
-                      : tx.toAccount?.name ?? "-";
-
-                  const amountPrefix =
-                    tx.type === "INCOME"
-                      ? "+"
-                      : tx.type === "SPENDING"
-                      ? "-"
-                      : "";
-
-                  const amountColor =
-                    tx.type === "INCOME"
-                      ? "text-green-600"
-                      : tx.type === "SPENDING"
-                      ? "text-red-600"
-                      : "text-blue-600";
-
-                  return (
-                    <tr
-                      key={tx.id}
-                      className={`border-b border-slate-100 hover:bg-slate-50 ${
-                        tx.status === "SKIPPED" ? "opacity-50" : ""
-                      }`}
-                    >
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                        {new Date(tx.date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </td>
-                      <td className="px-4 py-3 text-slate-900">
-                        {tx.description || "-"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                            TYPE_COLORS[tx.type] || ""
-                          }`}
-                        >
-                          {tx.type}
-                        </span>
-                      </td>
-                      <td
-                        className={`px-4 py-3 text-right font-mono ${amountColor}`}
-                      >
-                        {amountPrefix}
-                        {fmt(tx.amount)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {tx.category?.name ?? "-"}
-                        {tx.toCategoryId && (
-                          <span className="text-slate-400">
-                            {" "}
-                            /{" "}
-                            {categories.find((c) => c.id === tx.toCategoryId)
-                              ?.name ?? ""}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                        {accountStr}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleStatusCycle(tx)}
-                          className={`inline-block px-2 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${
-                            STATUS_COLORS[tx.status as Status] || ""
-                          }`}
-                          title="Click to cycle status"
-                        >
-                          {tx.status}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {confirmDeleteTxId === tx.id ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-sm text-slate-600">Sure?</span>
-                            <button
-                              onClick={() => handleDeleteTx(tx.id)}
-                              className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-                            >
-                              Yes
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteTxId(null)}
-                              className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => startEditTx(tx)}
-                              className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteTxId(tx.id)}
-                              className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        {templateTx.length > 0 ? (
+          <TransactionTable
+            txList={templateTx}
+            editingTxId={editingTxId}
+            editTxForm={editTxForm}
+            setEditTxForm={setEditTxForm}
+            handleUpdateTx={handleUpdateTx}
+            setEditingTxId={setEditingTxId}
+            handleStatusCycle={handleStatusCycle}
+            startEditTx={startEditTx}
+            confirmDeleteTxId={confirmDeleteTxId}
+            handleDeleteTx={handleDeleteTx}
+            setConfirmDeleteTxId={setConfirmDeleteTxId}
+            categories={categories}
+            accounts={accounts}
+          />
         ) : (
           <div className="px-5 py-8 text-center text-slate-500">
-            No transactions yet. Add one or apply a budget template.
+            No budget transactions. Apply a budget template to generate them.
+          </div>
+        )}
+      </div>
+
+      {/* Additional Transactions Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <div className="px-5 py-4 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Additional Transactions ({manualTx.length})
+          </h2>
+        </div>
+
+        {manualTx.length > 0 ? (
+          <TransactionTable
+            txList={manualTx}
+            editingTxId={editingTxId}
+            editTxForm={editTxForm}
+            setEditTxForm={setEditTxForm}
+            handleUpdateTx={handleUpdateTx}
+            setEditingTxId={setEditingTxId}
+            handleStatusCycle={handleStatusCycle}
+            startEditTx={startEditTx}
+            confirmDeleteTxId={confirmDeleteTxId}
+            handleDeleteTx={handleDeleteTx}
+            setConfirmDeleteTxId={setConfirmDeleteTxId}
+            categories={categories}
+            accounts={accounts}
+          />
+        ) : (
+          <div className="px-5 py-8 text-center text-slate-500">
+            No additional transactions. Add one manually above.
           </div>
         )}
       </div>

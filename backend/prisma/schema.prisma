@@ -62,6 +62,7 @@ model Transaction {
   amount          Float
   description     String?
   status          String   @default("PLANNED") // PLANNED, PAID, PENDING, SKIPPED
+  fromTemplate    Boolean  @default(false)
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])

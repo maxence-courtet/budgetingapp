@@ -266,6 +266,7 @@ async function applyBudgetToMonth(
         amount: def.amount,
         description: def.description,
         status: 'PLANNED',
+        fromTemplate: true,
         categoryId: def.categoryId,
         toCategoryId: def.type === 'TRANSFER' ? (def.toCategoryId || def.categoryId) : null,
         monthId,
