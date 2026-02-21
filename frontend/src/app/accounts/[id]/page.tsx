@@ -78,6 +78,15 @@ export default function AccountDetail({
       entry.balance += t.amount ?? 0;
     } else if (t.type === "SPENDING") {
       entry.balance -= t.amount ?? 0;
+    } else if (t.type === "TRANSFER") {
+      // Incoming transfer (this account is the destination) counts as income
+      if (t.toAccountId === id) {
+        entry.balance += t.amount ?? 0;
+      }
+      // Outgoing transfer (this account is the source) counts as spending
+      if (t.fromAccountId === id) {
+        entry.balance -= t.amount ?? 0;
+      }
     }
   }
   const categoryBalances = Array.from(categoryMap.values()).sort((a, b) =>
