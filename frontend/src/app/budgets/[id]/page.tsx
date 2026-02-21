@@ -6,6 +6,7 @@ import {
   getBudget,
   updateBudget,
   addBudgetDefinition,
+  updateBudgetDefinition,
   deleteBudgetDefinition,
   getCategories,
   getAccounts,
@@ -77,6 +78,9 @@ export default function BudgetDetailPage({
   const [name, setName] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
+  const [editingDefId, setEditingDefId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -145,10 +149,57 @@ export default function BudgetDetailPage({
     }
   };
 
+  const startEditDef = (d: Definition) => {
+    setEditingDefId(d.id);
+    setEditForm({
+      type: d.type,
+      amount: String(d.amount),
+      categoryId: d.categoryId,
+      toCategoryId: d.toCategoryId ?? "",
+      fromAccountId: d.fromAccountId ?? "",
+      toAccountId: d.toAccountId ?? "",
+      description: d.description ?? "",
+    });
+  };
+
+  const handleUpdateDef = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!budget || !editingDefId || !editForm.categoryId || !editForm.amount) return;
+    try {
+      const payload: any = {
+        type: editForm.type,
+        amount: parseFloat(editForm.amount),
+        categoryId: editForm.categoryId,
+        description: editForm.description || undefined,
+      };
+      if (editForm.type === "TRANSFER" && editForm.toCategoryId) {
+        payload.toCategoryId = editForm.toCategoryId;
+      }
+      if (
+        (editForm.type === "SPENDING" || editForm.type === "TRANSFER") &&
+        editForm.fromAccountId
+      ) {
+        payload.fromAccountId = editForm.fromAccountId;
+      }
+      if (
+        (editForm.type === "INCOME" || editForm.type === "TRANSFER") &&
+        editForm.toAccountId
+      ) {
+        payload.toAccountId = editForm.toAccountId;
+      }
+      await updateBudgetDefinition(budget.id, editingDefId, payload);
+      setEditingDefId(null);
+      load();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleDeleteDef = async (defId: string) => {
     if (!budget) return;
     try {
       await deleteBudgetDefinition(budget.id, defId);
+      setConfirmDeleteId(null);
       load();
     } catch (e) {
       console.error(e);
@@ -269,7 +320,103 @@ export default function BudgetDetailPage({
                 </tr>
               </thead>
               <tbody>
-                {budget.definitions.map((d) => (
+                {budget.definitions.map((d) =>
+                  editingDefId === d.id ? (
+                    <tr key={d.id} className="border-b border-slate-100 bg-slate-50">
+                      <td className="px-4 py-2">
+                        <select
+                          value={editForm.type}
+                          onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                          className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        >
+                          <option value="INCOME">INCOME</option>
+                          <option value="SPENDING">SPENDING</option>
+                          <option value="TRANSFER">TRANSFER</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editForm.amount}
+                          onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                          className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          required
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <select
+                          value={editForm.categoryId}
+                          onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })}
+                          className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          required
+                        >
+                          <option value="">Select</option>
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-2">
+                        {(editForm.type === "SPENDING" || editForm.type === "TRANSFER") ? (
+                          <select
+                            value={editForm.fromAccountId}
+                            onChange={(e) => setEditForm({ ...editForm, fromAccountId: e.target.value })}
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          >
+                            <option value="">None</option>
+                            {accounts.map((a) => (
+                              <option key={a.id} value={a.id}>{a.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        {(editForm.type === "INCOME" || editForm.type === "TRANSFER") ? (
+                          <select
+                            value={editForm.toAccountId}
+                            onChange={(e) => setEditForm({ ...editForm, toAccountId: e.target.value })}
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          >
+                            <option value="">None</option>
+                            {accounts.map((a) => (
+                              <option key={a.id} value={a.id}>{a.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          value={editForm.description}
+                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                          placeholder="Optional"
+                          className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        />
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={handleUpdateDef}
+                            className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingDefId(null)}
+                            className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
                   <tr
                     key={d.id}
                     className="border-b border-slate-100 hover:bg-slate-50"
@@ -309,15 +456,42 @@ export default function BudgetDetailPage({
                       {d.description || "-"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleDeleteDef(d.id)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-                      >
-                        Delete
-                      </button>
+                      {confirmDeleteId === d.id ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-sm text-slate-600">Sure?</span>
+                          <button
+                            onClick={() => handleDeleteDef(d.id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                          >
+                            Yes
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => startEditDef(d)}
+                            className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(d.id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  )
+                )}
               </tbody>
             </table>
           </div>
