@@ -9,6 +9,7 @@ import {
   getAccounts,
   applyBudgetToMonth,
   createTransaction,
+  updateTransaction,
   deleteTransaction,
   updateTransactionStatus,
 } from "@/lib/api";
@@ -109,6 +110,9 @@ export default function MonthDetailPage({
 
   const [showTxForm, setShowTxForm] = useState(false);
   const [txForm, setTxForm] = useState(emptyTxForm);
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
+  const [editTxForm, setEditTxForm] = useState(emptyTxForm);
+  const [confirmDeleteTxId, setConfirmDeleteTxId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -193,9 +197,60 @@ export default function MonthDetailPage({
     }
   };
 
+  const startEditTx = (tx: Transaction) => {
+    setEditingTxId(tx.id);
+    setEditTxForm({
+      type: tx.type,
+      date: tx.date.slice(0, 10),
+      amount: String(tx.amount),
+      description: tx.description ?? "",
+      categoryId: tx.categoryId,
+      toCategoryId: tx.toCategoryId ?? "",
+      fromAccountId: tx.fromAccountId ?? "",
+      toAccountId: tx.toAccountId ?? "",
+      status: tx.status,
+    });
+  };
+
+  const handleUpdateTx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTxId || !editTxForm.categoryId || !editTxForm.amount) return;
+    try {
+      const payload: any = {
+        type: editTxForm.type,
+        date: editTxForm.date,
+        amount: parseFloat(editTxForm.amount),
+        description: editTxForm.description || undefined,
+        categoryId: editTxForm.categoryId,
+        status: editTxForm.status,
+      };
+      if (editTxForm.type === "TRANSFER" && editTxForm.toCategoryId) {
+        payload.toCategoryId = editTxForm.toCategoryId;
+      }
+      if (
+        (editTxForm.type === "SPENDING" || editTxForm.type === "TRANSFER") &&
+        editTxForm.fromAccountId
+      ) {
+        payload.fromAccountId = editTxForm.fromAccountId;
+      }
+      if (
+        (editTxForm.type === "INCOME" || editTxForm.type === "TRANSFER") &&
+        editTxForm.toAccountId
+      ) {
+        payload.toAccountId = editTxForm.toAccountId;
+      }
+      await updateTransaction(editingTxId, payload);
+      setEditingTxId(null);
+      load();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleDeleteTx = async (txId: string) => {
     try {
       await deleteTransaction(txId);
+      setConfirmDeleteTxId(null);
       load();
     } catch (e) {
       console.error(e);
@@ -556,6 +611,122 @@ export default function MonthDetailPage({
               </thead>
               <tbody>
                 {sortedTx.map((tx) => {
+                  if (editingTxId === tx.id) {
+                    return (
+                      <tr key={tx.id} className="border-b border-slate-100 bg-slate-50">
+                        <td className="px-4 py-2">
+                          <input
+                            type="date"
+                            value={editTxForm.date}
+                            onChange={(e) => setEditTxForm({ ...editTxForm, date: e.target.value })}
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            required
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <input
+                            type="text"
+                            value={editTxForm.description}
+                            onChange={(e) => setEditTxForm({ ...editTxForm, description: e.target.value })}
+                            placeholder="Optional"
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <select
+                            value={editTxForm.type}
+                            onChange={(e) => setEditTxForm({ ...editTxForm, type: e.target.value })}
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          >
+                            <option value="INCOME">INCOME</option>
+                            <option value="SPENDING">SPENDING</option>
+                            <option value="TRANSFER">TRANSFER</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editTxForm.amount}
+                            onChange={(e) => setEditTxForm({ ...editTxForm, amount: e.target.value })}
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            required
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <select
+                            value={editTxForm.categoryId}
+                            onChange={(e) => setEditTxForm({ ...editTxForm, categoryId: e.target.value })}
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            required
+                          >
+                            <option value="">Select</option>
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-2">
+                          {(editTxForm.type === "SPENDING" || editTxForm.type === "TRANSFER") && (
+                            <select
+                              value={editTxForm.fromAccountId}
+                              onChange={(e) => setEditTxForm({ ...editTxForm, fromAccountId: e.target.value })}
+                              className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 mb-1"
+                            >
+                              <option value="">From...</option>
+                              {accounts.map((a) => (
+                                <option key={a.id} value={a.id}>{a.name}</option>
+                              ))}
+                            </select>
+                          )}
+                          {(editTxForm.type === "INCOME" || editTxForm.type === "TRANSFER") && (
+                            <select
+                              value={editTxForm.toAccountId}
+                              onChange={(e) => setEditTxForm({ ...editTxForm, toAccountId: e.target.value })}
+                              className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            >
+                              <option value="">To...</option>
+                              {accounts.map((a) => (
+                                <option key={a.id} value={a.id}>{a.name}</option>
+                              ))}
+                            </select>
+                          )}
+                          {editTxForm.type !== "SPENDING" && editTxForm.type !== "INCOME" && editTxForm.type !== "TRANSFER" && (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          <select
+                            value={editTxForm.status}
+                            onChange={(e) => setEditTxForm({ ...editTxForm, status: e.target.value })}
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          >
+                            {STATUS_ORDER.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={handleUpdateTx}
+                              className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingTxId(null)}
+                              className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+
                   const accountStr =
                     tx.type === "TRANSFER"
                       ? `${tx.fromAccount?.name ?? "-"} → ${tx.toAccount?.name ?? "-"}`
@@ -634,12 +805,38 @@ export default function MonthDetailPage({
                         </button>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => handleDeleteTx(tx.id)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-                        >
-                          Delete
-                        </button>
+                        {confirmDeleteTxId === tx.id ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="text-sm text-slate-600">Sure?</span>
+                            <button
+                              onClick={() => handleDeleteTx(tx.id)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteTxId(null)}
+                              className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => startEditTx(tx)}
+                              className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteTxId(tx.id)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
