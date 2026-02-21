@@ -658,14 +658,26 @@ export default function MonthDetailPage({
                           <select
                             value={editTxForm.categoryId}
                             onChange={(e) => setEditTxForm({ ...editTxForm, categoryId: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            className={`w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400${editTxForm.type === "TRANSFER" ? " mb-1" : ""}`}
                             required
                           >
-                            <option value="">Select</option>
+                            <option value="">From category</option>
                             {categories.map((c) => (
                               <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                           </select>
+                          {editTxForm.type === "TRANSFER" && (
+                            <select
+                              value={editTxForm.toCategoryId}
+                              onChange={(e) => setEditTxForm({ ...editTxForm, toCategoryId: e.target.value })}
+                              className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            >
+                              <option value="">To category</option>
+                              {categories.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          )}
                         </td>
                         <td className="px-4 py-2">
                           {(editTxForm.type === "SPENDING" || editTxForm.type === "TRANSFER") && (
