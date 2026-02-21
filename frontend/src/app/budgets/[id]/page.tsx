@@ -486,6 +486,91 @@ export default function BudgetDetailPage({
         )}
       </div>
 
+      {/* Account Impact */}
+      {(() => {
+        const accountMap = new Map<
+          string,
+          { name: string; income: number; spending: number; transferIn: number; transferOut: number }
+        >();
+
+        for (const d of budget.definitions) {
+          if (d.type === "INCOME" && d.toAccountId && d.toAccount) {
+            const acc = accountMap.get(d.toAccountId) ?? { name: d.toAccount.name, income: 0, spending: 0, transferIn: 0, transferOut: 0 };
+            acc.income += d.amount;
+            accountMap.set(d.toAccountId, acc);
+          }
+          if (d.type === "SPENDING" && d.fromAccountId && d.fromAccount) {
+            const acc = accountMap.get(d.fromAccountId) ?? { name: d.fromAccount.name, income: 0, spending: 0, transferIn: 0, transferOut: 0 };
+            acc.spending += d.amount;
+            accountMap.set(d.fromAccountId, acc);
+          }
+          if (d.type === "TRANSFER") {
+            if (d.fromAccountId && d.fromAccount) {
+              const acc = accountMap.get(d.fromAccountId) ?? { name: d.fromAccount.name, income: 0, spending: 0, transferIn: 0, transferOut: 0 };
+              acc.transferOut += d.amount;
+              accountMap.set(d.fromAccountId, acc);
+            }
+            if (d.toAccountId && d.toAccount) {
+              const acc = accountMap.get(d.toAccountId) ?? { name: d.toAccount.name, income: 0, spending: 0, transferIn: 0, transferOut: 0 };
+              acc.transferIn += d.amount;
+              accountMap.set(d.toAccountId, acc);
+            }
+          }
+        }
+
+        const accountRows = Array.from(accountMap.entries()).map(([id, a]) => ({
+          id,
+          ...a,
+          net: a.income + a.transferIn - a.spending - a.transferOut,
+        }));
+
+        if (accountRows.length === 0) return null;
+
+        return (
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
+            <div className="px-5 py-4 border-b border-slate-200">
+              <h2 className="text-lg font-semibold text-slate-900">Account Impact</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="text-left px-4 py-3 font-medium text-slate-600">Account</th>
+                    <th className="text-right px-4 py-3 font-medium text-slate-600">Income</th>
+                    <th className="text-right px-4 py-3 font-medium text-slate-600">Spending</th>
+                    <th className="text-right px-4 py-3 font-medium text-slate-600">Transfers In</th>
+                    <th className="text-right px-4 py-3 font-medium text-slate-600">Transfers Out</th>
+                    <th className="text-right px-4 py-3 font-medium text-slate-600">Net</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accountRows.map((a) => (
+                    <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-slate-900">{a.name}</td>
+                      <td className="px-4 py-3 text-right font-mono text-green-600">
+                        {a.income > 0 ? fmt(a.income) : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-red-600">
+                        {a.spending > 0 ? fmt(a.spending) : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-blue-600">
+                        {a.transferIn > 0 ? fmt(a.transferIn) : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-blue-600">
+                        {a.transferOut > 0 ? fmt(a.transferOut) : "-"}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-mono font-medium ${a.net >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {a.net >= 0 ? "+" : "-"}{fmt(a.net)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Months using this template */}
       {budget.months.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
