@@ -86,7 +86,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const categoryBalances = Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 
     // Get ALL transactions for this account (not just PAID) for display
-    const transactions = await prisma.transaction.findMany({
+    const rawTransactions = await prisma.transaction.findMany({
       where: {
         userId,
         OR: [{ fromAccountId: id }, { toAccountId: id }],
@@ -99,6 +99,18 @@ router.get('/:id', async (req: Request, res: Response) => {
       },
       orderBy: { date: 'desc' },
     });
+
+    // Enrich transfers with toCategory data
+    const toCategoryIds = [...new Set(rawTransactions.filter(t => t.toCategoryId).map(t => t.toCategoryId!))];
+    const toCategories = toCategoryIds.length > 0
+      ? await prisma.category.findMany({ where: { id: { in: toCategoryIds } } })
+      : [];
+    const toCategoryMap = new Map(toCategories.map(c => [c.id, c]));
+
+    const transactions = rawTransactions.map(t => ({
+      ...t,
+      toCategory: t.toCategoryId ? toCategoryMap.get(t.toCategoryId) ?? null : null,
+    }));
 
     const incoming = paidTransactions
       .filter((t) => t.toAccountId === id)

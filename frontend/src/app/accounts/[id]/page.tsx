@@ -68,24 +68,38 @@ export default function AccountDetail({
     { name: string; balance: number }
   >();
   for (const t of transactions) {
-    const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
-    const catId = t.categoryId ?? catName;
-    if (!categoryMap.has(catId)) {
-      categoryMap.set(catId, { name: catName, balance: 0 });
-    }
-    const entry = categoryMap.get(catId)!;
     if (t.type === "INCOME") {
-      entry.balance += t.amount ?? 0;
-    } else if (t.type === "SPENDING") {
-      entry.balance -= t.amount ?? 0;
-    } else if (t.type === "TRANSFER") {
-      // Incoming transfer (this account is the destination) counts as income
-      if (t.toAccountId === id) {
-        entry.balance += t.amount ?? 0;
+      const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
+      const catId = t.categoryId ?? catName;
+      if (!categoryMap.has(catId)) {
+        categoryMap.set(catId, { name: catName, balance: 0 });
       }
-      // Outgoing transfer (this account is the source) counts as spending
+      categoryMap.get(catId)!.balance += t.amount ?? 0;
+    } else if (t.type === "SPENDING") {
+      const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
+      const catId = t.categoryId ?? catName;
+      if (!categoryMap.has(catId)) {
+        categoryMap.set(catId, { name: catName, balance: 0 });
+      }
+      categoryMap.get(catId)!.balance -= t.amount ?? 0;
+    } else if (t.type === "TRANSFER") {
+      // Outgoing transfer: use categoryId (from category)
       if (t.fromAccountId === id) {
-        entry.balance -= t.amount ?? 0;
+        const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
+        const catId = t.categoryId ?? catName;
+        if (!categoryMap.has(catId)) {
+          categoryMap.set(catId, { name: catName, balance: 0 });
+        }
+        categoryMap.get(catId)!.balance -= t.amount ?? 0;
+      }
+      // Incoming transfer: use toCategoryId (to category)
+      if (t.toAccountId === id) {
+        const catName = t.toCategory?.name ?? "Uncategorized";
+        const catId = t.toCategoryId ?? t.categoryId ?? catName;
+        if (!categoryMap.has(catId)) {
+          categoryMap.set(catId, { name: catName, balance: 0 });
+        }
+        categoryMap.get(catId)!.balance += t.amount ?? 0;
       }
     }
   }
