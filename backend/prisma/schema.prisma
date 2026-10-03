@@ -14,12 +14,21 @@ model User {
   name      String
   createdAt DateTime @default(now())
 
-  accounts        Account[]
-  categories      Category[]
-  transactions    Transaction[]
-  budgetTemplates BudgetTemplate[]
+  accounts          Account[]
+  categories        Category[]
+  transactions      Transaction[]
+  budgetTemplates   BudgetTemplate[]
   budgetDefinitions BudgetTransactionDefinition[]
-  months          Month[]
+  months            Month[]
+  investmentTrades  InvestmentTrade[]
+  habits            Habit[]
+  habitLogs         HabitLog[]
+  fitnessEntries    FitnessEntry[]
+  goals             Goal[]
+  fitnessPlans      FitnessPlan[]
+  fitnessPlanDays   FitnessPlanDay[]
+  notes             Note[]
+  goalMilestones    GoalMilestone[]
 }
 
 model Account {
@@ -32,10 +41,11 @@ model Account {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  transactionsFrom          Transaction[]              @relation("FromAccount")
-  transactionsTo            Transaction[]              @relation("ToAccount")
+  transactionsFrom          Transaction[]                 @relation("FromAccount")
+  transactionsTo            Transaction[]                 @relation("ToAccount")
   budgetDefinitionsFrom     BudgetTransactionDefinition[] @relation("BudgetFromAccount")
   budgetDefinitionsTo       BudgetTransactionDefinition[] @relation("BudgetToAccount")
+  investmentTrades          InvestmentTrade[]
 
   @@index([userId])
 }
@@ -49,25 +59,24 @@ model Category {
   user   User   @relation(fields: [userId], references: [id])
 
   transactions      Transaction[]
-  budgetDefinitions  BudgetTransactionDefinition[]
+  budgetDefinitions BudgetTransactionDefinition[]
 
   @@unique([name, userId])
   @@index([userId])
 }
 
 model Transaction {
-  id              String   @id @default(uuid())
-  type            String   // INCOME, SPENDING, TRANSFER
-  date            DateTime
-  amount          Float
-  description     String?
-  status          String   @default("PLANNED") // PLANNED, PAID, PENDING, SKIPPED
-  fromTemplate    Boolean  @default(false)
+  id           String   @id @default(uuid())
+  type         String   // INCOME, SPENDING, TRANSFER
+  date         DateTime
+  amount       Float
+  description  String?
+  status       String   @default("PLANNED") // PLANNED, PAID, PENDING, SKIPPED
+  fromTemplate Boolean  @default(false)
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
-  // For TRANSFER: the category on the receiving (toAccount) side
   toCategoryId String?
 
   monthId String
@@ -89,9 +98,9 @@ model Transaction {
 }
 
 model BudgetTemplate {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  name       String
+  createdAt  DateTime @default(now())
   modifiedAt DateTime @updatedAt
 
   userId String
@@ -121,7 +130,6 @@ model BudgetTransactionDefinition {
   toAccountId String?
   toAccount   Account? @relation("BudgetToAccount", fields: [toAccountId], references: [id])
 
-  // For transfers: category for the credit side
   toCategoryId String?
 
   userId String
@@ -145,5 +153,193 @@ model Month {
   transactions Transaction[]
 
   @@unique([month, year, userId])
+  @@index([userId])
+}
+
+// ─── Investments ────────────────────────────────────────────────────────────
+
+model InvestmentTrade {
+  id           String   @id @default(uuid())
+  ticker       String   // e.g. "AAPL", "BTC-USD"
+  assetType    String   // "STOCK" | "ETF" | "CRYPTO" | "OTHER"
+  tradeType    String   // "BUY" | "SELL"
+  quantity     Float
+  pricePerUnit Float
+  fees         Float    @default(0)
+  date         DateTime
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([ticker, userId])
+}
+
+// ─── Habits ─────────────────────────────────────────────────────────────────
+
+model Habit {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  frequency   String   @default("DAILY") // "DAILY" | "WEEKLY"
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  logs            HabitLog[]
+  fitnessPlanDays FitnessPlanDay[]
+
+  @@index([userId])
+}
+
+model HabitLog {
+  id          String    @id @default(uuid())
+  date        DateTime  @db.Date
+  completed   Boolean   @default(true)
+  note        String?
+  source      String    @default("MANUAL") // "MANUAL" | "MCP"
+  validatedAt DateTime? // null = pending validation for MCP entries
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([habitId, date])
+  @@index([userId])
+}
+
+// ─── Fitness ─────────────────────────────────────────────────────────────────
+
+model FitnessEntry {
+  id          String   @id @default(uuid())
+  type        String   // "WEIGHT" | "BODY_FAT" | "MUSCLE_MASS" | "CHEST" | "WAIST" | "HIPS" | "STEPS" | "WORKOUT_DURATION" | custom
+  value       Float
+  unit        String   // "kg" | "lbs" | "%" | "cm" | "in" | "steps" | "min"
+  note        String?
+  date        DateTime
+  source      String   @default("MANUAL") // "MANUAL" | "MCP" | "WEARABLE"
+  validatedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type, userId])
+}
+
+// ─── Goals ───────────────────────────────────────────────────────────────────
+
+model Goal {
+  id            String    @id @default(uuid())
+  title         String
+  description   String?
+  type          String    // "FINANCIAL" | "HABIT" | "FITNESS" | "PERSONAL"
+  targetValue   Float?
+  currentValue  Float?    @default(0)
+  unit          String?
+  deadline      DateTime?
+  status        String    @default("ACTIVE") // "ACTIVE" | "COMPLETED" | "ABANDONED"
+  linkedType    String?   // "ACCOUNT" | "HABIT" | "FITNESS" | null
+  linkedId      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  fitnessPlan FitnessPlan?
+  milestones  GoalMilestone[]
+
+  @@index([userId])
+}
+
+model GoalMilestone {
+  id          String    @id @default(uuid())
+  title       String
+  targetValue Float?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  goalId String
+  goal   Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([goalId])
+}
+
+// ─── Fitness Plans (AI-generated) ────────────────────────────────────────────
+
+model FitnessPlan {
+  id          String   @id @default(uuid())
+  title       String
+  description String   // markdown — full plan narrative
+  duration    Int      // weeks
+  startDate   DateTime
+  status      String   @default("ACTIVE") // "ACTIVE" | "COMPLETED" | "PAUSED"
+  source      String   @default("MCP")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  goalId String @unique
+  goal   Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  days FitnessPlanDay[]
+
+  @@index([userId])
+}
+
+model FitnessPlanDay {
+  id           String  @id @default(uuid())
+  weekNumber   Int
+  dayOfWeek    Int     // 1=Mon … 7=Sun
+  activityType String  // "WORKOUT" | "REST" | "ACTIVE_RECOVERY"
+  title        String
+  description  String  // markdown — sets, reps, duration
+
+  fitnessPlanId String
+  fitnessPlan   FitnessPlan @relation(fields: [fitnessPlanId], references: [id], onDelete: Cascade)
+
+  habitId String?
+  habit   Habit?  @relation(fields: [habitId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([fitnessPlanId])
+  @@index([userId])
+}
+
+// ─── Notes ───────────────────────────────────────────────────────────────────
+
+model Note {
+  id         String   @id @default(uuid())
+  title      String
+  content    String   // markdown
+  tags       String[]
+  noteType   String   @default("NOTE") // "NOTE" | "JOURNAL"
+  linkedType String?  // "TRANSACTION" | "MONTH" | "GOAL" | "HABIT" | null
+  linkedId   String?
+  source     String   @default("MANUAL") // "MANUAL" | "MCP"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
   @@index([userId])
 }

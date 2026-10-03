@@ -114,3 +114,94 @@ export const searchTransactions = (params: Record<string, string>) => {
   const qs = new URLSearchParams(params).toString();
   return fetchApi(`/search?${qs}`);
 };
+
+// Investments
+export const getPortfolio = () => fetchApi('/investments/portfolio');
+export const getTrades = (params?: Record<string, string>) => {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  return fetchApi(`/investments/trades${qs}`);
+};
+export const createTrade = (data: any) =>
+  fetchApi('/investments/trades', { method: 'POST', body: JSON.stringify(data) });
+export const updateTrade = (id: string, data: any) =>
+  fetchApi(`/investments/trades/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteTrade = (id: string) =>
+  fetchApi(`/investments/trades/${id}`, { method: 'DELETE' });
+export const getMarketPrice = (ticker: string) =>
+  fetchApi(`/investments/market-price/${encodeURIComponent(ticker)}`);
+
+// Habits
+export const getHabits = () => fetchApi('/habits');
+export const createHabit = (data: { name: string; description?: string; frequency?: string }) =>
+  fetchApi('/habits', { method: 'POST', body: JSON.stringify(data) });
+export const updateHabit = (id: string, data: any) =>
+  fetchApi(`/habits/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteHabit = (id: string) =>
+  fetchApi(`/habits/${id}`, { method: 'DELETE' });
+export const getHabitLogs = (habitId: string, params?: Record<string, string>) => {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  return fetchApi(`/habits/${habitId}/logs${qs}`);
+};
+export const logHabit = (habitId: string, data: { date: string; completed?: boolean; note?: string; source?: string }) =>
+  fetchApi(`/habits/${habitId}/logs`, { method: 'POST', body: JSON.stringify(data) });
+export const getPendingHabitLogs = () => fetchApi('/habits/pending/all');
+export const validateHabitLog = (logId: string) =>
+  fetchApi(`/habits/logs/${logId}/validate`, { method: 'PATCH' });
+export const deleteHabitLog = (logId: string) =>
+  fetchApi(`/habits/logs/${logId}`, { method: 'DELETE' });
+
+// Fitness
+export const getFitnessEntries = (params?: Record<string, string>) => {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  return fetchApi(`/fitness${qs}`);
+};
+export const createFitnessEntry = (data: any) =>
+  fetchApi('/fitness', { method: 'POST', body: JSON.stringify(data) });
+export const updateFitnessEntry = (id: string, data: any) =>
+  fetchApi(`/fitness/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteFitnessEntry = (id: string) =>
+  fetchApi(`/fitness/${id}`, { method: 'DELETE' });
+export const getPendingFitnessEntries = () => fetchApi('/fitness/pending/all');
+export const validateFitnessEntry = (id: string) =>
+  fetchApi(`/fitness/${id}/validate`, { method: 'PATCH' });
+export const getFitnessPlans = () => fetchApi('/fitness/plans');
+export const getFitnessPlan = (id: string) => fetchApi(`/fitness/plans/${id}`);
+export const updateFitnessPlanStatus = (id: string, status: string) =>
+  fetchApi(`/fitness/plans/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+
+// Goals
+export const getGoals = (params?: Record<string, string>) => {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  return fetchApi(`/goals${qs}`);
+};
+export const getGoal = (id: string) => fetchApi(`/goals/${id}`);
+export const createGoal = (data: any) =>
+  fetchApi('/goals', { method: 'POST', body: JSON.stringify(data) });
+export const updateGoal = (id: string, data: any) =>
+  fetchApi(`/goals/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const updateGoalProgress = (id: string, currentValue: number) =>
+  fetchApi(`/goals/${id}/progress`, { method: 'PATCH', body: JSON.stringify({ currentValue }) });
+export const deleteGoal = (id: string) =>
+  fetchApi(`/goals/${id}`, { method: 'DELETE' });
+export const createMilestone = (goalId: string, data: any) =>
+  fetchApi(`/goals/${goalId}/milestones`, { method: 'POST', body: JSON.stringify(data) });
+export const toggleMilestone = (milestoneId: string) =>
+  fetchApi(`/goals/milestones/${milestoneId}/complete`, { method: 'PATCH' });
+export const deleteMilestone = (milestoneId: string) =>
+  fetchApi(`/goals/milestones/${milestoneId}`, { method: 'DELETE' });
+
+// Notes
+export const getNotes = (params?: Record<string, string>) => {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  return fetchApi(`/notes${qs}`);
+};
+export const getNote = (id: string) => fetchApi(`/notes/${id}`);
+export const createNote = (data: any) =>
+  fetchApi('/notes', { method: 'POST', body: JSON.stringify(data) });
+export const updateNote = (id: string, data: any) =>
+  fetchApi(`/notes/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteNote = (id: string) =>
+  fetchApi(`/notes/${id}`, { method: 'DELETE' });
+
+// Stats / AI
+export const getLifeOverview = () => fetchApi('/stats/life-overview');

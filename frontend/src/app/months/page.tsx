@@ -3,15 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getMonths, createMonth, deleteMonth, getBudgets } from "@/lib/api";
-
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
-
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
+import { fmt } from "@/lib/format";
+import { MONTH_NAMES } from "@/lib/constants";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 
 interface MonthData {
   id: string;
@@ -36,11 +33,12 @@ export default function MonthsPage() {
   const [months, setMonths] = useState<MonthData[]>([]);
   const [budgets, setBudgets] = useState<BudgetTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [formMonth, setFormMonth] = useState(new Date().getMonth() + 1);
   const [formYear, setFormYear] = useState(new Date().getFullYear());
   const [formBudgetId, setFormBudgetId] = useState("");
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -52,7 +50,7 @@ export default function MonthsPage() {
       });
       setMonths(m);
       setBudgets(b);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
     } finally {
       setLoading(false);
@@ -72,36 +70,34 @@ export default function MonthsPage() {
       setShowForm(false);
       setFormBudgetId("");
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteMonth(id);
-      setDeleting(null);
+      setDeleteConfirm(null);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-slate-500">Loading months...</p>
-      </div>
-    );
+    return <LoadingState message="Loading months..." />;
   }
 
   return (
     <div>
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Months</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
         >
           {showForm ? "Cancel" : "New Month"}
         </button>
@@ -114,10 +110,11 @@ export default function MonthsPage() {
             className="flex flex-wrap items-end gap-3"
           >
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="form-month" className="block text-sm font-medium text-slate-700 mb-1">
                 Month
               </label>
               <select
+                id="form-month"
                 value={formMonth}
                 onChange={(e) => setFormMonth(parseInt(e.target.value))}
                 className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
@@ -130,10 +127,11 @@ export default function MonthsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="form-year" className="block text-sm font-medium text-slate-700 mb-1">
                 Year
               </label>
               <input
+                id="form-year"
                 type="number"
                 value={formYear}
                 onChange={(e) => setFormYear(parseInt(e.target.value))}
@@ -141,10 +139,11 @@ export default function MonthsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="form-budget" className="block text-sm font-medium text-slate-700 mb-1">
                 Budget Template (optional)
               </label>
               <select
+                id="form-budget"
                 value={formBudgetId}
                 onChange={(e) => setFormBudgetId(e.target.value)}
                 className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
@@ -159,7 +158,7 @@ export default function MonthsPage() {
             </div>
             <button
               type="submit"
-              className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
             >
               Create
             </button>
@@ -168,36 +167,32 @@ export default function MonthsPage() {
       )}
 
       {months.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
-          <p className="text-slate-500">
-            No months yet. Create one to start tracking.
-          </p>
-        </div>
+        <EmptyState message="No months yet." />
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                     Month / Year
                   </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                     Budget Template
                   </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                     Transactions
                   </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                     Income
                   </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                     Spending
                   </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                     Net
                   </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                     Actions
                   </th>
                 </tr>
@@ -239,24 +234,15 @@ export default function MonthsPage() {
                         {fmt(m.net)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {deleting === m.id ? (
-                          <span className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleDelete(m.id)}
-                              className="text-sm font-medium text-white bg-red-600 px-2 py-1 rounded hover:bg-red-700 transition-colors"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => setDeleting(null)}
-                              className="text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </span>
+                        {deleteConfirm === m.id ? (
+                          <ConfirmDelete
+                            onConfirm={() => handleDelete(m.id)}
+                            onCancel={() => setDeleteConfirm(null)}
+                            label="Delete month and all its transactions?"
+                          />
                         ) : (
                           <button
-                            onClick={() => setDeleting(m.id)}
+                            onClick={() => setDeleteConfirm(m.id)}
                             className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
                           >
                             Delete

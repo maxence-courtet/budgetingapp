@@ -40,7 +40,35 @@ async function attachUserId(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+async function attachServiceUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    // MCP service token: look up or create a designated service user
+    const serviceUser = await prisma.user.upsert({
+      where: { auth0Id: 'service|mcp' },
+      update: {},
+      create: {
+        auth0Id: 'service|mcp',
+        email: 'mcp@life-hub.internal',
+        name: 'MCP Service',
+      },
+    });
+    req.userId = serviceUser.id;
+    next();
+  } catch (error) {
+    console.error('Error attaching service user:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Allow service token to bypass Auth0 JWT validation
+  const authHeader = req.headers.authorization;
+  const serviceToken = process.env.SERVICE_TOKEN;
+
+  if (serviceToken && authHeader === `Bearer ${serviceToken}`) {
+    return attachServiceUser(req, res, next);
+  }
+
   jwtCheck(req, res, (err) => {
     if (err) {
       return res.status(401).json({ error: 'Invalid or expired token' });

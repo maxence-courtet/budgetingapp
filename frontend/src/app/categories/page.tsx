@@ -7,6 +7,11 @@ import {
   updateCategory,
   deleteCategory,
 } from "@/lib/api";
+import { fmt } from "@/lib/format";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -93,11 +98,7 @@ export default function CategoriesPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-slate-500">Loading categories...</p>
-      </div>
-    );
+    return <LoadingState message="Loading categories..." />;
   }
 
   return (
@@ -110,7 +111,7 @@ export default function CategoriesPage() {
               resetForm();
               setShowCreate(true);
             }}
-            className="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
           >
             New Category
           </button>
@@ -118,15 +119,7 @@ export default function CategoriesPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            onClick={() => setError("")}
-            className="text-red-500 hover:text-red-700"
-          >
-            Dismiss
-          </button>
-        </div>
+        <ErrorBanner message={error} onDismiss={() => setError("")} />
       )}
 
       {/* Create Form */}
@@ -137,10 +130,14 @@ export default function CategoriesPage() {
           </h2>
           <div className="flex gap-3 items-end">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="category-name"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Name
               </label>
               <input
+                id="category-name"
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
@@ -153,7 +150,7 @@ export default function CategoriesPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !formName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving..." : "Create"}
             </button>
@@ -169,21 +166,28 @@ export default function CategoriesPage() {
 
       {/* Categories Table */}
       {categories.length === 0 ? (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-8 text-center text-slate-500">
-          No categories yet. Click &quot;New Category&quot; to get started.
-        </div>
+        <EmptyState message="No categories yet." />
       ) : (
         <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-600">
+                <th
+                  scope="col"
+                  className="text-left px-4 py-3 font-medium text-slate-600"
+                >
                   Name
                 </th>
-                <th className="text-center px-4 py-3 font-medium text-slate-600">
+                <th
+                  scope="col"
+                  className="text-center px-4 py-3 font-medium text-slate-600"
+                >
                   Transactions
                 </th>
-                <th className="text-right px-4 py-3 font-medium text-slate-600">
+                <th
+                  scope="col"
+                  className="text-right px-4 py-3 font-medium text-slate-600"
+                >
                   Actions
                 </th>
               </tr>
@@ -210,7 +214,7 @@ export default function CategoriesPage() {
                         <button
                           onClick={handleUpdate}
                           disabled={saving || !formName.trim()}
-                          className="px-3 py-1 text-xs font-medium bg-slate-900 text-white rounded hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                          className="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded disabled:opacity-50 transition-colors"
                         >
                           {saving ? "Saving..." : "Save"}
                         </button>
@@ -244,18 +248,11 @@ export default function CategoriesPage() {
                               This category is in use!
                             </span>
                           )}
-                          <button
-                            onClick={() => handleDelete(cat.id)}
-                            className="px-3 py-1 text-xs font-medium bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                          >
-                            Confirm Delete
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors"
-                          >
-                            Cancel
-                          </button>
+                          <ConfirmDelete
+                            onConfirm={() => handleDelete(cat.id)}
+                            onCancel={() => setDeleteConfirm(null)}
+                            label="Delete category?"
+                          />
                         </div>
                       ) : (
                         <div className="flex justify-end gap-2">

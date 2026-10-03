@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getBudgets, createBudget, deleteBudget } from "@/lib/api";
-
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+import { fmt } from "@/lib/format";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 
 interface BudgetTemplate {
   id: string;
@@ -19,6 +20,7 @@ interface BudgetTemplate {
 export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<BudgetTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [newName, setNewName] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -27,8 +29,8 @@ export default function BudgetsPage() {
     try {
       const data = await getBudgets();
       setBudgets(data);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -46,8 +48,8 @@ export default function BudgetsPage() {
       setNewName("");
       setShowForm(false);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -56,17 +58,13 @@ export default function BudgetsPage() {
       await deleteBudget(id);
       setDeleting(null);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-slate-500">Loading budgets...</p>
-      </div>
-    );
+    return <LoadingState message="Loading budgets..." />;
   }
 
   return (
@@ -75,16 +73,24 @@ export default function BudgetsPage() {
         <h1 className="text-2xl font-bold text-slate-900">Budget Templates</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           {showForm ? "Cancel" : "New Budget"}
         </button>
       </div>
 
+      {error && (
+        <ErrorBanner message={error} onDismiss={() => setError("")} />
+      )}
+
       {showForm && (
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
           <form onSubmit={handleCreate} className="flex items-center gap-3">
+            <label htmlFor="budget-name" className="sr-only">
+              Budget name
+            </label>
             <input
+              id="budget-name"
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -94,7 +100,7 @@ export default function BudgetsPage() {
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               Create
             </button>
@@ -103,11 +109,7 @@ export default function BudgetsPage() {
       )}
 
       {budgets.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
-          <p className="text-slate-500">
-            No budget templates yet. Create one to get started.
-          </p>
-        </div>
+        <EmptyState message="No budget templates yet." />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {budgets.map((b) => (
@@ -141,21 +143,11 @@ export default function BudgetsPage() {
                   Edit
                 </Link>
                 {deleting === b.id ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-red-600">Delete?</span>
-                    <button
-                      onClick={() => handleDelete(b.id)}
-                      className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setDeleting(null)}
-                      className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  <ConfirmDelete
+                    onConfirm={() => handleDelete(b.id)}
+                    onCancel={() => setDeleting(null)}
+                    label="Delete budget?"
+                  />
                 ) : (
                   <button
                     onClick={() => setDeleting(b.id)}

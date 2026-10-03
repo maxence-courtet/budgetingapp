@@ -13,73 +13,14 @@ import {
   deleteTransaction,
   updateTransactionStatus,
 } from "@/lib/api";
+import { fmt } from "@/lib/format";
+import { MONTH_NAMES, STATUS_COLORS, TYPE_COLORS, STATUS_ORDER } from "@/lib/constants";
+import type { Category, Account, Transaction, Month as MonthData, BudgetTemplate } from "@/lib/types";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
-
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
-
-const STATUS_ORDER = ["PLANNED", "PAID", "PENDING", "SKIPPED"] as const;
 type Status = (typeof STATUS_ORDER)[number];
-
-const STATUS_COLORS: Record<Status, string> = {
-  PLANNED: "bg-slate-100 text-slate-700",
-  PAID: "bg-green-100 text-green-700",
-  PENDING: "bg-yellow-100 text-yellow-700",
-  SKIPPED: "bg-slate-200 text-slate-400",
-};
-
-const TYPE_COLORS: Record<string, string> = {
-  INCOME: "bg-green-100 text-green-700",
-  SPENDING: "bg-red-100 text-red-700",
-  TRANSFER: "bg-blue-100 text-blue-700",
-};
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-}
-
-interface Transaction {
-  id: string;
-  type: string;
-  date: string;
-  amount: number;
-  description: string | null;
-  status: string;
-  categoryId: string;
-  category: Category;
-  toCategoryId: string | null;
-  fromAccountId: string | null;
-  fromAccount: Account | null;
-  toAccountId: string | null;
-  toAccount: Account | null;
-  fromTemplate: boolean;
-}
-
-interface MonthData {
-  id: string;
-  month: number;
-  year: number;
-  budgetTemplateId: string | null;
-  budgetTemplate: { id: string; name: string } | null;
-  transactions: Transaction[];
-}
-
-interface BudgetTemplate {
-  id: string;
-  name: string;
-}
 
 const emptyTxForm = {
   type: "SPENDING",
@@ -127,14 +68,14 @@ function TransactionTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50">
-            <th className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
-            <th className="text-left px-4 py-3 font-medium text-slate-600">Description</th>
-            <th className="text-left px-4 py-3 font-medium text-slate-600">Type</th>
-            <th className="text-right px-4 py-3 font-medium text-slate-600">Amount</th>
-            <th className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
-            <th className="text-left px-4 py-3 font-medium text-slate-600">Account(s)</th>
-            <th className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
-            <th className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Description</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Type</th>
+            <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Amount</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Account(s)</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
+            <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -339,28 +280,17 @@ function TransactionTable({
                     className={`inline-block px-2 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${
                       STATUS_COLORS[tx.status as Status] || ""
                     }`}
-                    title="Click to cycle status"
+                    aria-label={`Status: ${tx.status}. Click to cycle`}
                   >
                     {tx.status}
                   </button>
                 </td>
                 <td className="px-4 py-3 text-right">
                   {confirmDeleteTxId === tx.id ? (
-                    <div className="flex items-center justify-end gap-2">
-                      <span className="text-sm text-slate-600">Sure?</span>
-                      <button
-                        onClick={() => handleDeleteTx(tx.id)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteTxId(null)}
-                        className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
-                      >
-                        No
-                      </button>
-                    </div>
+                    <ConfirmDelete
+                      onConfirm={() => handleDeleteTx(tx.id)}
+                      onCancel={() => setConfirmDeleteTxId(null)}
+                    />
                   ) : (
                     <div className="flex items-center justify-end gap-2">
                       <button
@@ -399,6 +329,7 @@ export default function MonthDetailPage({
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [showApply, setShowApply] = useState(false);
   const [applyBudgetId, setApplyBudgetId] = useState("");
@@ -447,8 +378,8 @@ export default function MonthDetailPage({
       setShowApply(false);
       setApplyBudgetId("");
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -487,8 +418,8 @@ export default function MonthDetailPage({
       });
       setShowTxForm(false);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -537,8 +468,8 @@ export default function MonthDetailPage({
       await updateTransaction(editingTxId, payload);
       setEditingTxId(null);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -547,8 +478,8 @@ export default function MonthDetailPage({
       await deleteTransaction(txId);
       setConfirmDeleteTxId(null);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -558,17 +489,13 @@ export default function MonthDetailPage({
     try {
       await updateTransactionStatus(tx.id, nextStatus);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-slate-500">Loading month...</p>
-      </div>
-    );
+    return <LoadingState message="Loading month..." />;
   }
 
   if (!month) {
@@ -602,6 +529,8 @@ export default function MonthDetailPage({
 
   return (
     <div>
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
       <div className="mb-1">
         <Link
           href="/months"
@@ -630,7 +559,7 @@ export default function MonthDetailPage({
           </button>
           <button
             onClick={() => setShowTxForm(!showTxForm)}
-            className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
           >
             {showTxForm ? "Cancel" : "Add Transaction"}
           </button>
@@ -661,7 +590,7 @@ export default function MonthDetailPage({
             <button
               onClick={handleApplyBudget}
               disabled={!applyBudgetId}
-              className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Apply
             </button>
@@ -858,7 +787,7 @@ export default function MonthDetailPage({
             <div className="mt-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 Save Transaction
               </button>

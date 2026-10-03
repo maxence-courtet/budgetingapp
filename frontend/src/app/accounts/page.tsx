@@ -8,10 +8,11 @@ import {
   updateAccount,
   deleteAccount,
 } from "@/lib/api";
-
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+import { fmt } from "@/lib/format";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 
 const ACCOUNT_TYPES = [
   "checking",
@@ -113,11 +114,7 @@ export default function AccountsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-slate-500">Loading accounts...</p>
-      </div>
-    );
+    return <LoadingState message="Loading accounts..." />;
   }
 
   return (
@@ -130,7 +127,7 @@ export default function AccountsPage() {
               resetForm();
               setShowCreate(true);
             }}
-            className="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             New Account
           </button>
@@ -138,15 +135,7 @@ export default function AccountsPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            onClick={() => setError("")}
-            className="text-red-500 hover:text-red-700"
-          >
-            Dismiss
-          </button>
-        </div>
+        <ErrorBanner message={error} onDismiss={() => setError("")} />
       )}
 
       {/* Create Form */}
@@ -157,10 +146,11 @@ export default function AccountsPage() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="account-name" className="block text-sm font-medium text-slate-700 mb-1">
                 Name
               </label>
               <input
+                id="account-name"
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
@@ -169,10 +159,11 @@ export default function AccountsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="account-type" className="block text-sm font-medium text-slate-700 mb-1">
                 Type
               </label>
               <select
+                id="account-type"
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
@@ -185,10 +176,11 @@ export default function AccountsPage() {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="account-notes" className="block text-sm font-medium text-slate-700 mb-1">
                 Notes
               </label>
               <textarea
+                id="account-notes"
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
                 rows={2}
@@ -201,7 +193,7 @@ export default function AccountsPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !formName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving..." : "Create Account"}
             </button>
@@ -217,24 +209,31 @@ export default function AccountsPage() {
 
       {/* Accounts Table */}
       {accounts.length === 0 ? (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-8 text-center text-slate-500">
-          No accounts yet. Click &quot;New Account&quot; to get started.
-        </div>
+        <EmptyState
+          message="No accounts yet."
+          cta={{
+            label: "Create your first account",
+            onClick: () => {
+              resetForm();
+              setShowCreate(true);
+            },
+          }}
+        />
       ) : (
         <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-600">
+                <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                   Name
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-slate-600">
+                <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                   Type
                 </th>
-                <th className="text-right px-4 py-3 font-medium text-slate-600">
+                <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                   Balance
                 </th>
-                <th className="text-right px-4 py-3 font-medium text-slate-600">
+                <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                   Actions
                 </th>
               </tr>
@@ -275,7 +274,7 @@ export default function AccountsPage() {
                         <button
                           onClick={handleUpdate}
                           disabled={saving || !formName.trim()}
-                          className="px-3 py-1 text-xs font-medium bg-slate-900 text-white rounded hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                          className="px-3 py-1 text-xs font-medium bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                         >
                           {saving ? "Saving..." : "Save"}
                         </button>
@@ -316,20 +315,11 @@ export default function AccountsPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {deleteConfirm === a.id ? (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleDelete(a.id)}
-                            className="px-3 py-1 text-xs font-medium bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                          >
-                            Confirm Delete
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        <ConfirmDelete
+                          onConfirm={() => handleDelete(a.id)}
+                          onCancel={() => setDeleteConfirm(null)}
+                          label="Delete account?"
+                        />
                       ) : (
                         <div className="flex justify-end gap-2">
                           <button

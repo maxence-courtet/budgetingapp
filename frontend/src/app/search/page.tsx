@@ -1,33 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   searchTransactions,
   getAccounts,
   getCategories,
 } from "@/lib/api";
-
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
-
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
-
-const TYPE_COLORS: Record<string, string> = {
-  INCOME: "bg-green-100 text-green-700",
-  SPENDING: "bg-red-100 text-red-700",
-  TRANSFER: "bg-blue-100 text-blue-700",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  PLANNED: "bg-slate-100 text-slate-700",
-  PAID: "bg-green-100 text-green-700",
-  PENDING: "bg-yellow-100 text-yellow-700",
-  SKIPPED: "bg-slate-200 text-slate-400",
-};
+import { fmt } from "@/lib/format";
+import { MONTH_NAMES } from "@/lib/constants";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { TypeBadge } from "@/components/ui/TypeBadge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 interface Category {
   id: string;
@@ -59,6 +44,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Filters
   const [description, setDescription] = useState("");
@@ -77,7 +63,7 @@ export default function SearchPage() {
         setAccounts(a);
         setCategories(c);
       })
-      .catch(console.error);
+      .catch((e: any) => setError(e.message));
   }, []);
 
   const handleSearch = async (e?: React.FormEvent) => {
@@ -98,8 +84,8 @@ export default function SearchPage() {
 
       const data = await searchTransactions(params);
       setResults(Array.isArray(data) ? data : data.transactions ?? []);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
       setResults([]);
     } finally {
       setLoading(false);
@@ -126,10 +112,16 @@ export default function SearchPage() {
         Search Transactions
       </h1>
 
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
       <form onSubmit={handleSearch}>
         {/* Search bar */}
         <div className="mb-4">
+          <label htmlFor="search-description" className="sr-only">
+            Search by description
+          </label>
           <input
+            id="search-description"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -142,7 +134,7 @@ export default function SearchPage() {
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-sm font-medium text-slate-600 mb-1">
                 Account
               </label>
               <select
@@ -160,7 +152,7 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-sm font-medium text-slate-600 mb-1">
                 Category
               </label>
               <select
@@ -178,7 +170,7 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-sm font-medium text-slate-600 mb-1">
                 Type
               </label>
               <select
@@ -194,7 +186,7 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-sm font-medium text-slate-600 mb-1">
                 Status
               </label>
               <select
@@ -211,7 +203,7 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-sm font-medium text-slate-600 mb-1">
                 Date From
               </label>
               <input
@@ -223,7 +215,7 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-sm font-medium text-slate-600 mb-1">
                 Date To
               </label>
               <input
@@ -235,7 +227,7 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-sm font-medium text-slate-600 mb-1">
                 Amount Min
               </label>
               <input
@@ -250,7 +242,7 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-sm font-medium text-slate-600 mb-1">
                 Amount Max
               </label>
               <input
@@ -268,7 +260,7 @@ export default function SearchPage() {
           <div className="flex gap-3 mt-4">
             <button
               type="submit"
-              className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
             >
               Search
             </button>
@@ -285,7 +277,7 @@ export default function SearchPage() {
 
       {/* Results */}
       {loading ? (
-        <p className="text-slate-500 py-8 text-center">Searching...</p>
+        <LoadingState message="Searching..." />
       ) : searched ? (
         <div>
           <p className="text-sm text-slate-500 mb-3">
@@ -298,28 +290,28 @@ export default function SearchPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
+                      <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                         Date
                       </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
+                      <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                         Description
                       </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
+                      <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                         Type
                       </th>
-                      <th className="text-right px-4 py-3 font-medium text-slate-600">
+                      <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                         Amount
                       </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
+                      <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                         Category
                       </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
+                      <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                         Account(s)
                       </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
+                      <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                         Status
                       </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
+                      <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                         Month
                       </th>
                     </tr>
@@ -363,13 +355,7 @@ export default function SearchPage() {
                             {tx.description || "-"}
                           </td>
                           <td className="px-4 py-3">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                TYPE_COLORS[tx.type] || ""
-                              }`}
-                            >
-                              {tx.type}
-                            </span>
+                            <TypeBadge type={tx.type} />
                           </td>
                           <td
                             className={`px-4 py-3 text-right font-mono ${amountColor}`}
@@ -384,18 +370,17 @@ export default function SearchPage() {
                             {accountStr}
                           </td>
                           <td className="px-4 py-3">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                STATUS_COLORS[tx.status] || ""
-                              }`}
-                            >
-                              {tx.status}
-                            </span>
+                            <StatusBadge status={tx.status} />
                           </td>
                           <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                            {tx.month
-                              ? `${MONTH_NAMES[tx.month.month - 1]} ${tx.month.year}`
-                              : "-"}
+                            {tx.month ? (
+                              <Link
+                                href={`/months/${tx.month.id}`}
+                                className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                              >
+                                {MONTH_NAMES[tx.month.month - 1]} {tx.month.year}
+                              </Link>
+                            ) : "-"}
                           </td>
                         </tr>
                       );

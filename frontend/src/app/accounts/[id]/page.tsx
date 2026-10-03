@@ -3,10 +3,11 @@
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { getAccount, getTransactions } from "@/lib/api";
-
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+import { fmt } from "@/lib/format";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { TypeBadge } from "@/components/ui/TypeBadge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export default function AccountDetail({
   params,
@@ -39,22 +40,10 @@ export default function AccountDetail({
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-slate-500">Loading account...</p>
-      </div>
-    );
+    return <LoadingState message="Loading account..." />;
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
-        {error}
-      </div>
-    );
-  }
-
-  if (!account) {
+  if (!account && !error) {
     return (
       <div className="bg-slate-50 border border-slate-200 text-slate-600 rounded-lg p-4">
         Account not found.
@@ -109,6 +98,8 @@ export default function AccountDetail({
 
   return (
     <div className="space-y-8">
+      {error && <ErrorBanner message={error} />}
+
       {/* Back link */}
       <Link
         href="/accounts"
@@ -157,10 +148,10 @@ export default function AccountDetail({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                     Category
                   </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                     Balance
                   </th>
                 </tr>
@@ -204,22 +195,22 @@ export default function AccountDetail({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                     Date
                   </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                     Description
                   </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                     Type
                   </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
                     Amount
                   </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                     Category
                   </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
                     Status
                   </th>
                 </tr>
@@ -237,17 +228,7 @@ export default function AccountDetail({
                       {t.description}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                          t.type === "INCOME"
-                            ? "bg-green-100 text-green-700"
-                            : t.type === "TRANSFER"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {t.type}
-                      </span>
+                      <TypeBadge type={t.type} />
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-medium ${
@@ -269,9 +250,7 @@ export default function AccountDetail({
                       {t.category?.name ?? t.categoryName ?? "-"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-slate-500 uppercase">
-                        {t.status}
-                      </span>
+                      <StatusBadge status={t.status} />
                     </td>
                   </tr>
                 ))}

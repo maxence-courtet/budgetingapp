@@ -2,19 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { getAccountSummary, getMonthlySummary, getMonths } from "@/lib/api";
-
-const fmt = (n: number) =>
-  "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
-
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
+import { fmt } from "@/lib/format";
+import { MONTH_NAMES } from "@/lib/constants";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 
 type Tab = "accounts" | "monthly";
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>("accounts");
+  const [error, setError] = useState("");
 
   // Account summary state
   const [accountData, setAccountData] = useState<any[]>([]);
@@ -31,7 +28,7 @@ export default function ReportsPage() {
       setAccountLoading(true);
       getAccountSummary()
         .then((data) => setAccountData(data))
-        .catch(console.error)
+        .catch((e: any) => setError(e.message))
         .finally(() => setAccountLoading(false));
     }
   }, [tab]);
@@ -49,7 +46,7 @@ export default function ReportsPage() {
             setSelectedMonthId(sorted[0].id);
           }
         })
-        .catch(console.error);
+        .catch((e: any) => setError(e.message));
     }
   }, [tab]);
 
@@ -58,7 +55,7 @@ export default function ReportsPage() {
       setMonthlyLoading(true);
       getMonthlySummary(selectedMonthId)
         .then((data) => setMonthlyData(data))
-        .catch(console.error)
+        .catch((e: any) => setError(e.message))
         .finally(() => setMonthlyLoading(false));
     }
   }, [selectedMonthId]);
@@ -67,8 +64,14 @@ export default function ReportsPage() {
     <div>
       <h1 className="text-2xl font-bold text-slate-900 mb-6">Reports</h1>
 
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-lg mb-6 w-fit">
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
+      <div role="tablist" aria-label="Report type" className="flex gap-1 bg-slate-100 p-1 rounded-lg mb-6 w-fit">
         <button
+          id="tab-accounts"
+          role="tab"
+          aria-selected={tab === "accounts"}
+          aria-controls="tab-accounts-panel"
           onClick={() => setTab("accounts")}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             tab === "accounts"
@@ -79,6 +82,10 @@ export default function ReportsPage() {
           Account Summary
         </button>
         <button
+          id="tab-monthly"
+          role="tab"
+          aria-selected={tab === "monthly"}
+          aria-controls="tab-monthly-panel"
           onClick={() => setTab("monthly")}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             tab === "monthly"
@@ -91,9 +98,9 @@ export default function ReportsPage() {
       </div>
 
       {tab === "accounts" && (
-        <div>
+        <div id="tab-accounts-panel" role="tabpanel" aria-labelledby="tab-accounts">
           {accountLoading ? (
-            <p className="text-slate-500 py-8 text-center">Loading...</p>
+            <LoadingState message="Loading..." />
           ) : accountData.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
               <p className="text-slate-500">No account data available.</p>
@@ -107,7 +114,7 @@ export default function ReportsPage() {
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">{acct.name}</h3>
+                      <h2 className="text-lg font-semibold text-slate-900">{acct.name}</h2>
                       <span className="text-sm text-slate-500">{acct.type}</span>
                     </div>
                     <span
@@ -124,16 +131,16 @@ export default function ReportsPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-200">
-                          <th className="text-left py-2 font-medium text-slate-600">Category</th>
-                          <th className="text-right py-2 font-medium text-slate-600">Balance</th>
+                          <th scope="col" className="text-left px-4 py-2 font-medium text-slate-600">Category</th>
+                          <th scope="col" className="text-right px-4 py-2 font-medium text-slate-600">Balance</th>
                         </tr>
                       </thead>
                       <tbody>
                         {acct.categories.map((cat: any) => (
                           <tr key={cat.id} className="border-b border-slate-50">
-                            <td className="py-2 text-slate-700">{cat.name}</td>
+                            <td className="px-4 py-2 text-slate-700">{cat.name}</td>
                             <td
-                              className={`py-2 text-right font-mono ${
+                              className={`px-4 py-2 text-right font-mono ${
                                 cat.balance >= 0 ? "text-green-600" : "text-red-600"
                               }`}
                             >
@@ -153,7 +160,7 @@ export default function ReportsPage() {
       )}
 
       {tab === "monthly" && (
-        <div>
+        <div id="tab-monthly-panel" role="tabpanel" aria-labelledby="tab-monthly">
           <div className="mb-6">
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Select Month
@@ -173,7 +180,7 @@ export default function ReportsPage() {
           </div>
 
           {monthlyLoading ? (
-            <p className="text-slate-500 py-8 text-center">Loading...</p>
+            <LoadingState message="Loading..." />
           ) : !monthlyData ? (
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
               <p className="text-slate-500">Select a month to view its summary.</p>
@@ -221,10 +228,10 @@ export default function ReportsPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-200 bg-slate-50">
-                          <th className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
-                          <th className="text-right px-4 py-3 font-medium text-slate-600">Income</th>
-                          <th className="text-right px-4 py-3 font-medium text-slate-600">Spending</th>
-                          <th className="text-right px-4 py-3 font-medium text-slate-600">Net</th>
+                          <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
+                          <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Income</th>
+                          <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Spending</th>
+                          <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Net</th>
                         </tr>
                       </thead>
                       <tbody>
