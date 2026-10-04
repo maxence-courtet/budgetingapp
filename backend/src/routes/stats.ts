@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
+import { generateInsights } from "../services/insights";
 
 const router = Router();
 router.use(authMiddleware);
 
-router.get("/life-overview", async (req, res) => {
-  const userId = req.userId!;
+export async function buildLifeOverview(userId: string) {
   const now = new Date();
   const thisMonth = now.getMonth() + 1;
   const thisYear = now.getFullYear();
@@ -60,8 +60,20 @@ router.get("/life-overview", async (req, res) => {
   });
   const topCategories = Array.from(categoryTotals.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([categoryId, total]) => ({ categoryId, total }));
+    .slice(0, 3);
+  const categoryNames = new Map(
+    (
+      await prisma.category.findMany({
+        where: { id: { in: topCategories.map(([id]) => id) } },
+        select: { id: true, name: true },
+      })
+    ).map((c) => [c.id, c.name])
+  );
+  const topSpendingCategories = topCategories.map(([categoryId, total]) => ({
+    categoryId,
+    name: categoryNames.get(categoryId) ?? null,
+    total,
+  }));
 
   // Habit streaks (7-day window)
   const habitStats = activeHabits.map((habit) => {
@@ -88,13 +100,13 @@ router.get("/life-overview", async (req, res) => {
     return daysLeft < 30 && progress < 0.5;
   });
 
-  res.json({
+  return {
     generatedAt: now.toISOString(),
     finance: {
       currentMonthIncome: monthIncome,
       currentMonthSpending: monthSpending,
       currentMonthNet: monthIncome - monthSpending,
-      topSpendingCategories: topCategories,
+      topSpendingCategories,
       accountCount: accounts.length,
     },
     habits: {
@@ -121,7 +133,20 @@ router.get("/life-overview", async (req, res) => {
       recentCount: recentNotes.length,
       recent: recentNotes.map((n) => ({ id: n.id, title: n.title, createdAt: n.createdAt })),
     },
-  });
+  };
+}
+
+router.get("/life-overview", async (req, res) => {
+  res.json(await buildLifeOverview(req.userId!));
+});
+
+router.post("/insights", async (req, res) => {
+  try {
+    const overview = await buildLifeOverview(req.userId!);
+    res.json({ generatedAt: overview.generatedAt, ...(await generateInsights(overview)) });
+  } catch (err: any) {
+    res.status(err.status ?? 502).json({ error: err.message });
+  }
 });
 
 export default router;

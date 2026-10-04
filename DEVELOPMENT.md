@@ -22,7 +22,7 @@ cd backend && npm run db:push && cd ..
 
 # 4. Configure environment variables
 cp backend/.env.example backend/.env
-# Edit backend/.env — set DATABASE_URL, AUTH0_*, SERVICE_TOKEN
+# Edit backend/.env — set DATABASE_URL, AUTH0_*, SERVICE_TOKEN, ANTHROPIC_API_KEY (optional, for AI Insights)
 
 cp mcp-server/.env.example mcp-server/.env
 # Edit mcp-server/.env — set LIFE_HUB_SERVICE_TOKEN (same value as SERVICE_TOKEN above)
@@ -88,9 +88,10 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
 - Tools: `get_financial_summary`, `get_accounts`, `get_month_detail`, `search_transactions`, `create_month`, `get_portfolio`, `log_trade`, `log_habit`, `get_habits_summary`, `log_fitness`, `get_fitness_history`, `generate_fitness_plan`, `create_fitness_plan`, `get_fitness_plan`, `get_goals`, `update_goal_progress`, `add_note`, `get_notes`, `get_life_stats`, `get_market_price`
 - Service token auth bypass in backend middleware — MCP talks to backend without Auth0
 
-### Phase 5 — AI Analytics (pending)
-- Backend endpoint `GET /api/stats/life-overview` ✅ (done)
-- Frontend "AI Insights" panel on Dashboard — not yet built
+### Phase 5 — AI Analytics ✅
+- Backend endpoint `GET /api/stats/life-overview` ✅
+- `POST /api/stats/insights` ✅ — sends the life-overview snapshot to Claude (`backend/src/services/insights.ts`, model `claude-opus-5-5`, structured JSON output) and returns `{ summary, highlights, alerts, suggestions }`. Requires `ANTHROPIC_API_KEY` in `backend/.env`; returns 503 with a clear message if missing.
+- Dashboard "AI Insights" card ✅ (`frontend/src/components/AiInsightsCard.tsx`) — on-demand "Get Analysis" button (each click is one paid API call)
 
 ---
 
@@ -414,9 +415,9 @@ Each pending item has **Approve** / **Reject** buttons. Approving sets `validate
 }
 ```
 
-### Frontend (pending)
+### Frontend ✅
 - New card on Dashboard: "AI Insights" with "Get Analysis" button
-- Calls `get_life_stats` via MCP → Claude analyzes → shows narrative summary with spending trends, habit consistency, goal risk alerts
+- Calls `POST /api/stats/insights` (the browser can't reach the local MCP server, so the backend calls the Claude API directly) → shows narrative summary with spending trends, habit consistency, goal risk alerts
 
 ---
 

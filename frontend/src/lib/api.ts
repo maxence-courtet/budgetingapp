@@ -205,3 +205,4 @@ export const deleteNote = (id: string) =>
 
 // Stats / AI
 export const getLifeOverview = () => fetchApi('/stats/life-overview');
+export const getLifeInsights = () => fetchApi('/stats/insights', { method: 'POST' });

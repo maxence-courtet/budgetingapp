@@ -10,6 +10,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { AiInsightsCard } from "@/components/AiInsightsCard";
 import { Account, Month, Transaction } from "@/lib/types";
 import { TrendingUp, Plus } from "lucide-react";
 
@@ -78,6 +79,8 @@ export default function Dashboard() {
           across {accounts.length} account{accounts.length !== 1 ? "s" : ""}
         </p>
       </div>
+
+      <AiInsightsCard />
 
       {/* Account Cards */}
       <section aria-labelledby="accounts-heading">

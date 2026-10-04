@@ -14,11 +14,12 @@ import {
   updateTransactionStatus,
 } from "@/lib/api";
 import { fmt } from "@/lib/format";
-import { MONTH_NAMES, STATUS_COLORS, TYPE_COLORS, STATUS_ORDER } from "@/lib/constants";
+import { MONTH_NAMES, STATUS_COLORS, STATUS_ORDER } from "@/lib/constants";
 import type { Category, Account, Transaction, Month as MonthData, BudgetTemplate } from "@/lib/types";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 
 type Status = (typeof STATUS_ORDER)[number];
 
@@ -246,13 +247,7 @@ function TransactionTable({
                   {tx.description || "-"}
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                      TYPE_COLORS[tx.type] || ""
-                    }`}
-                  >
-                    {tx.type}
-                  </span>
+                  <TypeBadge type={tx.type} />
                 </td>
                 <td
                   className={`px-4 py-3 text-right font-mono ${amountColor}`}

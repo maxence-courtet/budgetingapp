@@ -22,7 +22,7 @@ const allTools = [
 ];
 
 for (const tool of allTools) {
-  server.tool(tool.name, tool.description, tool.inputSchema.shape, async (args) => {
+  server.tool(tool.name, tool.description, tool.inputSchema.shape, async (args: Record<string, unknown>) => {
     try {
       const result = await tool.handler(args as any);
       return {
