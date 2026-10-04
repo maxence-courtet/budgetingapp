@@ -214,7 +214,7 @@ export default function BudgetDetailPage({
   if (!budget) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-slate-500">Budget template not found.</p>
+        <p className="text-muted">Budget template not found.</p>
       </div>
     );
   }
@@ -227,7 +227,7 @@ export default function BudgetDetailPage({
       <div className="mb-1">
         <Link
           href="/budgets"
-          className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          className="text-sm text-muted hover:text-fg-2 transition-colors"
         >
           &larr; Back to Budgets
         </Link>
@@ -244,12 +244,12 @@ export default function BudgetDetailPage({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="text-2xl font-bold text-slate-900 border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="text-2xl font-bold text-fg border border-line-strong rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent/40"
               autoFocus
             />
             <button
               onClick={handleSaveName}
-              className="px-3 py-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+              className="px-3 py-1.5 text-sm font-medium bg-accent hover:bg-accent-hover text-accent-ink rounded-xl transition-colors"
             >
               Save
             </button>
@@ -258,19 +258,19 @@ export default function BudgetDetailPage({
                 setEditingName(false);
                 setName(budget.name);
               }}
-              className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-muted bg-surface-2 rounded-xl hover:bg-line transition-colors"
             >
               Cancel
             </button>
           </>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-[28px] font-semibold tracking-tight text-fg">
               {budget.name}
             </h1>
             <button
               onClick={() => setEditingName(true)}
-              className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-muted bg-surface-2 rounded-xl hover:bg-line transition-colors"
             >
               Rename
             </button>
@@ -279,14 +279,14 @@ export default function BudgetDetailPage({
       </div>
 
       {/* Definitions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">
+      <div className="bg-surface rounded-2xl border border-line overflow-hidden mb-6">
+        <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-fg">
             Definitions ({budget.definitions.length})
           </h2>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-ink text-sm font-medium rounded-xl transition-colors"
           >
             {showForm ? "Cancel" : "Add Definition"}
           </button>
@@ -296,46 +296,46 @@ export default function BudgetDetailPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
+                <tr className="border-b border-line bg-surface-2">
                   <th
                     scope="col"
-                    className="text-left px-4 py-3 font-medium text-slate-600"
+                    className="text-left px-4 py-3 font-medium text-muted"
                   >
                     Type
                   </th>
                   <th
                     scope="col"
-                    className="text-right px-4 py-3 font-medium text-slate-600"
+                    className="text-right px-4 py-3 font-medium text-muted"
                   >
                     Amount
                   </th>
                   <th
                     scope="col"
-                    className="text-left px-4 py-3 font-medium text-slate-600"
+                    className="text-left px-4 py-3 font-medium text-muted"
                   >
                     Category
                   </th>
                   <th
                     scope="col"
-                    className="text-left px-4 py-3 font-medium text-slate-600"
+                    className="text-left px-4 py-3 font-medium text-muted"
                   >
                     From Account
                   </th>
                   <th
                     scope="col"
-                    className="text-left px-4 py-3 font-medium text-slate-600"
+                    className="text-left px-4 py-3 font-medium text-muted"
                   >
                     To Account
                   </th>
                   <th
                     scope="col"
-                    className="text-left px-4 py-3 font-medium text-slate-600"
+                    className="text-left px-4 py-3 font-medium text-muted"
                   >
                     Description
                   </th>
                   <th
                     scope="col"
-                    className="text-right px-4 py-3 font-medium text-slate-600"
+                    className="text-right px-4 py-3 font-medium text-muted"
                   >
                     Actions
                   </th>
@@ -344,12 +344,12 @@ export default function BudgetDetailPage({
               <tbody>
                 {budget.definitions.map((d) =>
                   editingDefId === d.id ? (
-                    <tr key={d.id} className="border-b border-slate-100 bg-slate-50">
+                    <tr key={d.id} className="border-b border-line bg-surface-2">
                       <td className="px-4 py-2">
                         <select
                           value={editForm.type}
                           onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
-                          className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                         >
                           <option value="INCOME">INCOME</option>
                           <option value="SPENDING">SPENDING</option>
@@ -363,7 +363,7 @@ export default function BudgetDetailPage({
                           min="0"
                           value={editForm.amount}
                           onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-                          className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-accent/40"
                           required
                         />
                       </td>
@@ -371,7 +371,7 @@ export default function BudgetDetailPage({
                         <select
                           value={editForm.categoryId}
                           onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })}
-                          className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                           required
                         >
                           <option value="">Select</option>
@@ -385,7 +385,7 @@ export default function BudgetDetailPage({
                           <select
                             value={editForm.fromAccountId}
                             onChange={(e) => setEditForm({ ...editForm, fromAccountId: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                           >
                             <option value="">None</option>
                             {accounts.map((a) => (
@@ -393,7 +393,7 @@ export default function BudgetDetailPage({
                             ))}
                           </select>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-faint">-</span>
                         )}
                       </td>
                       <td className="px-4 py-2">
@@ -401,7 +401,7 @@ export default function BudgetDetailPage({
                           <select
                             value={editForm.toAccountId}
                             onChange={(e) => setEditForm({ ...editForm, toAccountId: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                           >
                             <option value="">None</option>
                             {accounts.map((a) => (
@@ -409,7 +409,7 @@ export default function BudgetDetailPage({
                             ))}
                           </select>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-faint">-</span>
                         )}
                       </td>
                       <td className="px-4 py-2">
@@ -418,20 +418,20 @@ export default function BudgetDetailPage({
                           value={editForm.description}
                           onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                           placeholder="Optional"
-                          className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                         />
                       </td>
                       <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={handleUpdateDef}
-                            className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
+                            className="text-pos hover:text-green-800 text-sm font-medium transition-colors"
                           >
                             Save
                           </button>
                           <button
                             onClick={() => setEditingDefId(null)}
-                            className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                            className="text-muted hover:text-fg-2 text-sm font-medium transition-colors"
                           >
                             Cancel
                           </button>
@@ -441,7 +441,7 @@ export default function BudgetDetailPage({
                   ) : (
                   <tr
                     key={d.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
+                    className="border-b border-line hover:bg-surface-2"
                   >
                     <td className="px-4 py-3">
                       <span
@@ -462,19 +462,19 @@ export default function BudgetDetailPage({
                     <td className="px-4 py-3">
                       {d.category?.name ?? catName(d.categoryId)}
                       {d.toCategoryId && (
-                        <span className="text-slate-400">
+                        <span className="text-faint">
                           {" "}
                           / {catName(d.toCategoryId)}
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-muted">
                       {d.fromAccount?.name ?? "-"}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-muted">
                       {d.toAccount?.name ?? "-"}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-muted">
                       {d.description || "-"}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -490,13 +490,13 @@ export default function BudgetDetailPage({
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => startEditDef(d)}
-                            className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors"
+                            className="text-muted hover:text-fg text-sm font-medium transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(d.id)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                            className="text-neg hover:text-red-800 text-sm font-medium transition-colors"
                           >
                             Delete
                           </button>
@@ -512,7 +512,7 @@ export default function BudgetDetailPage({
         )}
 
         {budget.definitions.length === 0 && !showForm && (
-          <div className="px-5 py-8 text-center text-slate-500">
+          <div className="px-5 py-8 text-center text-muted">
             No definitions yet. Add one to define your budget.
           </div>
         )}
@@ -521,13 +521,13 @@ export default function BudgetDetailPage({
         {showForm && (
           <form
             onSubmit={handleAddDefinition}
-            className="p-5 border-t border-slate-200 bg-slate-50"
+            className="p-5 border-t border-line bg-surface-2"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label
                   htmlFor="def-type"
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-sm font-medium text-fg-2 mb-1"
                 >
                   Type
                 </label>
@@ -537,7 +537,7 @@ export default function BudgetDetailPage({
                   onChange={(e) =>
                     setForm({ ...form, type: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 >
                   <option value="INCOME">INCOME</option>
                   <option value="SPENDING">SPENDING</option>
@@ -548,7 +548,7 @@ export default function BudgetDetailPage({
               <div>
                 <label
                   htmlFor="def-amount"
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-sm font-medium text-fg-2 mb-1"
                 >
                   Amount
                 </label>
@@ -562,7 +562,7 @@ export default function BudgetDetailPage({
                     setForm({ ...form, amount: e.target.value })
                   }
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   required
                 />
               </div>
@@ -570,7 +570,7 @@ export default function BudgetDetailPage({
               <div>
                 <label
                   htmlFor="def-category"
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-sm font-medium text-fg-2 mb-1"
                 >
                   Category
                 </label>
@@ -580,7 +580,7 @@ export default function BudgetDetailPage({
                   onChange={(e) =>
                     setForm({ ...form, categoryId: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   required
                 >
                   <option value="">Select category</option>
@@ -596,7 +596,7 @@ export default function BudgetDetailPage({
                 <div>
                   <label
                     htmlFor="def-to-category"
-                    className="block text-sm font-medium text-slate-700 mb-1"
+                    className="block text-sm font-medium text-fg-2 mb-1"
                   >
                     To Category
                   </label>
@@ -606,7 +606,7 @@ export default function BudgetDetailPage({
                     onChange={(e) =>
                       setForm({ ...form, toCategoryId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="">Select category</option>
                     {categories.map((c) => (
@@ -622,7 +622,7 @@ export default function BudgetDetailPage({
                 <div>
                   <label
                     htmlFor="def-from-account"
-                    className="block text-sm font-medium text-slate-700 mb-1"
+                    className="block text-sm font-medium text-fg-2 mb-1"
                   >
                     From Account
                   </label>
@@ -632,7 +632,7 @@ export default function BudgetDetailPage({
                     onChange={(e) =>
                       setForm({ ...form, fromAccountId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="">Select account</option>
                     {accounts.map((a) => (
@@ -648,7 +648,7 @@ export default function BudgetDetailPage({
                 <div>
                   <label
                     htmlFor="def-to-account"
-                    className="block text-sm font-medium text-slate-700 mb-1"
+                    className="block text-sm font-medium text-fg-2 mb-1"
                   >
                     To Account
                   </label>
@@ -658,7 +658,7 @@ export default function BudgetDetailPage({
                     onChange={(e) =>
                       setForm({ ...form, toAccountId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="">Select account</option>
                     {accounts.map((a) => (
@@ -673,7 +673,7 @@ export default function BudgetDetailPage({
               <div>
                 <label
                   htmlFor="def-description"
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-sm font-medium text-fg-2 mb-1"
                 >
                   Description
                 </label>
@@ -685,7 +685,7 @@ export default function BudgetDetailPage({
                     setForm({ ...form, description: e.target.value })
                   }
                   placeholder="Optional description"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
               </div>
             </div>
@@ -693,7 +693,7 @@ export default function BudgetDetailPage({
             <div className="mt-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-ink text-sm font-medium rounded-xl transition-colors"
               >
                 Save Definition
               </button>
@@ -743,39 +743,39 @@ export default function BudgetDetailPage({
         if (accountRows.length === 0) return null;
 
         return (
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
-            <div className="px-5 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-900">Account Impact</h2>
+          <div className="bg-surface rounded-2xl border border-line overflow-hidden mb-6">
+            <div className="px-5 py-4 border-b border-line">
+              <h2 className="text-lg font-semibold text-fg">Account Impact</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Account</th>
-                    <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Income</th>
-                    <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Spending</th>
-                    <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Transfers In</th>
-                    <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Transfers Out</th>
-                    <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Net</th>
+                  <tr className="border-b border-line bg-surface-2">
+                    <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Account</th>
+                    <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Income</th>
+                    <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Spending</th>
+                    <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Transfers In</th>
+                    <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Transfers Out</th>
+                    <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Net</th>
                   </tr>
                 </thead>
                 <tbody>
                   {accountRows.map((a) => (
-                    <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium text-slate-900">{a.name}</td>
-                      <td className="px-4 py-3 text-right font-mono text-green-600">
+                    <tr key={a.id} className="border-b border-line hover:bg-surface-2">
+                      <td className="px-4 py-3 font-medium text-fg">{a.name}</td>
+                      <td className="px-4 py-3 text-right font-mono text-pos">
                         {a.income > 0 ? fmt(a.income) : "-"}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-red-600">
+                      <td className="px-4 py-3 text-right font-mono text-neg">
                         {a.spending > 0 ? fmt(a.spending) : "-"}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-blue-600">
+                      <td className="px-4 py-3 text-right font-mono text-muted">
                         {a.transferIn > 0 ? fmt(a.transferIn) : "-"}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-blue-600">
+                      <td className="px-4 py-3 text-right font-mono text-muted">
                         {a.transferOut > 0 ? fmt(a.transferOut) : "-"}
                       </td>
-                      <td className={`px-4 py-3 text-right font-mono font-medium ${a.net >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      <td className={`px-4 py-3 text-right font-mono font-medium ${a.net >= 0 ? "text-pos" : "text-neg"}`}>
                         {a.net >= 0 ? "+" : "-"}{fmt(a.net)}
                       </td>
                     </tr>
@@ -789,8 +789,8 @@ export default function BudgetDetailPage({
 
       {/* Months using this template */}
       {budget.months.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">
+        <div className="bg-surface rounded-2xl border border-line p-5">
+          <h2 className="text-lg font-semibold text-fg mb-3">
             Months Using This Template
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -798,7 +798,7 @@ export default function BudgetDetailPage({
               <Link
                 key={m.id}
                 href={`/months/${m.id}`}
-                className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                className="px-3 py-1.5 text-sm font-medium text-fg-2 bg-surface-2 rounded-xl hover:bg-line transition-colors"
               >
                 {MONTHS[m.month - 1]} {m.year}
               </Link>

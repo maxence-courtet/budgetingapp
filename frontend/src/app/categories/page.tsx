@@ -104,14 +104,14 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Categories</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Categories</h1>
         {!showCreate && !editingId && (
           <button
             onClick={() => {
               resetForm();
               setShowCreate(true);
             }}
-            className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-accent-ink rounded-xl transition-colors"
           >
             New Category
           </button>
@@ -124,15 +124,15 @@ export default function CategoriesPage() {
 
       {/* Create Form */}
       {showCreate && (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <div className="bg-surface border border-line rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-fg mb-4">
             New Category
           </h2>
           <div className="flex gap-3 items-end">
             <div className="flex-1">
               <label
                 htmlFor="category-name"
-                className="block text-sm font-medium text-slate-700 mb-1"
+                className="block text-sm font-medium text-fg-2 mb-1"
               >
                 Name
               </label>
@@ -142,7 +142,7 @@ export default function CategoriesPage() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, handleCreate)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 placeholder="Category name"
                 autoFocus
               />
@@ -150,13 +150,13 @@ export default function CategoriesPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !formName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-accent-ink rounded-xl disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving..." : "Create"}
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
@@ -168,25 +168,25 @@ export default function CategoriesPage() {
       {categories.length === 0 ? (
         <EmptyState message="No categories yet." />
       ) : (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
+              <tr className="border-b border-line bg-surface-2">
                 <th
                   scope="col"
-                  className="text-left px-4 py-3 font-medium text-slate-600"
+                  className="text-left px-4 py-3 font-medium text-muted"
                 >
                   Name
                 </th>
                 <th
                   scope="col"
-                  className="text-center px-4 py-3 font-medium text-slate-600"
+                  className="text-center px-4 py-3 font-medium text-muted"
                 >
                   Transactions
                 </th>
                 <th
                   scope="col"
-                  className="text-right px-4 py-3 font-medium text-slate-600"
+                  className="text-right px-4 py-3 font-medium text-muted"
                 >
                   Actions
                 </th>
@@ -197,7 +197,7 @@ export default function CategoriesPage() {
                 editingId === cat.id ? (
                   <tr
                     key={cat.id}
-                    className="border-b border-slate-100 bg-slate-50"
+                    className="border-b border-line bg-surface-2"
                   >
                     <td className="px-4 py-3" colSpan={2}>
                       <input
@@ -205,7 +205,7 @@ export default function CategoriesPage() {
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, handleUpdate)}
-                        className="w-full max-w-xs border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        className="w-full max-w-xs border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                         autoFocus
                       />
                     </td>
@@ -214,13 +214,13 @@ export default function CategoriesPage() {
                         <button
                           onClick={handleUpdate}
                           disabled={saving || !formName.trim()}
-                          className="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded disabled:opacity-50 transition-colors"
+                          className="px-3 py-1 text-xs font-medium bg-accent hover:bg-accent-hover text-accent-ink rounded disabled:opacity-50 transition-colors"
                         >
                           {saving ? "Saving..." : "Save"}
                         </button>
                         <button
                           onClick={resetForm}
-                          className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors"
+                          className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
                         >
                           Cancel
                         </button>
@@ -230,12 +230,12 @@ export default function CategoriesPage() {
                 ) : (
                   <tr
                     key={cat.id}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                    className="border-b border-line last:border-0 hover:bg-surface-2"
                   >
-                    <td className="px-4 py-3 text-slate-900 font-medium">
+                    <td className="px-4 py-3 text-fg font-medium">
                       {cat.name}
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-500">
+                    <td className="px-4 py-3 text-center text-muted">
                       {cat.transactionCount ?? cat._count?.transactions ?? 0}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -258,13 +258,13 @@ export default function CategoriesPage() {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => startEdit(cat)}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(cat.id)}
-                            className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded hover:bg-red-50 transition-colors"
                           >
                             Delete
                           </button>

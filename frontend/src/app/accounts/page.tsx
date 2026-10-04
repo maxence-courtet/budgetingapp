@@ -120,14 +120,14 @@ export default function AccountsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Accounts</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Accounts</h1>
         {!showCreate && !editingId && (
           <button
             onClick={() => {
               resetForm();
               setShowCreate(true);
             }}
-            className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
           >
             New Account
           </button>
@@ -140,13 +140,13 @@ export default function AccountsPage() {
 
       {/* Create Form */}
       {showCreate && (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <div className="bg-surface border border-line rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-fg mb-4">
             New Account
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="account-name" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="account-name" className="block text-sm font-medium text-fg-2 mb-1">
                 Name
               </label>
               <input
@@ -154,19 +154,19 @@ export default function AccountsPage() {
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 placeholder="Account name"
               />
             </div>
             <div>
-              <label htmlFor="account-type" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="account-type" className="block text-sm font-medium text-fg-2 mb-1">
                 Type
               </label>
               <select
                 id="account-type"
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 {ACCOUNT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -176,7 +176,7 @@ export default function AccountsPage() {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="account-notes" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="account-notes" className="block text-sm font-medium text-fg-2 mb-1">
                 Notes
               </label>
               <textarea
@@ -184,7 +184,7 @@ export default function AccountsPage() {
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
                 rows={2}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 placeholder="Optional notes"
               />
             </div>
@@ -193,13 +193,13 @@ export default function AccountsPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !formName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving..." : "Create Account"}
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
@@ -220,20 +220,20 @@ export default function AccountsPage() {
           }}
         />
       ) : (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+              <tr className="border-b border-line bg-surface-2">
+                <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                   Name
                 </th>
-                <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                   Type
                 </th>
-                <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                   Balance
                 </th>
-                <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                   Actions
                 </th>
               </tr>
@@ -243,21 +243,21 @@ export default function AccountsPage() {
                 editingId === a.id ? (
                   <tr
                     key={a.id}
-                    className="border-b border-slate-100 bg-slate-50"
+                    className="border-b border-line bg-surface-2"
                   >
                     <td className="px-4 py-3">
                       <input
                         type="text"
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
-                        className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        className="w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                       />
                     </td>
                     <td className="px-4 py-3">
                       <select
                         value={formType}
                         onChange={(e) => setFormType(e.target.value)}
-                        className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        className="w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                       >
                         {ACCOUNT_TYPES.map((t) => (
                           <option key={t} value={t}>
@@ -266,7 +266,7 @@ export default function AccountsPage() {
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-500">
+                    <td className="px-4 py-3 text-right text-muted">
                       {fmt(a.balance ?? 0)}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -274,13 +274,13 @@ export default function AccountsPage() {
                         <button
                           onClick={handleUpdate}
                           disabled={saving || !formName.trim()}
-                          className="px-3 py-1 text-xs font-medium bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                          className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded hover:bg-accent-hover disabled:opacity-50 transition-colors"
                         >
                           {saving ? "Saving..." : "Save"}
                         </button>
                         <button
                           onClick={resetForm}
-                          className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors"
+                          className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
                         >
                           Cancel
                         </button>
@@ -290,24 +290,24 @@ export default function AccountsPage() {
                 ) : (
                   <tr
                     key={a.id}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                    className="border-b border-line last:border-0 hover:bg-surface-2"
                   >
                     <td className="px-4 py-3">
                       <Link
                         href={`/accounts/${a.id}`}
-                        className="text-slate-900 font-medium hover:underline"
+                        className="text-fg font-medium hover:underline"
                       >
                         {a.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-600 capitalize">
+                    <td className="px-4 py-3 text-muted capitalize">
                       {a.type?.replace("_", " ")}
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-medium ${
                         (a.balance ?? 0) >= 0
-                          ? "text-green-600"
-                          : "text-red-600"
+                          ? "text-pos"
+                          : "text-neg"
                       }`}
                     >
                       {(a.balance ?? 0) < 0 ? "-" : ""}
@@ -324,13 +324,13 @@ export default function AccountsPage() {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => startEdit(a)}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(a.id)}
-                            className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded hover:bg-red-50 transition-colors"
                           >
                             Delete
                           </button>

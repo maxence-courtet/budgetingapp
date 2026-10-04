@@ -70,10 +70,10 @@ export default function BudgetsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Budget Templates</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Budget Templates</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-ink text-sm font-medium rounded-xl transition-colors"
         >
           {showForm ? "Cancel" : "New Budget"}
         </button>
@@ -84,7 +84,7 @@ export default function BudgetsPage() {
       )}
 
       {showForm && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
+        <div className="bg-surface rounded-2xl border border-line p-4 mb-6">
           <form onSubmit={handleCreate} className="flex items-center gap-3">
             <label htmlFor="budget-name" className="sr-only">
               Budget name
@@ -95,12 +95,12 @@ export default function BudgetsPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Budget template name"
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="flex-1 px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               autoFocus
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-accent hover:bg-accent-hover text-accent-ink text-sm font-medium rounded-xl transition-colors"
             >
               Create
             </button>
@@ -115,16 +115,16 @@ export default function BudgetsPage() {
           {budgets.map((b) => (
             <div
               key={b.id}
-              className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 flex flex-col justify-between"
+              className="bg-surface rounded-2xl border border-line p-5 flex flex-col justify-between"
             >
               <div>
                 <Link
                   href={`/budgets/${b.id}`}
-                  className="text-lg font-semibold text-slate-900 hover:text-slate-700 transition-colors"
+                  className="text-lg font-semibold text-fg hover:text-fg-2 transition-colors"
                 >
                   {b.name}
                 </Link>
-                <div className="mt-2 flex gap-4 text-sm text-slate-500">
+                <div className="mt-2 flex gap-4 text-sm text-muted">
                   <span>
                     {b.definitions?.length ?? 0}{" "}
                     {b.definitions?.length === 1 ? "definition" : "definitions"}
@@ -138,7 +138,7 @@ export default function BudgetsPage() {
               <div className="mt-4 flex items-center gap-2">
                 <Link
                   href={`/budgets/${b.id}`}
-                  className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium text-fg-2 bg-surface-2 rounded-xl hover:bg-line transition-colors"
                 >
                   Edit
                 </Link>
@@ -151,7 +151,7 @@ export default function BudgetsPage() {
                 ) : (
                   <button
                     onClick={() => setDeleting(b.id)}
-                    className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    className="px-3 py-1.5 text-sm font-medium text-neg bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
                   >
                     Delete
                   </button>

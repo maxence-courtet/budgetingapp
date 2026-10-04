@@ -85,13 +85,13 @@ export default function TransactionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
           {error}
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">Type</label>
+        <label className="block text-sm font-medium text-fg-2 mb-2">Type</label>
         <div id="tx-type-group" aria-label="Transaction type" className="flex gap-2">
           {TYPES.map((t) => (
             <button
@@ -99,14 +99,14 @@ export default function TransactionForm({
               type="button"
               onClick={() => setType(t)}
               aria-pressed={type === t}
-              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-xl border transition-colors ${
                 type === t
                   ? t === "INCOME"
                     ? "bg-green-100 border-green-300 text-green-800"
                     : t === "SPENDING"
                     ? "bg-red-100 border-red-300 text-red-800"
                     : "bg-blue-100 border-blue-300 text-blue-800"
-                  : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
+                  : "bg-surface border-line-strong text-muted hover:bg-surface-2"
               }`}
             >
               {t}
@@ -117,7 +117,7 @@ export default function TransactionForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="tx-amount" className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
+          <label htmlFor="tx-amount" className="block text-sm font-medium text-fg-2 mb-1">Amount</label>
           <input
             id="tx-amount"
             type="number"
@@ -125,43 +125,43 @@ export default function TransactionForm({
             min="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
             placeholder="0.00"
             required
           />
         </div>
         <div>
-          <label htmlFor="tx-date" className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+          <label htmlFor="tx-date" className="block text-sm font-medium text-fg-2 mb-1">Date</label>
           <input
             id="tx-date"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="tx-description" className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+        <label htmlFor="tx-description" className="block text-sm font-medium text-fg-2 mb-1">Description</label>
         <input
           id="tx-description"
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
           placeholder="Transaction description"
         />
       </div>
 
       <div className={type === "TRANSFER" ? "grid grid-cols-2 gap-4" : ""}>
         <div>
-          <label htmlFor="tx-category" className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+          <label htmlFor="tx-category" className="block text-sm font-medium text-fg-2 mb-1">Category</label>
           <select
             id="tx-category"
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
             required
           >
             <option value="">Select category</option>
@@ -172,12 +172,12 @@ export default function TransactionForm({
         </div>
         {type === "TRANSFER" && (
           <div>
-            <label htmlFor="tx-to-category" className="block text-sm font-medium text-slate-700 mb-1">To Category</label>
+            <label htmlFor="tx-to-category" className="block text-sm font-medium text-fg-2 mb-1">To Category</label>
             <select
               id="tx-to-category"
               value={toCategoryId}
               onChange={(e) => setToCategoryId(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
             >
               <option value="">Same as category</option>
               {categories.map((c: any) => (
@@ -191,12 +191,12 @@ export default function TransactionForm({
       <div className="grid grid-cols-2 gap-4">
         {type !== "INCOME" && (
           <div>
-            <label htmlFor="tx-from-account" className="block text-sm font-medium text-slate-700 mb-1">From Account</label>
+            <label htmlFor="tx-from-account" className="block text-sm font-medium text-fg-2 mb-1">From Account</label>
             <select
               id="tx-from-account"
               value={fromAccountId}
               onChange={(e) => setFromAccountId(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
             >
               <option value="">Select account</option>
               {accounts.map((a: any) => (
@@ -207,12 +207,12 @@ export default function TransactionForm({
         )}
         {type !== "SPENDING" && (
           <div>
-            <label htmlFor="tx-to-account" className="block text-sm font-medium text-slate-700 mb-1">To Account</label>
+            <label htmlFor="tx-to-account" className="block text-sm font-medium text-fg-2 mb-1">To Account</label>
             <select
               id="tx-to-account"
               value={toAccountId}
               onChange={(e) => setToAccountId(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
             >
               <option value="">Select account</option>
               {accounts.map((a: any) => (
@@ -224,12 +224,12 @@ export default function TransactionForm({
       </div>
 
       <div>
-        <label htmlFor="tx-status" className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+        <label htmlFor="tx-status" className="block text-sm font-medium text-fg-2 mb-1">Status</label>
         <select
           id="tx-status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
@@ -240,14 +240,14 @@ export default function TransactionForm({
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
         >
           {initial ? "Update Transaction" : "Create Transaction"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
         >
           Cancel
         </button>

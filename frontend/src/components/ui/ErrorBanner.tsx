@@ -7,7 +7,7 @@ export function ErrorBanner({ message, onDismiss }: Props) {
   return (
     <div
       role="alert"
-      className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-center justify-between"
+      className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 flex items-center justify-between"
     >
       <span className="text-sm">{message}</span>
       {onDismiss && (

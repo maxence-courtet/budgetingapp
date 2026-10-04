@@ -1,19 +1,182 @@
 @import "tailwindcss";
 
+/*
+ * Theme tokens. <html> carries data-theme (light | dark) and data-accent
+ * (lime | ion | ember | violet | mono); both are set before first paint by the
+ * script in layout.tsx and kept in sync by AppearanceProvider.
+ */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  color-scheme: light;
+  --bg: #fafaf8;
+  --side: #f4f4f1;
+  --surface: #ffffff;
+  --surface-2: #f1f1ee;
+  --line: #e6e6e1;
+  --line-strong: #d0d0ca;
+  --fg: #0b0b0c;
+  --fg-2: #3f3f46;
+  --muted: #5e5e66;
+  --faint: #8a8a92;
+  --accent: #6d4ae8;
+  --accent-ink: #ffffff;
+  --neg: #b4410e;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0a0b;
+  --side: #0a0a0b;
+  --surface: #111113;
+  --surface-2: #1c1c20;
+  --line: #222227;
+  --line-strong: #34343b;
+  --fg: #ededef;
+  --fg-2: #c9c9cf;
+  --muted: #9a9aa3;
+  --faint: #6f6f78;
+  --accent: #a78bfa;
+  --accent-ink: #0a0a0b;
+  --neg: #ff9a62;
+}
+
+/* Accent presets: light-mode values keep 4.5:1 with white text, dark-mode values with near-black text. */
+:root[data-accent="lime"] { --accent: #4d7c0f; }
+:root[data-accent="ion"] { --accent: #3d5bf5; }
+:root[data-accent="ember"] { --accent: #c2410c; }
+:root[data-accent="violet"] { --accent: #6d4ae8; }
+:root[data-accent="mono"] { --accent: #111113; }
+:root[data-theme="dark"][data-accent="lime"] { --accent: #c6f432; }
+:root[data-theme="dark"][data-accent="ion"] { --accent: #6e8bff; }
+:root[data-theme="dark"][data-accent="ember"] { --accent: #ff6a2b; }
+:root[data-theme="dark"][data-accent="violet"] { --accent: #a78bfa; }
+:root[data-theme="dark"][data-accent="mono"] { --accent: #f2f2f2; }
+
+:root {
+  --accent-hover: color-mix(in oklab, var(--accent) 86%, var(--fg));
+  --accent-soft: color-mix(in oklab, var(--accent) 14%, var(--surface));
+  --pos: var(--accent);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --color-canvas: var(--bg);
+  --color-side: var(--side);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+}
+
+/*
+ * Status hues (red, green, yellow, …) keep Tailwind's palette in light mode.
+ * In dark mode the scale flips: low steps become tinted surfaces, 500–600 the
+ * bright fill (paired with text-accent-ink), 700+ readable text.
+ */
+:root[data-theme="dark"] {
+  --color-red-50: color-mix(in oklab, #FF7A7A 10%, var(--bg));
+  --color-red-100: color-mix(in oklab, #FF7A7A 16%, var(--bg));
+  --color-red-200: color-mix(in oklab, #FF7A7A 28%, var(--bg));
+  --color-red-300: color-mix(in oklab, #FF7A7A 42%, var(--bg));
+  --color-red-400: color-mix(in oklab, #FF7A7A 75%, var(--bg));
+  --color-red-500: #FF7A7A;
+  --color-red-600: #FF7A7A;
+  --color-red-700: color-mix(in oklab, #FF7A7A, #ffffff 22%);
+  --color-red-800: color-mix(in oklab, #FF7A7A, #ffffff 38%);
+  --color-red-900: color-mix(in oklab, #FF7A7A, #ffffff 52%);
+  --color-green-50: color-mix(in oklab, #5BE38E 10%, var(--bg));
+  --color-green-100: color-mix(in oklab, #5BE38E 16%, var(--bg));
+  --color-green-200: color-mix(in oklab, #5BE38E 28%, var(--bg));
+  --color-green-300: color-mix(in oklab, #5BE38E 42%, var(--bg));
+  --color-green-400: color-mix(in oklab, #5BE38E 75%, var(--bg));
+  --color-green-500: #5BE38E;
+  --color-green-600: #5BE38E;
+  --color-green-700: color-mix(in oklab, #5BE38E, #ffffff 22%);
+  --color-green-800: color-mix(in oklab, #5BE38E, #ffffff 38%);
+  --color-green-900: color-mix(in oklab, #5BE38E, #ffffff 52%);
+  --color-yellow-50: color-mix(in oklab, #F5D04C 10%, var(--bg));
+  --color-yellow-100: color-mix(in oklab, #F5D04C 16%, var(--bg));
+  --color-yellow-200: color-mix(in oklab, #F5D04C 28%, var(--bg));
+  --color-yellow-300: color-mix(in oklab, #F5D04C 42%, var(--bg));
+  --color-yellow-400: color-mix(in oklab, #F5D04C 75%, var(--bg));
+  --color-yellow-500: #F5D04C;
+  --color-yellow-600: #F5D04C;
+  --color-yellow-700: color-mix(in oklab, #F5D04C, #ffffff 22%);
+  --color-yellow-800: color-mix(in oklab, #F5D04C, #ffffff 38%);
+  --color-yellow-900: color-mix(in oklab, #F5D04C, #ffffff 52%);
+  --color-blue-50: color-mix(in oklab, #7DA2FF 10%, var(--bg));
+  --color-blue-100: color-mix(in oklab, #7DA2FF 16%, var(--bg));
+  --color-blue-200: color-mix(in oklab, #7DA2FF 28%, var(--bg));
+  --color-blue-300: color-mix(in oklab, #7DA2FF 42%, var(--bg));
+  --color-blue-400: color-mix(in oklab, #7DA2FF 75%, var(--bg));
+  --color-blue-500: #7DA2FF;
+  --color-blue-600: #7DA2FF;
+  --color-blue-700: color-mix(in oklab, #7DA2FF, #ffffff 22%);
+  --color-blue-800: color-mix(in oklab, #7DA2FF, #ffffff 38%);
+  --color-blue-900: color-mix(in oklab, #7DA2FF, #ffffff 52%);
+  --color-purple-50: color-mix(in oklab, #C4B5FD 10%, var(--bg));
+  --color-purple-100: color-mix(in oklab, #C4B5FD 16%, var(--bg));
+  --color-purple-200: color-mix(in oklab, #C4B5FD 28%, var(--bg));
+  --color-purple-300: color-mix(in oklab, #C4B5FD 42%, var(--bg));
+  --color-purple-400: color-mix(in oklab, #C4B5FD 75%, var(--bg));
+  --color-purple-500: #C4B5FD;
+  --color-purple-600: #C4B5FD;
+  --color-purple-700: color-mix(in oklab, #C4B5FD, #ffffff 22%);
+  --color-purple-800: color-mix(in oklab, #C4B5FD, #ffffff 38%);
+  --color-purple-900: color-mix(in oklab, #C4B5FD, #ffffff 52%);
+  --color-orange-50: color-mix(in oklab, #FF9A62 10%, var(--bg));
+  --color-orange-100: color-mix(in oklab, #FF9A62 16%, var(--bg));
+  --color-orange-200: color-mix(in oklab, #FF9A62 28%, var(--bg));
+  --color-orange-300: color-mix(in oklab, #FF9A62 42%, var(--bg));
+  --color-orange-400: color-mix(in oklab, #FF9A62 75%, var(--bg));
+  --color-orange-500: #FF9A62;
+  --color-orange-600: #FF9A62;
+  --color-orange-700: color-mix(in oklab, #FF9A62, #ffffff 22%);
+  --color-orange-800: color-mix(in oklab, #FF9A62, #ffffff 38%);
+  --color-orange-900: color-mix(in oklab, #FF9A62, #ffffff 52%);
+  --color-amber-50: color-mix(in oklab, #FBBF24 10%, var(--bg));
+  --color-amber-100: color-mix(in oklab, #FBBF24 16%, var(--bg));
+  --color-amber-200: color-mix(in oklab, #FBBF24 28%, var(--bg));
+  --color-amber-300: color-mix(in oklab, #FBBF24 42%, var(--bg));
+  --color-amber-400: color-mix(in oklab, #FBBF24 75%, var(--bg));
+  --color-amber-500: #FBBF24;
+  --color-amber-600: #FBBF24;
+  --color-amber-700: color-mix(in oklab, #FBBF24, #ffffff 22%);
+  --color-amber-800: color-mix(in oklab, #FBBF24, #ffffff 38%);
+  --color-amber-900: color-mix(in oklab, #FBBF24, #ffffff 52%);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--surface);
+  color: var(--fg);
+}
+
+::placeholder {
+  color: var(--faint);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 35%, transparent);
 }

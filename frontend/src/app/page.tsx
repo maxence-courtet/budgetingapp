@@ -2,36 +2,86 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAccounts, getMonths, getTransactions } from "@/lib/api";
+import { getAccounts, getMonths, getTransactions, getHabits, getHabitLogs, logHabit, getGoals } from "@/lib/api";
 import { fmt, formatAmount } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/constants";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { TypeBadge } from "@/components/ui/TypeBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AiInsightsCard } from "@/components/AiInsightsCard";
 import { Account, Month, Transaction } from "@/lib/types";
-import { TrendingUp, Plus } from "lucide-react";
+import { Plus, Check, ArrowRight } from "lucide-react";
+
+interface HabitRow {
+  id: string;
+  name: string;
+  done: Set<string>;
+}
+
+interface Goal {
+  id: string;
+  title: string;
+  status: string;
+  unit: string | null;
+  currentValue: number | null;
+  targetValue: number | null;
+}
+
+function isoDaysAgo(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+const LAST_7 = Array.from({ length: 7 }, (_, i) => isoDaysAgo(6 - i));
+const TODAY = LAST_7[6];
+
+function streak(done: Set<string>) {
+  let n = 0;
+  for (let i = 6; i >= 0 && done.has(LAST_7[i]); i--) n++;
+  return n;
+}
+
+function signed(n: number) {
+  return (n < 0 ? "−" : "") + fmt(n);
+}
 
 export default function Dashboard() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [months, setMonths] = useState<Month[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [habits, setHabits] = useState<HabitRow[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [checkingIn, setCheckingIn] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function load() {
       try {
-        const [accts, mos, txns] = await Promise.all([
+        const [accts, mos, txns, habitList, goalList] = await Promise.all([
           getAccounts(),
           getMonths(),
-          getTransactions({ limit: "10", sort: "date:desc" }),
+          getTransactions({ limit: "8", sort: "date:desc" }),
+          getHabits(),
+          getGoals(),
         ]);
         setAccounts(accts);
         setMonths(mos);
         setTransactions(Array.isArray(txns) ? txns : txns.data ?? []);
+        setGoals((goalList ?? []).filter((g: Goal) => g.status === "ACTIVE").slice(0, 4));
+        const active = (habitList ?? []).filter((h: any) => h.active !== false).slice(0, 5);
+        const rows = await Promise.all(
+          active.map(async (h: any) => {
+            const logs = await getHabitLogs(h.id, { dateFrom: LAST_7[0], dateTo: TODAY }).catch(() => []);
+            const done = new Set<string>(
+              (logs ?? []).filter((l: any) => l.completed).map((l: any) => l.date?.slice(0, 10))
+            );
+            return { id: h.id, name: h.name, done };
+          })
+        );
+        setHabits(rows);
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -41,76 +91,159 @@ export default function Dashboard() {
     load();
   }, []);
 
+  async function checkIn(habit: HabitRow) {
+    setCheckingIn(habit.id);
+    try {
+      await logHabit(habit.id, { date: TODAY, completed: true });
+      setHabits((hs) =>
+        hs.map((h) => (h.id === habit.id ? { ...h, done: new Set([...h.done, TODAY]) } : h))
+      );
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setCheckingIn(null);
+    }
+  }
+
   if (loading) return <LoadingState message="Loading dashboard..." />;
-  if (error) return <ErrorBanner message={error} />;
 
   const totalBalance = accounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
-
   const now = new Date();
   const currentMonth = months.find(
     (m) => m.month === now.getMonth() + 1 && m.year === now.getFullYear()
   );
+  const income = currentMonth?.income ?? 0;
+  const spending = currentMonth?.spending ?? 0;
+  const savedRate = income > 0 ? ((income - spending) / income) * 100 : null;
+  const today = now.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "short" });
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <div className="flex gap-3">
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
+      <h1 className="sr-only">Dashboard</h1>
+      <section aria-label="Overview" className="flex flex-wrap items-end justify-between gap-6">
+        <div className="space-y-2">
+          <p className="font-mono text-xs text-muted uppercase tracking-[0.08em]">{today} · Net worth</p>
+          <p className="font-mono text-5xl md:text-6xl font-medium tracking-[-0.04em] leading-none text-fg">
+            {signed(totalBalance)}
+          </p>
+          <p className="text-sm text-muted">
+            across {accounts.length} account{accounts.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+        {currentMonth ? (
+          <Link
+            href={`/months/${currentMonth.id}`}
+            className="group flex flex-wrap gap-7 rounded-xl px-1 py-1"
+            aria-label={`${MONTH_NAMES[currentMonth.month - 1]} details`}
+          >
+            <Stat label={`In · ${MONTH_NAMES[currentMonth.month - 1].slice(0, 3)}`} value={`+${fmt(income)}`} tone="text-pos" />
+            <Stat label={`Out · ${MONTH_NAMES[currentMonth.month - 1].slice(0, 3)}`} value={`−${fmt(spending)}`} tone="text-neg" />
+            <Stat label="Saved rate" value={savedRate === null ? "—" : `${savedRate.toFixed(1)}%`} tone="text-fg" />
+            <ArrowRight size={16} className="self-center text-faint group-hover:text-accent transition-colors" aria-hidden="true" />
+          </Link>
+        ) : (
           <Link
             href="/months"
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 h-11 px-4 rounded-xl bg-accent text-accent-ink text-sm font-semibold hover:bg-accent-hover transition-colors"
           >
             <Plus size={15} aria-hidden="true" />
-            Create Month
+            Start {MONTH_NAMES[now.getMonth()]}
           </Link>
-        </div>
-      </div>
-
-      {/* Total Balance hero */}
-      <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl p-6 text-white shadow-md">
-        <p className="text-sm font-medium text-indigo-200 uppercase tracking-wide">
-          Total Balance
-        </p>
-        <p className="text-4xl font-bold mt-1">
-          {totalBalance < 0 ? "-" : ""}
-          {fmt(totalBalance)}
-        </p>
-        <p className="text-indigo-200 text-sm mt-1">
-          across {accounts.length} account{accounts.length !== 1 ? "s" : ""}
-        </p>
-      </div>
+        )}
+      </section>
 
       <AiInsightsCard />
 
-      {/* Account Cards */}
-      <section aria-labelledby="accounts-heading">
-        <h2 id="accounts-heading" className="text-lg font-semibold text-slate-900 mb-3">
-          Accounts
-        </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section aria-labelledby="habits-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-4">
+          <CardHeader id="habits-heading" title="Habits · last 7 days" href="/habits" shortcut="G H" />
+          {habits.length === 0 ? (
+            <p className="text-sm text-muted">No active habits. <Link href="/habits" className="text-accent font-medium">Create one →</Link></p>
+          ) : (
+            <ul className="space-y-3">
+              {habits.map((h) => {
+                const doneToday = h.done.has(TODAY);
+                return (
+                  <li key={h.id} className="flex items-center gap-3">
+                    <span className="flex-1 min-w-0 truncate text-sm font-medium text-fg">{h.name}</span>
+                    <span className="flex gap-1" aria-label={`${h.done.size} of the last 7 days`}>
+                      {LAST_7.map((d) => (
+                        <span
+                          key={d}
+                          className={`block w-[18px] h-[18px] rounded-[5px] ${h.done.has(d) ? "bg-accent" : "bg-surface-2"}`}
+                        />
+                      ))}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => checkIn(h)}
+                      disabled={doneToday || checkingIn === h.id}
+                      aria-label={doneToday ? `${h.name} done today` : `Check in ${h.name} for today`}
+                      className={`flex items-center justify-center gap-1 w-16 h-8 rounded-lg font-mono text-xs transition-colors ${
+                        doneToday
+                          ? "bg-accent-soft text-accent"
+                          : "border border-line-strong text-fg hover:border-accent hover:text-accent"
+                      }`}
+                    >
+                      {doneToday ? <><Check size={13} aria-hidden="true" />{streak(h.done)}d</> : "Check"}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section aria-labelledby="goals-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-4">
+          <CardHeader id="goals-heading" title="Goals" href="/goals" shortcut="G G" />
+          {goals.length === 0 ? (
+            <p className="text-sm text-muted">No active goals. <Link href="/goals" className="text-accent font-medium">Set one →</Link></p>
+          ) : (
+            <ul className="space-y-4">
+              {goals.map((g) => {
+                const pct = g.targetValue ? Math.min(100, Math.max(0, ((g.currentValue ?? 0) / g.targetValue) * 100)) : 0;
+                return (
+                  <li key={g.id} className="space-y-2">
+                    <div className="flex justify-between gap-3 text-sm">
+                      <span className="font-medium text-fg truncate">{g.title}</span>
+                      <span className="font-mono text-xs text-muted shrink-0">
+                        {g.targetValue ? `${(g.currentValue ?? 0).toLocaleString("en-US")} / ${g.targetValue.toLocaleString("en-US")} ${g.unit ?? ""}` : "No target"}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label={g.title}>
+                      <div className="h-full bg-accent rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <section aria-labelledby="accounts-heading" className="space-y-3">
+        <CardHeader id="accounts-heading" title="Accounts" href="/accounts" shortcut="G A" />
         {accounts.length === 0 ? (
           <EmptyState
             message="No accounts yet."
-            cta={{ label: "Create your first account", onClick: () => window.location.href = "/accounts" }}
+            cta={{ label: "Create your first account", onClick: () => (window.location.href = "/accounts") }}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {accounts.map((a) => (
               <Link
                 key={a.id}
                 href={`/accounts/${a.id}`}
-                className="bg-white border border-slate-200 shadow-sm rounded-lg p-5 hover:border-indigo-300 hover:shadow-md transition-all"
+                className="bg-surface border border-line rounded-2xl p-4 hover:border-accent transition-colors"
               >
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide capitalize">
+                <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">
                   {a.type?.replace("_", " ") ?? "Account"}
                 </p>
-                <p className="text-base font-semibold text-slate-900 mt-1">{a.name}</p>
-                <p
-                  className={`text-xl font-bold mt-2 ${
-                    (a.balance ?? 0) >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {(a.balance ?? 0) < 0 ? "-" : ""}
-                  {fmt(a.balance ?? 0)}
+                <p className="text-sm font-medium text-fg mt-1 truncate">{a.name}</p>
+                <p className={`font-mono text-xl mt-3 ${(a.balance ?? 0) < 0 ? "text-neg" : "text-fg"}`}>
+                  {signed(a.balance ?? 0)}
                 </p>
               </Link>
             ))}
@@ -118,92 +251,70 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Current Month Overview */}
-      {currentMonth ? (
-        <section aria-labelledby="month-heading">
-          <h2 id="month-heading" className="text-lg font-semibold text-slate-900 mb-3">
-            {MONTH_NAMES[currentMonth.month - 1]} {currentMonth.year}
-          </h2>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: "Income", value: currentMonth.income ?? 0, color: "text-green-600", prefix: "+" },
-              { label: "Spending", value: currentMonth.spending ?? 0, color: "text-red-600", prefix: "-" },
-              { label: "Net", value: currentMonth.net ?? 0, color: (currentMonth.net ?? 0) >= 0 ? "text-green-600" : "text-red-600", prefix: "" },
-            ].map(({ label, value, color, prefix }) => (
-              <div key={label} className="bg-white border border-slate-200 shadow-sm rounded-lg p-5">
-                <p className="text-sm text-slate-600">{label}</p>
-                <p className={`text-lg font-bold mt-1 ${color}`}>
-                  {prefix}{fmt(value)}
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3">
-            <Link
-              href={`/months/${currentMonth.id}`}
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-            >
-              View month details →
-            </Link>
-          </div>
-        </section>
-      ) : (
-        <section aria-labelledby="month-heading">
-          <h2 id="month-heading" className="text-lg font-semibold text-slate-900 mb-3">
-            This Month
-          </h2>
-          <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6 flex items-center gap-4">
-            <TrendingUp className="text-slate-400" size={24} aria-hidden="true" />
-            <div>
-              <p className="text-sm text-slate-600">No month tracked yet for {MONTH_NAMES[now.getMonth()]} {now.getFullYear()}.</p>
-              <Link href="/months" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
-                Create a month to start tracking →
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Recent Transactions */}
-      <section aria-labelledby="transactions-heading">
-        <h2 id="transactions-heading" className="text-lg font-semibold text-slate-900 mb-3">
-          Recent Transactions
-        </h2>
+      <section aria-labelledby="transactions-heading" className="bg-surface border border-line rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+          <h2 id="transactions-heading" className="text-[15px] font-semibold text-fg">Recent activity</h2>
+          <Link href="/search" className="text-sm font-medium text-accent hover:text-accent-hover">
+            All transactions →
+          </Link>
+        </div>
         {transactions.length === 0 ? (
-          <EmptyState message="No transactions yet." />
+          <p className="px-5 py-8 text-sm text-muted text-center">No transactions yet.</p>
         ) : (
-          <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" aria-label="Recent transactions">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
-                    <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Description</th>
-                    <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Type</th>
-                    <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Amount</th>
-                    <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" aria-label="Recent transactions">
+              <thead className="sr-only">
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((t) => (
+                  <tr key={t.id} className="border-b border-line last:border-0 hover:bg-surface-2/60">
+                    <td className="pl-5 pr-3 py-3 font-mono text-xs text-muted whitespace-nowrap">
+                      {new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" })}
+                    </td>
+                    <td className="px-3 py-3 font-medium text-fg">{t.description ?? "—"}</td>
+                    <td className="px-3 py-3 text-muted">{t.category?.name}</td>
+                    <td className="px-3 py-3"><StatusBadge status={t.status} /></td>
+                    <td
+                      className={`pl-3 pr-5 py-3 text-right font-mono whitespace-nowrap ${
+                        t.type === "INCOME" ? "text-pos" : t.type === "SPENDING" ? "text-fg" : "text-muted"
+                      }`}
+                    >
+                      {formatAmount(t.amount, t.type)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((t) => (
-                    <tr key={t.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-700">{t.date?.slice(0, 10)}</td>
-                      <td className="px-4 py-3 text-slate-900 font-medium">{t.description}</td>
-                      <td className="px-4 py-3"><TypeBadge type={t.type} /></td>
-                      <td className={`px-4 py-3 text-right font-medium ${
-                        t.type === "INCOME" ? "text-green-600" : t.type === "SPENDING" ? "text-red-600" : "text-blue-600"
-                      }`}>
-                        {formatAmount(t.amount, t.type)}
-                      </td>
-                      <td className="px-4 py-3"><StatusBadge status={t.status} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string; tone: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs text-muted">{label}</p>
+      <p className={`font-mono text-xl ${tone}`}>{value}</p>
+    </div>
+  );
+}
+
+function CardHeader({ id, title, href, shortcut }: { id: string; title: string; href: string; shortcut: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <h2 id={id} className="text-[15px] font-semibold text-fg">{title}</h2>
+      <Link href={href} className="font-mono text-xs text-faint hover:text-accent transition-colors" aria-label={`Open ${title}`}>
+        {shortcut} →
+      </Link>
     </div>
   );
 }

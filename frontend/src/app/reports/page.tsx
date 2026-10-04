@@ -62,11 +62,11 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Reports</h1>
+      <h1 className="text-[28px] font-semibold tracking-tight text-fg mb-6">Reports</h1>
 
       {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
-      <div role="tablist" aria-label="Report type" className="flex gap-1 bg-slate-100 p-1 rounded-lg mb-6 w-fit">
+      <div role="tablist" aria-label="Report type" className="flex gap-1 bg-surface-2 p-1 rounded-xl mb-6 w-fit">
         <button
           id="tab-accounts"
           role="tab"
@@ -75,8 +75,8 @@ export default function ReportsPage() {
           onClick={() => setTab("accounts")}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             tab === "accounts"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-surface text-fg"
+              : "text-muted hover:text-fg"
           }`}
         >
           Account Summary
@@ -89,8 +89,8 @@ export default function ReportsPage() {
           onClick={() => setTab("monthly")}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             tab === "monthly"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-surface text-fg"
+              : "text-muted hover:text-fg"
           }`}
         >
           Monthly Summary
@@ -102,24 +102,24 @@ export default function ReportsPage() {
           {accountLoading ? (
             <LoadingState message="Loading..." />
           ) : accountData.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
-              <p className="text-slate-500">No account data available.</p>
+            <div className="bg-surface rounded-2xl border border-line p-8 text-center">
+              <p className="text-muted">No account data available.</p>
             </div>
           ) : (
             <div className="grid gap-6">
               {accountData.map((acct: any) => (
                 <div
                   key={acct.id}
-                  className="bg-white rounded-lg shadow-sm border border-slate-200 p-5"
+                  className="bg-surface rounded-2xl border border-line p-5"
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900">{acct.name}</h2>
-                      <span className="text-sm text-slate-500">{acct.type}</span>
+                      <h2 className="text-lg font-semibold text-fg">{acct.name}</h2>
+                      <span className="text-sm text-muted">{acct.type}</span>
                     </div>
                     <span
                       className={`text-xl font-mono font-semibold ${
-                        acct.balance >= 0 ? "text-green-600" : "text-red-600"
+                        acct.balance >= 0 ? "text-pos" : "text-neg"
                       }`}
                     >
                       {acct.balance >= 0 ? "+" : "-"}
@@ -130,18 +130,18 @@ export default function ReportsPage() {
                   {acct.categories && acct.categories.length > 0 && (
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-slate-200">
-                          <th scope="col" className="text-left px-4 py-2 font-medium text-slate-600">Category</th>
-                          <th scope="col" className="text-right px-4 py-2 font-medium text-slate-600">Balance</th>
+                        <tr className="border-b border-line">
+                          <th scope="col" className="text-left px-4 py-2 font-medium text-muted">Category</th>
+                          <th scope="col" className="text-right px-4 py-2 font-medium text-muted">Balance</th>
                         </tr>
                       </thead>
                       <tbody>
                         {acct.categories.map((cat: any) => (
-                          <tr key={cat.id} className="border-b border-slate-50">
-                            <td className="px-4 py-2 text-slate-700">{cat.name}</td>
+                          <tr key={cat.id} className="border-b border-line">
+                            <td className="px-4 py-2 text-fg-2">{cat.name}</td>
                             <td
                               className={`px-4 py-2 text-right font-mono ${
-                                cat.balance >= 0 ? "text-green-600" : "text-red-600"
+                                cat.balance >= 0 ? "text-pos" : "text-neg"
                               }`}
                             >
                               {cat.balance >= 0 ? "+" : "-"}
@@ -162,13 +162,13 @@ export default function ReportsPage() {
       {tab === "monthly" && (
         <div id="tab-monthly-panel" role="tabpanel" aria-labelledby="tab-monthly">
           <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-fg-2 mb-1">
               Select Month
             </label>
             <select
               value={selectedMonthId}
               onChange={(e) => setSelectedMonthId(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
             >
               <option value="">Choose a month</option>
               {months.map((m: any) => (
@@ -182,71 +182,71 @@ export default function ReportsPage() {
           {monthlyLoading ? (
             <LoadingState message="Loading..." />
           ) : !monthlyData ? (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
-              <p className="text-slate-500">Select a month to view its summary.</p>
+            <div className="bg-surface rounded-2xl border border-line p-8 text-center">
+              <p className="text-muted">Select a month to view its summary.</p>
             </div>
           ) : (
             <div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-                  <p className="text-sm text-slate-500 mb-1">Paid Income</p>
-                  <p className="text-xl font-mono font-semibold text-green-600">
+                <div className="bg-surface rounded-2xl border border-line p-4">
+                  <p className="text-sm text-muted mb-1">Paid Income</p>
+                  <p className="text-xl font-mono font-semibold text-pos">
                     +{fmt(monthlyData.paid?.income ?? 0)}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-                  <p className="text-sm text-slate-500 mb-1">Paid Spending</p>
-                  <p className="text-xl font-mono font-semibold text-red-600">
+                <div className="bg-surface rounded-2xl border border-line p-4">
+                  <p className="text-sm text-muted mb-1">Paid Spending</p>
+                  <p className="text-xl font-mono font-semibold text-neg">
                     -{fmt(monthlyData.paid?.spending ?? 0)}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-                  <p className="text-sm text-slate-500 mb-1">Net</p>
+                <div className="bg-surface rounded-2xl border border-line p-4">
+                  <p className="text-sm text-muted mb-1">Net</p>
                   <p
                     className={`text-xl font-mono font-semibold ${
-                      (monthlyData.paid?.net ?? 0) >= 0 ? "text-green-600" : "text-red-600"
+                      (monthlyData.paid?.net ?? 0) >= 0 ? "text-pos" : "text-neg"
                     }`}
                   >
                     {(monthlyData.paid?.net ?? 0) >= 0 ? "+" : "-"}
                     {fmt(monthlyData.paid?.net ?? 0)}
                   </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-                  <p className="text-sm text-slate-500 mb-1">Transfers</p>
-                  <p className="text-xl font-mono font-semibold text-blue-600">
+                <div className="bg-surface rounded-2xl border border-line p-4">
+                  <p className="text-sm text-muted mb-1">Transfers</p>
+                  <p className="text-xl font-mono font-semibold text-muted">
                     {fmt(monthlyData.paid?.transfers ?? 0)}
                   </p>
                 </div>
               </div>
 
               {monthlyData.categoryBreakdown && monthlyData.categoryBreakdown.length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-slate-200">
-                    <h3 className="text-lg font-semibold text-slate-900">Category Breakdown</h3>
+                <div className="bg-surface rounded-2xl border border-line overflow-hidden">
+                  <div className="px-5 py-4 border-b border-line">
+                    <h3 className="text-lg font-semibold text-fg">Category Breakdown</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50">
-                          <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
-                          <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Income</th>
-                          <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Spending</th>
-                          <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Net</th>
+                        <tr className="border-b border-line bg-surface-2">
+                          <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Category</th>
+                          <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Income</th>
+                          <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Spending</th>
+                          <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Net</th>
                         </tr>
                       </thead>
                       <tbody>
                         {monthlyData.categoryBreakdown.map((cat: any) => (
-                          <tr key={cat.id} className="border-b border-slate-100 hover:bg-slate-50">
-                            <td className="px-4 py-3 text-slate-900 font-medium">{cat.name}</td>
-                            <td className="px-4 py-3 text-right font-mono text-green-600">
+                          <tr key={cat.id} className="border-b border-line hover:bg-surface-2">
+                            <td className="px-4 py-3 text-fg font-medium">{cat.name}</td>
+                            <td className="px-4 py-3 text-right font-mono text-pos">
                               {cat.income > 0 ? `+${fmt(cat.income)}` : "-"}
                             </td>
-                            <td className="px-4 py-3 text-right font-mono text-red-600">
+                            <td className="px-4 py-3 text-right font-mono text-neg">
                               {cat.spending > 0 ? `-${fmt(cat.spending)}` : "-"}
                             </td>
                             <td
                               className={`px-4 py-3 text-right font-mono ${
-                                cat.net >= 0 ? "text-green-600" : "text-red-600"
+                                cat.net >= 0 ? "text-pos" : "text-neg"
                               }`}
                             >
                               {cat.net >= 0 ? "+" : "-"}

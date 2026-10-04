@@ -174,7 +174,7 @@ export default function FitnessPage() {
           !showLog ? (
             <button
               onClick={() => { resetForm(); setShowLog(true); }}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
               + Log Entry
             </button>
@@ -186,7 +186,7 @@ export default function FitnessPage() {
 
       {/* Pending MCP banner */}
       {pending.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
           <p className="text-sm font-medium text-yellow-800 mb-3">
             {pending.length} fitness {pending.length === 1 ? "entry" : "entries"} added by AI — review and approve
           </p>
@@ -194,32 +194,32 @@ export default function FitnessPage() {
             {pending.map((entry: any) => (
               <div
                 key={entry.id}
-                className="flex items-center justify-between gap-4 bg-white border border-yellow-100 rounded-lg px-3 py-2"
+                className="flex items-center justify-between gap-4 bg-surface border border-yellow-100 rounded-xl px-3 py-2"
               >
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-slate-800">
+                  <span className="text-sm font-medium text-fg">
                     {entry.type}
                   </span>
-                  <span className="mx-2 text-slate-400">·</span>
-                  <span className="text-sm text-slate-700">
+                  <span className="mx-2 text-faint">·</span>
+                  <span className="text-sm text-fg-2">
                     {formatNumber(entry.value)} {entry.unit}
                   </span>
-                  <span className="mx-2 text-slate-400">·</span>
-                  <span className="text-xs text-slate-500">{formatDate(entry.date)}</span>
+                  <span className="mx-2 text-faint">·</span>
+                  <span className="text-xs text-muted">{formatDate(entry.date)}</span>
                   {entry.note && (
-                    <span className="ml-2 text-xs text-slate-500 italic truncate">"{entry.note}"</span>
+                    <span className="ml-2 text-xs text-muted italic truncate">"{entry.note}"</span>
                   )}
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => handleApprove(entry.id)}
-                    className="px-3 py-1 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    className="px-3 py-1 text-xs font-medium bg-green-600 text-accent-ink rounded-xl hover:bg-green-700 transition-colors"
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleReject(entry.id)}
-                    className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
                   >
                     Reject
                   </button>
@@ -236,15 +236,15 @@ export default function FitnessPage() {
           {MAIN_TYPES.filter((t) => latestByType[t]).map((t) => {
             const entry = latestByType[t];
             return (
-              <div key={t} className="bg-white border border-slate-200 shadow-sm rounded-lg p-5">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+              <div key={t} className="bg-surface border border-line rounded-2xl p-5">
+                <p className="text-xs font-medium text-muted uppercase tracking-wide mb-1">
                   {TAB_LABELS[t]}
                 </p>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-fg">
                   {formatNumber(entry.value)}
-                  <span className="text-sm font-normal text-slate-500 ml-1">{entry.unit}</span>
+                  <span className="text-sm font-normal text-muted ml-1">{entry.unit}</span>
                 </p>
-                <p className="text-xs text-slate-400 mt-1">{formatDate(entry.date)}</p>
+                <p className="text-xs text-faint mt-1">{formatDate(entry.date)}</p>
               </div>
             );
           })}
@@ -253,11 +253,11 @@ export default function FitnessPage() {
 
       {/* Log form */}
       {showLog && (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Log Fitness Entry</h2>
+        <div className="bg-surface border border-line rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-fg mb-4">Log Fitness Entry</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="fitness-type" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="fitness-type" className="block text-sm font-medium text-muted mb-1">
                 Type
               </label>
               <input
@@ -267,14 +267,14 @@ export default function FitnessPage() {
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
                 placeholder="e.g. WEIGHT"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
               <datalist id="fitness-type-suggestions">
                 {TYPE_SUGGESTIONS.map((s) => <option key={s} value={s} />)}
               </datalist>
             </div>
             <div>
-              <label htmlFor="fitness-date" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="fitness-date" className="block text-sm font-medium text-muted mb-1">
                 Date
               </label>
               <input
@@ -282,11 +282,11 @@ export default function FitnessPage() {
                 type="date"
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div>
-              <label htmlFor="fitness-value" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="fitness-value" className="block text-sm font-medium text-muted mb-1">
                 Value
               </label>
               <input
@@ -296,11 +296,11 @@ export default function FitnessPage() {
                 onChange={(e) => setFormValue(e.target.value)}
                 placeholder="0"
                 step="any"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div>
-              <label htmlFor="fitness-unit" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="fitness-unit" className="block text-sm font-medium text-muted mb-1">
                 Unit
               </label>
               <input
@@ -309,11 +309,11 @@ export default function FitnessPage() {
                 value={formUnit}
                 onChange={(e) => setFormUnit(e.target.value)}
                 placeholder="e.g. kg, lbs, %, steps, min"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="fitness-note" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="fitness-note" className="block text-sm font-medium text-muted mb-1">
                 Note
               </label>
               <textarea
@@ -322,7 +322,7 @@ export default function FitnessPage() {
                 onChange={(e) => setFormNote(e.target.value)}
                 rows={2}
                 placeholder="Optional note"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
           </div>
@@ -330,13 +330,13 @@ export default function FitnessPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !formType.trim() || !formValue}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving..." : "Log Entry"}
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
@@ -345,15 +345,15 @@ export default function FitnessPage() {
       )}
 
       {/* Tab selector */}
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-line">
         {(["WEIGHT", "BODY_FAT", "STEPS", "WORKOUT_DURATION", "OTHER"] as MetricTab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-fg-2"
             }`}
           >
             {TAB_LABELS[tab]}
@@ -368,16 +368,16 @@ export default function FitnessPage() {
           cta={{ label: "Log an entry", onClick: () => { resetForm(); setShowLog(true); } }}
         />
       ) : (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" aria-label={`${TAB_LABELS[activeTab]} entries`}>
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Value</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Note</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Source</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
+                <tr className="bg-surface-2 border-b border-line">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Date</th>
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Value</th>
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Note</th>
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Source</th>
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -385,12 +385,12 @@ export default function FitnessPage() {
                   .slice()
                   .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
                   .map((entry: any) => (
-                    <tr key={entry.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-700">{formatDate(entry.date)}</td>
-                      <td className="px-4 py-3 font-medium text-slate-900">
-                        {formatNumber(entry.value)} <span className="text-slate-500 font-normal text-xs">{entry.unit}</span>
+                    <tr key={entry.id} className="border-b border-line last:border-0 hover:bg-surface-2">
+                      <td className="px-4 py-3 text-fg-2">{formatDate(entry.date)}</td>
+                      <td className="px-4 py-3 font-medium text-fg">
+                        {formatNumber(entry.value)} <span className="text-muted font-normal text-xs">{entry.unit}</span>
                       </td>
-                      <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate">
+                      <td className="px-4 py-3 text-muted max-w-[200px] truncate">
                         {entry.note ?? "—"}
                       </td>
                       <td className="px-4 py-3">
@@ -399,7 +399,7 @@ export default function FitnessPage() {
                             Pending
                           </span>
                         ) : entry.source === "MCP" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted">
                             AI
                           </span>
                         ) : null}
@@ -414,7 +414,7 @@ export default function FitnessPage() {
                         ) : (
                           <button
                             onClick={() => setDeleteConfirm(entry.id)}
-                            className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
                           >
                             Delete
                           </button>

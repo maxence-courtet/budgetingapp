@@ -74,7 +74,7 @@ function tradeBadge(type: string) {
 
 function assetBadge(type: string) {
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-fg-2">
       {type}
     </span>
   );
@@ -232,7 +232,7 @@ export default function TradesPage() {
                 resetCreateForm();
                 setShowCreate(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
               <Plus size={15} aria-hidden="true" />
               New Trade
@@ -247,12 +247,12 @@ export default function TradesPage() {
 
       {/* ── Create form ─────────────────────────────────────────────────── */}
       {showCreate && (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">New Trade</h2>
+        <div className="bg-surface border border-line rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-fg mb-4">New Trade</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Ticker */}
             <div>
-              <label htmlFor="create-ticker" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="create-ticker" className="block text-sm font-medium text-muted mb-1">
                 Ticker
               </label>
               <input
@@ -260,21 +260,21 @@ export default function TradesPage() {
                 type="text"
                 value={form.ticker}
                 onChange={(e) => setForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 placeholder="e.g. AAPL"
               />
             </div>
 
             {/* Asset Type */}
             <div>
-              <label htmlFor="create-assetType" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="create-assetType" className="block text-sm font-medium text-muted mb-1">
                 Asset Type
               </label>
               <select
                 id="create-assetType"
                 value={form.assetType}
                 onChange={(e) => setForm((f) => ({ ...f, assetType: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 {ASSET_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -284,10 +284,10 @@ export default function TradesPage() {
 
             {/* Trade Type */}
             <div>
-              <label htmlFor="create-tradeType" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="create-tradeType" className="block text-sm font-medium text-muted mb-1">
                 Trade Type
               </label>
-              <div className="flex rounded-lg overflow-hidden border border-slate-300 text-sm font-medium h-[38px]">
+              <div className="flex rounded-xl overflow-hidden border border-line-strong text-sm font-medium h-[38px]">
                 {TRADE_TYPES.map((t) => (
                   <button
                     key={t}
@@ -296,9 +296,9 @@ export default function TradesPage() {
                     className={`flex-1 transition-colors ${
                       form.tradeType === t
                         ? t === "BUY"
-                          ? "bg-green-600 text-white"
-                          : "bg-red-600 text-white"
-                        : "bg-white text-slate-600 hover:bg-slate-50"
+                          ? "bg-green-600 text-accent-ink"
+                          : "bg-red-600 text-accent-ink"
+                        : "bg-surface text-muted hover:bg-surface-2"
                     }`}
                   >
                     {t}
@@ -309,14 +309,14 @@ export default function TradesPage() {
 
             {/* Account */}
             <div>
-              <label htmlFor="create-accountId" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="create-accountId" className="block text-sm font-medium text-muted mb-1">
                 Account
               </label>
               <select
                 id="create-accountId"
                 value={form.accountId}
                 onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 <option value="">— None —</option>
                 {investmentAccounts.map((a) => (
@@ -327,7 +327,7 @@ export default function TradesPage() {
 
             {/* Date */}
             <div>
-              <label htmlFor="create-date" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="create-date" className="block text-sm font-medium text-muted mb-1">
                 Date
               </label>
               <input
@@ -335,13 +335,13 @@ export default function TradesPage() {
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
 
             {/* Quantity */}
             <div>
-              <label htmlFor="create-quantity" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="create-quantity" className="block text-sm font-medium text-muted mb-1">
                 Quantity
               </label>
               <input
@@ -351,14 +351,14 @@ export default function TradesPage() {
                 step="0.000001"
                 value={form.quantity}
                 onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 placeholder="0.000000"
               />
             </div>
 
             {/* Price per Unit */}
             <div>
-              <label htmlFor="create-price" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="create-price" className="block text-sm font-medium text-muted mb-1">
                 Price per Unit
               </label>
               <input
@@ -368,15 +368,15 @@ export default function TradesPage() {
                 step="0.01"
                 value={form.pricePerUnit}
                 onChange={(e) => setForm((f) => ({ ...f, pricePerUnit: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 placeholder="0.00"
               />
             </div>
 
             {/* Fees */}
             <div>
-              <label htmlFor="create-fees" className="block text-sm font-medium text-slate-600 mb-1">
-                Fees <span className="text-slate-400 font-normal">(optional)</span>
+              <label htmlFor="create-fees" className="block text-sm font-medium text-muted mb-1">
+                Fees <span className="text-faint font-normal">(optional)</span>
               </label>
               <input
                 id="create-fees"
@@ -385,22 +385,22 @@ export default function TradesPage() {
                 step="0.01"
                 value={form.fees}
                 onChange={(e) => setForm((f) => ({ ...f, fees: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 placeholder="0.00"
               />
             </div>
 
             {/* Notes */}
             <div className="sm:col-span-2 lg:col-span-1">
-              <label htmlFor="create-notes" className="block text-sm font-medium text-slate-600 mb-1">
-                Notes <span className="text-slate-400 font-normal">(optional)</span>
+              <label htmlFor="create-notes" className="block text-sm font-medium text-muted mb-1">
+                Notes <span className="text-faint font-normal">(optional)</span>
               </label>
               <textarea
                 id="create-notes"
                 rows={1}
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
                 placeholder="Optional notes"
               />
             </div>
@@ -410,13 +410,13 @@ export default function TradesPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !form.ticker.trim() || !form.quantity || !form.pricePerUnit}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving…" : "Create Trade"}
             </button>
             <button
               onClick={resetCreateForm}
-              className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
@@ -437,36 +437,36 @@ export default function TradesPage() {
           }}
         />
       ) : (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" aria-label="Trade log">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Ticker</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Type</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Asset</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Qty</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Price</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Fees</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Total</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Account</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Notes</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
+                <tr className="bg-surface-2 border-b border-line">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Date</th>
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Ticker</th>
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Type</th>
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Asset</th>
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Qty</th>
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Price</th>
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Fees</th>
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Total</th>
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Account</th>
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Notes</th>
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {trades.map((trade) =>
                   editingId === trade.id ? (
                     /* ── Inline edit row ─────────────────────────────── */
-                    <tr key={trade.id} className="border-b border-slate-100 bg-slate-50">
+                    <tr key={trade.id} className="border-b border-line bg-surface-2">
                       {/* Date */}
                       <td className="px-4 py-2">
                         <input
                           type="date"
                           value={editForm.date}
                           onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
-                          className="w-32 border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-32 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
                         />
                       </td>
                       {/* Ticker */}
@@ -475,12 +475,12 @@ export default function TradesPage() {
                           type="text"
                           value={editForm.ticker}
                           onChange={(e) => setEditForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))}
-                          className="w-20 border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-20 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
                         />
                       </td>
                       {/* Trade Type toggle */}
                       <td className="px-4 py-2">
-                        <div className="flex rounded overflow-hidden border border-slate-300 text-xs font-medium">
+                        <div className="flex rounded overflow-hidden border border-line-strong text-xs font-medium">
                           {TRADE_TYPES.map((t) => (
                             <button
                               key={t}
@@ -489,9 +489,9 @@ export default function TradesPage() {
                               className={`px-2 py-1 transition-colors ${
                                 editForm.tradeType === t
                                   ? t === "BUY"
-                                    ? "bg-green-600 text-white"
-                                    : "bg-red-600 text-white"
-                                  : "bg-white text-slate-600"
+                                    ? "bg-green-600 text-accent-ink"
+                                    : "bg-red-600 text-accent-ink"
+                                  : "bg-surface text-muted"
                               }`}
                             >
                               {t}
@@ -504,7 +504,7 @@ export default function TradesPage() {
                         <select
                           value={editForm.assetType}
                           onChange={(e) => setEditForm((f) => ({ ...f, assetType: e.target.value }))}
-                          className="border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
                         >
                           {ASSET_TYPES.map((t) => (
                             <option key={t} value={t}>{t}</option>
@@ -519,7 +519,7 @@ export default function TradesPage() {
                           step="0.000001"
                           value={editForm.quantity}
                           onChange={(e) => setEditForm((f) => ({ ...f, quantity: e.target.value }))}
-                          className="w-24 border border-slate-300 rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-24 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent/40"
                         />
                       </td>
                       {/* Price */}
@@ -530,7 +530,7 @@ export default function TradesPage() {
                           step="0.01"
                           value={editForm.pricePerUnit}
                           onChange={(e) => setEditForm((f) => ({ ...f, pricePerUnit: e.target.value }))}
-                          className="w-24 border border-slate-300 rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-24 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent/40"
                         />
                       </td>
                       {/* Fees */}
@@ -541,11 +541,11 @@ export default function TradesPage() {
                           step="0.01"
                           value={editForm.fees}
                           onChange={(e) => setEditForm((f) => ({ ...f, fees: e.target.value }))}
-                          className="w-20 border border-slate-300 rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-20 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent/40"
                         />
                       </td>
                       {/* Total (computed, read-only) */}
-                      <td className="px-4 py-2 text-right text-slate-500 tabular-nums text-xs">
+                      <td className="px-4 py-2 text-right text-muted tabular-nums text-xs">
                         {editForm.quantity && editForm.pricePerUnit
                           ? fmt(totalCost(
                               parseFloat(editForm.quantity),
@@ -559,7 +559,7 @@ export default function TradesPage() {
                         <select
                           value={editForm.accountId}
                           onChange={(e) => setEditForm((f) => ({ ...f, accountId: e.target.value }))}
-                          className="border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
                         >
                           <option value="">— None —</option>
                           {investmentAccounts.map((a) => (
@@ -573,7 +573,7 @@ export default function TradesPage() {
                           type="text"
                           value={editForm.notes}
                           onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
-                          className="w-32 border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-32 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
                           placeholder="Notes"
                         />
                       </td>
@@ -583,13 +583,13 @@ export default function TradesPage() {
                           <button
                             onClick={handleUpdate}
                             disabled={saving || !editForm.ticker.trim() || !editForm.quantity || !editForm.pricePerUnit}
-                            className="px-3 py-1 text-xs font-medium bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded hover:bg-accent-hover disabled:opacity-50 transition-colors"
                           >
                             {saving ? "Saving…" : "Save"}
                           </button>
                           <button
                             onClick={cancelEdit}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
                           >
                             Cancel
                           </button>
@@ -598,31 +598,31 @@ export default function TradesPage() {
                     </tr>
                   ) : (
                     /* ── Normal display row ──────────────────────────── */
-                    <tr key={trade.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
+                    <tr key={trade.id} className="border-b border-line last:border-0 hover:bg-surface-2">
+                      <td className="px-4 py-3 text-fg-2 whitespace-nowrap">
                         {trade.date?.slice(0, 10)}
                       </td>
-                      <td className="px-4 py-3 font-semibold text-slate-900">
+                      <td className="px-4 py-3 font-semibold text-fg">
                         {trade.ticker}
                       </td>
                       <td className="px-4 py-3">{tradeBadge(trade.tradeType)}</td>
                       <td className="px-4 py-3">{assetBadge(trade.assetType)}</td>
-                      <td className="px-4 py-3 text-right text-slate-700 tabular-nums">
+                      <td className="px-4 py-3 text-right text-fg-2 tabular-nums">
                         {trade.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })}
                       </td>
-                      <td className="px-4 py-3 text-right text-slate-700 tabular-nums">
+                      <td className="px-4 py-3 text-right text-fg-2 tabular-nums">
                         {fmt(trade.pricePerUnit)}
                       </td>
-                      <td className="px-4 py-3 text-right text-slate-600 tabular-nums">
+                      <td className="px-4 py-3 text-right text-muted tabular-nums">
                         {fmt(trade.fees ?? 0)}
                       </td>
-                      <td className="px-4 py-3 text-right font-medium text-slate-900 tabular-nums">
+                      <td className="px-4 py-3 text-right font-medium text-fg tabular-nums">
                         {fmt(totalCost(trade.quantity, trade.pricePerUnit, trade.fees ?? 0))}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="px-4 py-3 text-muted">
                         {trade.account?.name ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-slate-500 max-w-[140px] truncate">
+                      <td className="px-4 py-3 text-muted max-w-[140px] truncate">
                         {trade.notes ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -636,13 +636,13 @@ export default function TradesPage() {
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => startEdit(trade)}
-                              className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors"
+                              className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => setDeleteConfirm(trade.id)}
-                              className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors"
+                              className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded hover:bg-red-50 transition-colors"
                             >
                               Delete
                             </button>

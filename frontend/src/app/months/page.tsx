@@ -94,30 +94,30 @@ export default function MonthsPage() {
       {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Months</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Months</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
         >
           {showForm ? "Cancel" : "New Month"}
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
+        <div className="bg-surface rounded-2xl border border-line p-4 mb-6">
           <form
             onSubmit={handleCreate}
             className="flex flex-wrap items-end gap-3"
           >
             <div>
-              <label htmlFor="form-month" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="form-month" className="block text-sm font-medium text-fg-2 mb-1">
                 Month
               </label>
               <select
                 id="form-month"
                 value={formMonth}
                 onChange={(e) => setFormMonth(parseInt(e.target.value))}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 {MONTH_NAMES.map((name, i) => (
                   <option key={i} value={i + 1}>
@@ -127,7 +127,7 @@ export default function MonthsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="form-year" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="form-year" className="block text-sm font-medium text-fg-2 mb-1">
                 Year
               </label>
               <input
@@ -135,18 +135,18 @@ export default function MonthsPage() {
                 type="number"
                 value={formYear}
                 onChange={(e) => setFormYear(parseInt(e.target.value))}
-                className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="w-24 px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div>
-              <label htmlFor="form-budget" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="form-budget" className="block text-sm font-medium text-fg-2 mb-1">
                 Budget Template (optional)
               </label>
               <select
                 id="form-budget"
                 value={formBudgetId}
                 onChange={(e) => setFormBudgetId(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 <option value="">None</option>
                 {budgets.map((b) => (
@@ -158,7 +158,7 @@ export default function MonthsPage() {
             </div>
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
             >
               Create
             </button>
@@ -169,30 +169,30 @@ export default function MonthsPage() {
       {months.length === 0 ? (
         <EmptyState message="No months yet." />
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-surface rounded-2xl border border-line overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                <tr className="border-b border-line bg-surface-2">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Month / Year
                   </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Budget Template
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Transactions
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Income
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Spending
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Net
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Actions
                   </th>
                 </tr>
@@ -201,33 +201,33 @@ export default function MonthsPage() {
                 {months.map((m) => (
                     <tr
                       key={m.id}
-                      className="border-b border-slate-100 hover:bg-slate-50"
+                      className="border-b border-line hover:bg-surface-2"
                     >
                       <td className="px-4 py-3">
                         <Link
                           href={`/months/${m.id}`}
-                          className="font-medium text-slate-900 hover:text-slate-700 transition-colors"
+                          className="font-medium text-fg hover:text-fg-2 transition-colors"
                         >
                           {MONTH_NAMES[m.month - 1]} {m.year}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="px-4 py-3 text-muted">
                         {m.budgetTemplate?.name ?? "-"}
                       </td>
-                      <td className="px-4 py-3 text-right text-slate-600">
+                      <td className="px-4 py-3 text-right text-muted">
                         {m.transactionCount}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-green-600">
+                      <td className="px-4 py-3 text-right font-mono text-pos">
                         {fmt(m.income)}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-red-600">
+                      <td className="px-4 py-3 text-right font-mono text-neg">
                         {fmt(m.spending)}
                       </td>
                       <td
                         className={`px-4 py-3 text-right font-mono ${
                           m.net >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
+                            ? "text-pos"
+                            : "text-neg"
                         }`}
                       >
                         {m.net >= 0 ? "+" : "-"}
@@ -243,7 +243,7 @@ export default function MonthsPage() {
                         ) : (
                           <button
                             onClick={() => setDeleteConfirm(m.id)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                            className="text-neg hover:text-red-800 text-sm font-medium transition-colors"
                           >
                             Delete
                           </button>

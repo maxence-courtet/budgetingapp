@@ -5,16 +5,16 @@ export const TRANSACTION_STATUSES = ["PLANNED", "PAID", "PENDING", "SKIPPED"] as
 export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
 
 export const TYPE_COLORS: Record<TransactionType, string> = {
-  INCOME: "bg-green-100 text-green-700",
-  SPENDING: "bg-red-100 text-red-700",
-  TRANSFER: "bg-blue-100 text-blue-700",
+  INCOME: "bg-accent-soft text-accent",
+  SPENDING: "bg-orange-100 text-orange-700",
+  TRANSFER: "bg-surface-2 text-fg-2",
 };
 
 export const STATUS_COLORS: Record<TransactionStatus, string> = {
-  PLANNED: "bg-slate-100 text-slate-700",
-  PAID: "bg-green-100 text-green-700",
+  PLANNED: "bg-surface-2 text-fg-2",
+  PAID: "bg-accent-soft text-accent",
   PENDING: "bg-yellow-100 text-yellow-800",
-  SKIPPED: "bg-slate-200 text-slate-600",
+  SKIPPED: "bg-surface-2 text-faint line-through",
 };
 
 export const STATUS_ORDER: TransactionStatus[] = ["PLANNED", "PAID", "PENDING", "SKIPPED"];

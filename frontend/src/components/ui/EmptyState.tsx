@@ -5,12 +5,12 @@ interface Props {
 
 export function EmptyState({ message, cta }: Props) {
   return (
-    <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-8 text-center">
-      <p className="text-slate-500 text-sm">{message}</p>
+    <div className="border border-dashed border-line-strong rounded-2xl p-8 text-center">
+      <p className="text-muted text-sm">{message}</p>
       {cta && (
         <button
           onClick={cta.onClick}
-          className="mt-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+          className="mt-3 text-sm font-medium text-accent hover:text-accent-hover transition-colors"
         >
           {cta.label}
         </button>

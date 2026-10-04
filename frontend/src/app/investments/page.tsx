@@ -33,13 +33,13 @@ interface PortfolioSummary {
 }
 
 const ASSET_TYPE_STYLES: Record<string, string> = {
-  STOCK: "bg-indigo-100 text-indigo-700",
-  ETF: "bg-slate-100 text-slate-700",
+  STOCK: "bg-accent-soft text-accent",
+  ETF: "bg-surface-2 text-fg-2",
   CRYPTO: "bg-purple-100 text-purple-700",
 };
 
 function assetTypeBadge(type: string) {
-  const classes = ASSET_TYPE_STYLES[type] ?? "bg-slate-100 text-slate-700";
+  const classes = ASSET_TYPE_STYLES[type] ?? "bg-surface-2 text-fg-2";
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${classes}`}>
       {type}
@@ -48,7 +48,7 @@ function assetTypeBadge(type: string) {
 }
 
 function gainLossColor(value: number) {
-  return value >= 0 ? "text-green-600" : "text-red-600";
+  return value >= 0 ? "text-pos" : "text-neg";
 }
 
 function formatPct(pct: number) {
@@ -108,7 +108,7 @@ export default function InvestmentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Investments</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Investments</h1>
       </div>
 
       {error && (
@@ -117,49 +117,34 @@ export default function InvestmentsPage() {
 
       {/* Hero card */}
       {summary && (
-        <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl p-6 text-white shadow-md">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-indigo-200 uppercase tracking-wide">
-                Portfolio Value
-              </p>
-              <p className="text-4xl font-bold mt-1">{fmt(summary.totalValue)}</p>
-
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-                <div>
-                  <span className="text-xs text-indigo-300 uppercase tracking-wide mr-1">
-                    Total Gain/Loss
-                  </span>
-                  <span
-                    className={`font-semibold text-sm ${
-                      summary.totalGainLoss >= 0 ? "text-green-300" : "text-red-300"
-                    }`}
-                  >
-                    {summary.totalGainLoss >= 0 ? "+" : ""}
-                    {fmt(summary.totalGainLoss)}{" "}
-                    <span className="text-xs">
-                      ({formatPct(summary.totalGainLossPct)})
-                    </span>
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-indigo-300 text-xs mt-3">
-                Last updated: {formatLastUpdated(summary.lastUpdated)}
+        <section aria-label="Portfolio summary" className="flex flex-wrap items-end justify-between gap-6">
+          <div className="space-y-2">
+            <p className="font-mono text-xs text-muted uppercase tracking-[0.08em]">Portfolio value</p>
+            <p className="font-mono text-5xl font-medium tracking-[-0.04em] leading-none text-fg">
+              {fmt(summary.totalValue)}
+            </p>
+            <p className="text-xs text-muted">Last updated: {formatLastUpdated(summary.lastUpdated)}</p>
+          </div>
+          <div className="flex items-end gap-6">
+            <div className="space-y-1">
+              <p className="text-xs text-muted">Total gain/loss</p>
+              <p className={`font-mono text-xl ${summary.totalGainLoss >= 0 ? "text-pos" : "text-neg"}`}>
+                {summary.totalGainLoss >= 0 ? "+" : "−"}
+                {fmt(summary.totalGainLoss)}{" "}
+                <span className="text-sm">({formatPct(summary.totalGainLossPct)})</span>
               </p>
             </div>
-
             <button
               onClick={() => loadPortfolio(true)}
               disabled={refreshing}
               aria-label="Refresh portfolio"
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
+              className="flex items-center gap-2 h-9 px-3.5 text-sm font-medium rounded-lg border border-line-strong text-fg hover:border-accent hover:text-accent transition-colors disabled:opacity-50 shrink-0"
             >
               <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} aria-hidden="true" />
               {refreshing ? "Refreshing…" : "Refresh"}
             </button>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Holdings table or empty state */}
@@ -172,30 +157,30 @@ export default function InvestmentsPage() {
           }}
         />
       ) : (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" aria-label="Portfolio holdings">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                <tr className="bg-surface-2 border-b border-line">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Asset
                   </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Type
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Quantity
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Avg Cost
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Current Price
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Current Value
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Gain / Loss
                   </th>
                 </tr>
@@ -204,12 +189,12 @@ export default function InvestmentsPage() {
                 {holdings.map((h) => (
                   <tr
                     key={h.ticker}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                    className="border-b border-line last:border-0 hover:bg-surface-2"
                   >
                     {/* Asset */}
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-900">{h.ticker}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[180px]">
+                      <p className="font-semibold text-fg">{h.ticker}</p>
+                      <p className="text-xs text-muted mt-0.5 truncate max-w-[180px]">
                         {h.name}
                       </p>
                     </td>
@@ -218,18 +203,18 @@ export default function InvestmentsPage() {
                     <td className="px-4 py-3">{assetTypeBadge(h.assetType)}</td>
 
                     {/* Quantity */}
-                    <td className="px-4 py-3 text-right text-slate-700 tabular-nums">
+                    <td className="px-4 py-3 text-right text-fg-2 tabular-nums">
                       {h.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })}
                     </td>
 
                     {/* Avg Cost */}
-                    <td className="px-4 py-3 text-right text-slate-700 tabular-nums">
+                    <td className="px-4 py-3 text-right text-fg-2 tabular-nums">
                       {fmt(h.avgCostBasis)}
                     </td>
 
                     {/* Current Price + Day Change */}
                     <td className="px-4 py-3 text-right tabular-nums">
-                      <p className="text-slate-900 font-medium">{fmt(h.currentPrice)}</p>
+                      <p className="text-fg font-medium">{fmt(h.currentPrice)}</p>
                       <p className={`text-xs mt-0.5 ${gainLossColor(h.dayChange)}`}>
                         {h.dayChange >= 0 ? "+" : ""}
                         {fmt(h.dayChange)} ({formatPct(h.dayChangePercent)})
@@ -237,7 +222,7 @@ export default function InvestmentsPage() {
                     </td>
 
                     {/* Current Value */}
-                    <td className="px-4 py-3 text-right text-slate-900 font-medium tabular-nums">
+                    <td className="px-4 py-3 text-right text-fg font-medium tabular-nums">
                       {fmt(h.currentValue)}
                     </td>
 
@@ -261,7 +246,7 @@ export default function InvestmentsPage() {
       <div className="text-right">
         <a
           href="/investments/trades"
-          className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+          className="text-sm font-medium text-accent hover:text-accent-hover transition-colors"
         >
           View Trade Log →
         </a>

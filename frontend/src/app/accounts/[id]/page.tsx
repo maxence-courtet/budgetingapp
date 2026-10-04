@@ -45,7 +45,7 @@ export default function AccountDetail({
 
   if (!account && !error) {
     return (
-      <div className="bg-slate-50 border border-slate-200 text-slate-600 rounded-lg p-4">
+      <div className="bg-surface-2 border border-line text-muted rounded-xl p-4">
         Account not found.
       </div>
     );
@@ -103,32 +103,32 @@ export default function AccountDetail({
       {/* Back link */}
       <Link
         href="/accounts"
-        className="text-sm text-slate-500 hover:text-slate-700"
+        className="text-sm text-muted hover:text-fg-2"
       >
         &larr; Back to Accounts
       </Link>
 
       {/* Account Header */}
-      <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
+      <div className="bg-surface border border-line rounded-2xl p-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500 uppercase tracking-wide capitalize">
+            <p className="text-sm font-medium text-muted uppercase tracking-wide capitalize">
               {account.type?.replace("_", " ")}
             </p>
-            <h1 className="text-2xl font-bold text-slate-900 mt-1">
+            <h1 className="text-[28px] font-semibold tracking-tight text-fg mt-1">
               {account.name}
             </h1>
             {account.notes && (
-              <p className="text-sm text-slate-500 mt-2">{account.notes}</p>
+              <p className="text-sm text-muted mt-2">{account.notes}</p>
             )}
           </div>
           <div className="text-right">
-            <p className="text-sm text-slate-500">Balance</p>
+            <p className="text-sm text-muted">Balance</p>
             <p
               className={`text-3xl font-bold ${
                 (account.balance ?? 0) >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
+                  ? "text-pos"
+                  : "text-neg"
               }`}
             >
               {(account.balance ?? 0) < 0 ? "-" : ""}
@@ -141,17 +141,17 @@ export default function AccountDetail({
       {/* Category Balances */}
       {categoryBalances.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">
+          <h2 className="text-lg font-semibold text-fg mb-3">
             Category Balances
           </h2>
-          <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+          <div className="bg-surface border border-line rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                <tr className="border-b border-line bg-surface-2">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Category
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Balance
                   </th>
                 </tr>
@@ -160,14 +160,14 @@ export default function AccountDetail({
                 {categoryBalances.map((c) => (
                   <tr
                     key={c.name}
-                    className="border-b border-slate-100 last:border-0"
+                    className="border-b border-line last:border-0"
                   >
-                    <td className="px-4 py-3 text-slate-900 font-medium">
+                    <td className="px-4 py-3 text-fg font-medium">
                       {c.name}
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-medium ${
-                        c.balance >= 0 ? "text-green-600" : "text-red-600"
+                        c.balance >= 0 ? "text-pos" : "text-neg"
                       }`}
                     >
                       {c.balance < 0 ? "-" : "+"}
@@ -183,34 +183,34 @@ export default function AccountDetail({
 
       {/* Transactions */}
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-3">
+        <h2 className="text-lg font-semibold text-fg mb-3">
           Transactions
         </h2>
         {transactions.length === 0 ? (
-          <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6 text-center text-slate-500">
+          <div className="bg-surface border border-line rounded-2xl p-6 text-center text-muted">
             No transactions for this account.
           </div>
         ) : (
-          <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+          <div className="bg-surface border border-line rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                <tr className="border-b border-line bg-surface-2">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Date
                   </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Description
                   </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Type
                   </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
                     Amount
                   </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Category
                   </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">
+                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
                     Status
                   </th>
                 </tr>
@@ -219,12 +219,12 @@ export default function AccountDetail({
                 {transactions.map((t: any) => (
                   <tr
                     key={t.id}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                    className="border-b border-line last:border-0 hover:bg-surface-2"
                   >
-                    <td className="px-4 py-3 text-slate-700">
+                    <td className="px-4 py-3 text-fg-2">
                       {t.date?.slice(0, 10)}
                     </td>
-                    <td className="px-4 py-3 text-slate-900 font-medium">
+                    <td className="px-4 py-3 text-fg font-medium">
                       {t.description}
                     </td>
                     <td className="px-4 py-3">
@@ -233,10 +233,10 @@ export default function AccountDetail({
                     <td
                       className={`px-4 py-3 text-right font-medium ${
                         t.type === "INCOME"
-                          ? "text-green-600"
+                          ? "text-pos"
                           : t.type === "SPENDING"
-                          ? "text-red-600"
-                          : "text-blue-600"
+                          ? "text-neg"
+                          : "text-muted"
                       }`}
                     >
                       {t.type === "INCOME"
@@ -246,7 +246,7 @@ export default function AccountDetail({
                         : ""}
                       {fmt(t.amount ?? 0)}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-muted">
                       {t.category?.name ?? t.categoryName ?? "-"}
                     </td>
                     <td className="px-4 py-3">

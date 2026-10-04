@@ -225,7 +225,7 @@ export default function HabitsPage() {
           !showCreate ? (
             <button
               onClick={() => { resetForm(); setShowCreate(true); }}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
               + New Habit
             </button>
@@ -237,7 +237,7 @@ export default function HabitsPage() {
 
       {/* Pending MCP banner */}
       {pendingLogs.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
           <p className="text-sm font-medium text-yellow-800 mb-3">
             {pendingLogs.length} habit {pendingLogs.length === 1 ? "entry" : "entries"} added by AI — review and approve
           </p>
@@ -245,32 +245,32 @@ export default function HabitsPage() {
             {pendingLogs.map((log: any) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between gap-4 bg-white border border-yellow-100 rounded-lg px-3 py-2"
+                className="flex items-center justify-between gap-4 bg-surface border border-yellow-100 rounded-xl px-3 py-2"
               >
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-slate-800">
+                  <span className="text-sm font-medium text-fg">
                     {log.habit?.name ?? log.habitId}
                   </span>
-                  <span className="mx-2 text-slate-400">·</span>
-                  <span className="text-xs text-slate-500">{formatLogDate(log.date)}</span>
-                  <span className="mx-2 text-slate-400">·</span>
-                  <span className={`text-xs font-medium ${log.completed ? "text-green-600" : "text-slate-500"}`}>
+                  <span className="mx-2 text-faint">·</span>
+                  <span className="text-xs text-muted">{formatLogDate(log.date)}</span>
+                  <span className="mx-2 text-faint">·</span>
+                  <span className={`text-xs font-medium ${log.completed ? "text-pos" : "text-muted"}`}>
                     {log.completed ? "Completed" : "Not completed"}
                   </span>
                   {log.note && (
-                    <span className="ml-2 text-xs text-slate-500 italic truncate">"{log.note}"</span>
+                    <span className="ml-2 text-xs text-muted italic truncate">"{log.note}"</span>
                   )}
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => handleApproveLog(log.id)}
-                    className="px-3 py-1 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    className="px-3 py-1 text-xs font-medium bg-green-600 text-accent-ink rounded-xl hover:bg-green-700 transition-colors"
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleRejectLog(log.id)}
-                    className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
                   >
                     Reject
                   </button>
@@ -283,11 +283,11 @@ export default function HabitsPage() {
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">New Habit</h2>
+        <div className="bg-surface border border-line rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-fg mb-4">New Habit</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="habit-name" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="habit-name" className="block text-sm font-medium text-muted mb-1">
                 Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -296,25 +296,25 @@ export default function HabitsPage() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="e.g. Morning run"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div>
-              <label htmlFor="habit-frequency" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="habit-frequency" className="block text-sm font-medium text-muted mb-1">
                 Frequency
               </label>
               <select
                 id="habit-frequency"
                 value={formFrequency}
                 onChange={(e) => setFormFrequency(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 <option value="DAILY">Daily</option>
                 <option value="WEEKLY">Weekly</option>
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="habit-description" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="habit-description" className="block text-sm font-medium text-muted mb-1">
                 Description
               </label>
               <textarea
@@ -323,7 +323,7 @@ export default function HabitsPage() {
                 onChange={(e) => setFormDescription(e.target.value)}
                 rows={2}
                 placeholder="Optional description"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
           </div>
@@ -331,13 +331,13 @@ export default function HabitsPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !formName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               {saving ? "Creating..." : "Create Habit"}
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
@@ -364,7 +364,7 @@ export default function HabitsPage() {
             return (
               <div
                 key={habit.id}
-                className={`bg-white border border-slate-200 shadow-sm rounded-lg p-5 ${!habit.active ? "opacity-60" : ""}`}
+                className={`bg-surface border border-line rounded-2xl p-5 ${!habit.active ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -374,44 +374,44 @@ export default function HabitsPage() {
                           type="text"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1"
+                          className="border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 flex-1"
                           autoFocus
                         />
                         <button
                           onClick={() => handleUpdate(habit.id)}
                           disabled={saving || !editName.trim()}
-                          className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
                         >
                           Save
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="px-3 py-1.5 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                         >
                           Cancel
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-base font-semibold text-slate-900">{habit.name}</h3>
+                        <h3 className="text-base font-semibold text-fg">{habit.name}</h3>
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                             habit.frequency === "WEEKLY"
                               ? "bg-purple-100 text-purple-700"
-                              : "bg-indigo-100 text-indigo-700"
+                              : "bg-accent-soft text-accent"
                           }`}
                         >
                           {habit.frequency ?? "DAILY"}
                         </span>
                         {!habit.active && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted">
                             Inactive
                           </span>
                         )}
                       </div>
                     )}
                     {habit.description && (
-                      <p className="text-sm text-slate-500 mb-3">{habit.description}</p>
+                      <p className="text-sm text-muted mb-3">{habit.description}</p>
                     )}
 
                     {/* 7-day strip */}
@@ -426,10 +426,10 @@ export default function HabitsPage() {
                               className={`w-7 h-7 rounded-md border ${
                                 completed
                                   ? "bg-green-500 border-green-600"
-                                  : "bg-slate-100 border-slate-200"
+                                  : "bg-surface-2 border-line"
                               }`}
                             />
-                            <span className="text-[10px] text-slate-400">{label}</span>
+                            <span className="text-[10px] text-faint">{label}</span>
                           </div>
                         );
                       })}
@@ -439,7 +439,7 @@ export default function HabitsPage() {
                       <button
                         onClick={() => handleLogToday(habit.id)}
                         disabled={isLogging || todayLogged}
-                        className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium bg-green-600 text-accent-ink rounded-xl hover:bg-green-700 disabled:opacity-50 transition-colors"
                       >
                         {isLogging ? "Logging..." : todayLogged ? "Logged today" : "Log today"}
                       </button>
@@ -462,19 +462,19 @@ export default function HabitsPage() {
                               setEditingId(habit.id);
                               setEditName(habit.name);
                             }}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleToggleActive(habit)}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                           >
                             {habit.active ? "Deactivate" : "Activate"}
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(habit.id)}
-                            className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
                           >
                             Delete
                           </button>

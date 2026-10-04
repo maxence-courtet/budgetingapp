@@ -19,7 +19,7 @@ type StatusFilter = "ALL" | "ACTIVE" | "COMPLETED" | "ABANDONED";
 const STATUS_FILTERS: StatusFilter[] = ["ALL", "ACTIVE", "COMPLETED", "ABANDONED"];
 
 const TYPE_BADGE_STYLES: Record<string, string> = {
-  FINANCIAL: "bg-indigo-100 text-indigo-700",
+  FINANCIAL: "bg-accent-soft text-accent",
   HABIT: "bg-green-100 text-green-700",
   FITNESS: "bg-orange-100 text-orange-700",
   PERSONAL: "bg-purple-100 text-purple-700",
@@ -28,7 +28,7 @@ const TYPE_BADGE_STYLES: Record<string, string> = {
 const STATUS_BADGE_STYLES: Record<string, string> = {
   ACTIVE: "bg-blue-100 text-blue-700",
   COMPLETED: "bg-green-100 text-green-700",
-  ABANDONED: "bg-slate-100 text-slate-500",
+  ABANDONED: "bg-surface-2 text-muted",
 };
 
 function todayISO(): string {
@@ -182,7 +182,7 @@ export default function GoalsPage() {
           !showCreate ? (
             <button
               onClick={() => { resetForm(); setShowCreate(true); }}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
               + New Goal
             </button>
@@ -200,8 +200,8 @@ export default function GoalsPage() {
             onClick={() => setStatusFilter(s)}
             className={`px-4 py-1.5 text-sm font-medium rounded-full border transition-colors ${
               statusFilter === s
-                ? "bg-indigo-600 text-white border-indigo-600"
-                : "bg-white text-slate-600 border-slate-300 hover:border-indigo-300 hover:text-indigo-600"
+                ? "bg-accent text-accent-ink border-accent"
+                : "bg-surface text-muted border-line-strong hover:border-accent hover:text-accent"
             }`}
           >
             {s.charAt(0) + s.slice(1).toLowerCase()}
@@ -211,11 +211,11 @@ export default function GoalsPage() {
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">New Goal</h2>
+        <div className="bg-surface border border-line rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-fg mb-4">New Goal</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label htmlFor="goal-title" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="goal-title" className="block text-sm font-medium text-muted mb-1">
                 Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -224,18 +224,18 @@ export default function GoalsPage() {
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="e.g. Run a 5K"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div>
-              <label htmlFor="goal-type" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="goal-type" className="block text-sm font-medium text-muted mb-1">
                 Type
               </label>
               <select
                 id="goal-type"
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 <option value="PERSONAL">Personal</option>
                 <option value="FINANCIAL">Financial</option>
@@ -244,7 +244,7 @@ export default function GoalsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="goal-deadline" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="goal-deadline" className="block text-sm font-medium text-muted mb-1">
                 Deadline
               </label>
               <input
@@ -252,11 +252,11 @@ export default function GoalsPage() {
                 type="date"
                 value={formDeadline}
                 onChange={(e) => setFormDeadline(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div>
-              <label htmlFor="goal-target" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="goal-target" className="block text-sm font-medium text-muted mb-1">
                 Target Value
               </label>
               <input
@@ -266,11 +266,11 @@ export default function GoalsPage() {
                 onChange={(e) => setFormTarget(e.target.value)}
                 placeholder="Optional"
                 step="any"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div>
-              <label htmlFor="goal-unit" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="goal-unit" className="block text-sm font-medium text-muted mb-1">
                 Unit
               </label>
               <input
@@ -279,11 +279,11 @@ export default function GoalsPage() {
                 value={formUnit}
                 onChange={(e) => setFormUnit(e.target.value)}
                 placeholder='e.g. "$", "kg", "days"'
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="goal-description" className="block text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="goal-description" className="block text-sm font-medium text-muted mb-1">
                 Description
               </label>
               <textarea
@@ -292,7 +292,7 @@ export default function GoalsPage() {
                 onChange={(e) => setFormDescription(e.target.value)}
                 rows={2}
                 placeholder="Optional description"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
             </div>
           </div>
@@ -300,13 +300,13 @@ export default function GoalsPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !formTitle.trim()}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               {saving ? "Creating..." : "Create Goal"}
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
@@ -331,18 +331,18 @@ export default function GoalsPage() {
             const deadlineDays = goal.deadline ? daysUntil(goal.deadline) : null;
             const deadlineColor =
               deadlineDays === null
-                ? "text-slate-500"
+                ? "text-muted"
                 : deadlineDays < 7
-                ? "text-red-600"
+                ? "text-neg"
                 : deadlineDays < 30
                 ? "text-yellow-600"
-                : "text-slate-500";
+                : "text-muted";
 
-            const typeBadge = TYPE_BADGE_STYLES[goal.type] ?? "bg-slate-100 text-slate-600";
-            const statusBadge = STATUS_BADGE_STYLES[goal.status] ?? "bg-slate-100 text-slate-600";
+            const typeBadge = TYPE_BADGE_STYLES[goal.type] ?? "bg-surface-2 text-muted";
+            const statusBadge = STATUS_BADGE_STYLES[goal.status] ?? "bg-surface-2 text-muted";
 
             return (
-              <div key={goal.id} className="bg-white border border-slate-200 shadow-sm rounded-lg p-5 flex flex-col gap-3">
+              <div key={goal.id} className="bg-surface border border-line rounded-2xl p-5 flex flex-col gap-3">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
@@ -352,13 +352,13 @@ export default function GoalsPage() {
                           type="text"
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                           autoFocus
                         />
                         <select
                           value={editStatus}
                           onChange={(e) => setEditStatus(e.target.value)}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                         >
                           <option value="ACTIVE">Active</option>
                           <option value="COMPLETED">Completed</option>
@@ -368,20 +368,20 @@ export default function GoalsPage() {
                           <button
                             onClick={() => handleUpdate(goal.id)}
                             disabled={saving || !editTitle.trim()}
-                            className="px-3 py-1 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
                           >
                             Save
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                           >
                             Cancel
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <h3 className="text-base font-semibold text-slate-900 leading-snug">{goal.title}</h3>
+                      <h3 className="text-base font-semibold text-fg leading-snug">{goal.title}</h3>
                     )}
                   </div>
                   <div className="flex gap-1 shrink-0">
@@ -392,25 +392,25 @@ export default function GoalsPage() {
                 </div>
 
                 {goal.description && (
-                  <p className="text-sm text-slate-500 leading-relaxed">{goal.description}</p>
+                  <p className="text-sm text-muted leading-relaxed">{goal.description}</p>
                 )}
 
                 {/* Progress bar */}
                 {hasTarget && (
                   <div>
-                    <div className="flex justify-between items-center text-xs text-slate-500 mb-1">
+                    <div className="flex justify-between items-center text-xs text-muted mb-1">
                       <span>Progress</span>
-                      <span className="font-medium text-slate-700">
+                      <span className="font-medium text-fg-2">
                         {current} / {target} {goal.unit ?? ""}
                       </span>
                     </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                        className="h-full bg-accent rounded-full transition-all duration-300"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <p className="text-xs text-slate-400 mt-1 text-right">{pct}%</p>
+                    <p className="text-xs text-faint mt-1 text-right">{pct}%</p>
                   </div>
                 )}
 
@@ -437,7 +437,7 @@ export default function GoalsPage() {
 
                 {/* Quick progress update */}
                 {hasTarget && goal.status === "ACTIVE" && (
-                  <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+                  <div className="flex items-center gap-2 pt-1 border-t border-line">
                     <input
                       type="number"
                       step="any"
@@ -446,12 +446,12 @@ export default function GoalsPage() {
                         setProgressInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))
                       }
                       placeholder="+/- value"
-                      className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="flex-1 border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                     />
                     <button
                       onClick={() => handleProgressUpdate(goal)}
                       disabled={updatingProgress === goal.id || !progressInputs[goal.id]}
-                      className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
                     >
                       {updatingProgress === goal.id ? "..." : "Update"}
                     </button>
@@ -459,7 +459,7 @@ export default function GoalsPage() {
                 )}
 
                 {/* Actions */}
-                <div className="pt-1 border-t border-slate-100">
+                <div className="pt-1 border-t border-line">
                   {deleteConfirm === goal.id ? (
                     <ConfirmDelete
                       onConfirm={() => handleDelete(goal.id)}
@@ -474,13 +474,13 @@ export default function GoalsPage() {
                           setEditTitle(goal.title);
                           setEditStatus(goal.status ?? "ACTIVE");
                         }}
-                        className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                        className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(goal.id)}
-                        className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                        className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
                       >
                         Delete
                       </button>

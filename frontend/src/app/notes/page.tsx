@@ -163,7 +163,7 @@ export default function NotesPage() {
                 setShowCreate(true);
                 setSelectedId(null);
               }}
-              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
               + New Note
             </button>
@@ -180,8 +180,8 @@ export default function NotesPage() {
             onClick={() => setActiveTag(null)}
             className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
               activeTag === null
-                ? "bg-indigo-600 text-white border-indigo-600"
-                : "bg-white text-slate-600 border-slate-300 hover:border-indigo-300 hover:text-indigo-600"
+                ? "bg-accent text-accent-ink border-accent"
+                : "bg-surface text-muted border-line-strong hover:border-accent hover:text-accent"
             }`}
           >
             All
@@ -192,8 +192,8 @@ export default function NotesPage() {
               onClick={() => setActiveTag(activeTag === tag ? null : tag)}
               className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                 activeTag === tag
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-white text-slate-600 border-slate-300 hover:border-indigo-300 hover:text-indigo-600"
+                  ? "bg-accent text-accent-ink border-accent"
+                  : "bg-surface text-muted border-line-strong hover:border-accent hover:text-accent"
               }`}
             >
               {tag}
@@ -231,14 +231,14 @@ export default function NotesPage() {
                   setShowCreate(false);
                   setEditingId(null);
                 }}
-                className={`w-full text-left bg-white border rounded-lg p-4 transition-colors hover:bg-slate-50 ${
+                className={`w-full text-left bg-surface border rounded-xl p-4 transition-colors hover:bg-surface-2 ${
                   selectedId === note.id
-                    ? "border-l-4 border-l-indigo-600 border-t-slate-200 border-r-slate-200 border-b-slate-200"
-                    : "border-slate-200"
+                    ? "border-accent ring-1 ring-accent"
+                    : "border-line"
                 }`}
               >
-                <p className="font-semibold text-slate-900 text-sm truncate">{note.title}</p>
-                <p className="text-xs text-slate-500 mt-0.5 truncate">
+                <p className="font-semibold text-fg text-sm truncate">{note.title}</p>
+                <p className="text-xs text-muted mt-0.5 truncate">
                   {truncate(note.content ?? "", 60)}
                 </p>
                 <div className="flex items-center justify-between mt-2">
@@ -246,13 +246,13 @@ export default function NotesPage() {
                     {(note.tags ?? []).map((tag: string) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600"
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-2 text-muted"
                       >
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                  <span className="text-[10px] text-faint shrink-0 ml-2">
                     {note.createdAt ? formatDate(note.createdAt) : ""}
                   </span>
                 </div>
@@ -264,11 +264,11 @@ export default function NotesPage() {
         {/* Right: selected note detail or create form */}
         <div>
           {showCreate ? (
-            <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">New Note</h2>
+            <div className="bg-surface border border-line rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-fg mb-4">New Note</h2>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="note-title" className="block text-sm font-medium text-slate-600 mb-1">
+                  <label htmlFor="note-title" className="block text-sm font-medium text-muted mb-1">
                     Title <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -277,25 +277,25 @@ export default function NotesPage() {
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                     placeholder="Note title"
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
                 </div>
                 <div>
-                  <label htmlFor="note-type" className="block text-sm font-medium text-slate-600 mb-1">
+                  <label htmlFor="note-type" className="block text-sm font-medium text-muted mb-1">
                     Type
                   </label>
                   <select
                     id="note-type"
                     value={formType}
                     onChange={(e) => setFormType(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="NOTE">Note</option>
                     <option value="JOURNAL">Journal</option>
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="note-tags" className="block text-sm font-medium text-slate-600 mb-1">
+                  <label htmlFor="note-tags" className="block text-sm font-medium text-muted mb-1">
                     Tags (comma-separated)
                   </label>
                   <input
@@ -304,11 +304,11 @@ export default function NotesPage() {
                     value={formTags}
                     onChange={(e) => setFormTags(e.target.value)}
                     placeholder="e.g. health, ideas, work"
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
                 </div>
                 <div>
-                  <label htmlFor="note-content" className="block text-sm font-medium text-slate-600 mb-1">
+                  <label htmlFor="note-content" className="block text-sm font-medium text-muted mb-1">
                     Content <span className="text-red-500">*</span>
                   </label>
                   <textarea
@@ -317,7 +317,7 @@ export default function NotesPage() {
                     onChange={(e) => setFormContent(e.target.value)}
                     rows={10}
                     placeholder="Write your note here..."
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
                 </div>
               </div>
@@ -325,24 +325,24 @@ export default function NotesPage() {
                 <button
                   onClick={handleCreate}
                   disabled={saving || !formTitle.trim() || !formContent.trim()}
-                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
                 >
                   {saving ? "Saving..." : "Create Note"}
                 </button>
                 <button
                   onClick={resetCreateForm}
-                  className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                 >
                   Cancel
                 </button>
               </div>
             </div>
           ) : selectedNote ? (
-            <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
+            <div className="bg-surface border border-line rounded-2xl p-6">
               {editingId === selectedNote.id ? (
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="edit-note-title" className="block text-sm font-medium text-slate-600 mb-1">
+                    <label htmlFor="edit-note-title" className="block text-sm font-medium text-muted mb-1">
                       Title
                     </label>
                     <input
@@ -350,11 +350,11 @@ export default function NotesPage() {
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                     />
                   </div>
                   <div>
-                    <label htmlFor="edit-note-tags" className="block text-sm font-medium text-slate-600 mb-1">
+                    <label htmlFor="edit-note-tags" className="block text-sm font-medium text-muted mb-1">
                       Tags (comma-separated)
                     </label>
                     <input
@@ -362,11 +362,11 @@ export default function NotesPage() {
                       type="text"
                       value={editTags}
                       onChange={(e) => setEditTags(e.target.value)}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                     />
                   </div>
                   <div>
-                    <label htmlFor="edit-note-content" className="block text-sm font-medium text-slate-600 mb-1">
+                    <label htmlFor="edit-note-content" className="block text-sm font-medium text-muted mb-1">
                       Content
                     </label>
                     <textarea
@@ -374,20 +374,20 @@ export default function NotesPage() {
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       rows={12}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                     />
                   </div>
                   <div className="flex gap-3">
                     <button
                       onClick={() => handleUpdate(selectedNote.id)}
                       disabled={saving || !editTitle.trim() || !editContent.trim()}
-                      className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                      className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
                     >
                       {saving ? "Saving..." : "Save"}
                     </button>
                     <button
                       onClick={() => setEditingId(null)}
-                      className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                      className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                     >
                       Cancel
                     </button>
@@ -397,13 +397,13 @@ export default function NotesPage() {
                 <>
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-xl font-bold text-slate-900 leading-snug">
+                      <h2 className="text-xl font-bold text-fg leading-snug">
                         {selectedNote.title}
                       </h2>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-faint mt-1">
                         {selectedNote.createdAt ? formatDate(selectedNote.createdAt) : ""}
                         {selectedNote.type && selectedNote.type !== "NOTE" && (
-                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-700">
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent-soft text-accent">
                             {selectedNote.type}
                           </span>
                         )}
@@ -420,13 +420,13 @@ export default function NotesPage() {
                         <>
                           <button
                             onClick={() => startEdit(selectedNote)}
-                            className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(selectedNote.id)}
-                            className="px-3 py-1 text-xs font-medium border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                            className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
                           >
                             Delete
                           </button>
@@ -441,7 +441,7 @@ export default function NotesPage() {
                       {(selectedNote.tags ?? []).map((tag: string) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700"
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-soft text-accent"
                         >
                           {tag}
                         </span>
@@ -451,7 +451,7 @@ export default function NotesPage() {
 
                   {/* Content */}
                   <div className="prose prose-sm max-w-none">
-                    <p className="text-slate-700 leading-relaxed whitespace-pre-wrap text-sm">
+                    <p className="text-fg-2 leading-relaxed whitespace-pre-wrap text-sm">
                       {selectedNote.content}
                     </p>
                   </div>
@@ -459,8 +459,8 @@ export default function NotesPage() {
               )}
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-8 text-center">
-              <p className="text-slate-400 text-sm">Select a note to read it</p>
+            <div className="bg-surface border border-line rounded-2xl p-8 text-center">
+              <p className="text-faint text-sm">Select a note to read it</p>
             </div>
           )}
         </div>

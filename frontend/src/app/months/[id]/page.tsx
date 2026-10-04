@@ -68,28 +68,28 @@ function TransactionTable({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
-            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Date</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Description</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Type</th>
-            <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Amount</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Category</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Account(s)</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-slate-600">Status</th>
-            <th scope="col" className="text-right px-4 py-3 font-medium text-slate-600">Actions</th>
+          <tr className="border-b border-line bg-surface-2">
+            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Date</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Description</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Type</th>
+            <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Amount</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Category</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Account(s)</th>
+            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Status</th>
+            <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Actions</th>
           </tr>
         </thead>
         <tbody>
           {txList.map((tx) => {
             if (editingTxId === tx.id) {
               return (
-                <tr key={tx.id} className="border-b border-slate-100 bg-slate-50">
+                <tr key={tx.id} className="border-b border-line bg-surface-2">
                   <td className="px-4 py-2">
                     <input
                       type="date"
                       value={editTxForm.date}
                       onChange={(e) => setEditTxForm({ ...editTxForm, date: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                       required
                     />
                   </td>
@@ -99,14 +99,14 @@ function TransactionTable({
                       value={editTxForm.description}
                       onChange={(e) => setEditTxForm({ ...editTxForm, description: e.target.value })}
                       placeholder="Optional"
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                     />
                   </td>
                   <td className="px-4 py-2">
                     <select
                       value={editTxForm.type}
                       onChange={(e) => setEditTxForm({ ...editTxForm, type: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                     >
                       <option value="INCOME">INCOME</option>
                       <option value="SPENDING">SPENDING</option>
@@ -120,7 +120,7 @@ function TransactionTable({
                       min="0"
                       value={editTxForm.amount}
                       onChange={(e) => setEditTxForm({ ...editTxForm, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-accent/40"
                       required
                     />
                   </td>
@@ -128,7 +128,7 @@ function TransactionTable({
                     <select
                       value={editTxForm.categoryId}
                       onChange={(e) => setEditTxForm({ ...editTxForm, categoryId: e.target.value })}
-                      className={`w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400${editTxForm.type === "TRANSFER" ? " mb-1" : ""}`}
+                      className={`w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40${editTxForm.type === "TRANSFER" ? " mb-1" : ""}`}
                       required
                     >
                       <option value="">From category</option>
@@ -140,7 +140,7 @@ function TransactionTable({
                       <select
                         value={editTxForm.toCategoryId}
                         onChange={(e) => setEditTxForm({ ...editTxForm, toCategoryId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                       >
                         <option value="">To category</option>
                         {categories.map((c) => (
@@ -154,7 +154,7 @@ function TransactionTable({
                       <select
                         value={editTxForm.fromAccountId}
                         onChange={(e) => setEditTxForm({ ...editTxForm, fromAccountId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 mb-1"
+                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 mb-1"
                       >
                         <option value="">From...</option>
                         {accounts.map((a) => (
@@ -166,7 +166,7 @@ function TransactionTable({
                       <select
                         value={editTxForm.toAccountId}
                         onChange={(e) => setEditTxForm({ ...editTxForm, toAccountId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                       >
                         <option value="">To...</option>
                         {accounts.map((a) => (
@@ -175,14 +175,14 @@ function TransactionTable({
                       </select>
                     )}
                     {editTxForm.type !== "SPENDING" && editTxForm.type !== "INCOME" && editTxForm.type !== "TRANSFER" && (
-                      <span className="text-slate-400">-</span>
+                      <span className="text-faint">-</span>
                     )}
                   </td>
                   <td className="px-4 py-2">
                     <select
                       value={editTxForm.status}
                       onChange={(e) => setEditTxForm({ ...editTxForm, status: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                     >
                       {STATUS_ORDER.map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -193,13 +193,13 @@ function TransactionTable({
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={handleUpdateTx}
-                        className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors"
+                        className="text-pos hover:text-green-800 text-sm font-medium transition-colors"
                       >
                         Save
                       </button>
                       <button
                         onClick={() => setEditingTxId(null)}
-                        className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                        className="text-muted hover:text-fg-2 text-sm font-medium transition-colors"
                       >
                         Cancel
                       </button>
@@ -225,25 +225,25 @@ function TransactionTable({
 
             const amountColor =
               tx.type === "INCOME"
-                ? "text-green-600"
+                ? "text-pos"
                 : tx.type === "SPENDING"
-                ? "text-red-600"
-                : "text-blue-600";
+                ? "text-neg"
+                : "text-muted";
 
             return (
               <tr
                 key={tx.id}
-                className={`border-b border-slate-100 hover:bg-slate-50 ${
+                className={`border-b border-line hover:bg-surface-2 ${
                   tx.status === "SKIPPED" ? "opacity-50" : ""
                 }`}
               >
-                <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                <td className="px-4 py-3 text-muted whitespace-nowrap">
                   {new Date(tx.date).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                   })}
                 </td>
-                <td className="px-4 py-3 text-slate-900">
+                <td className="px-4 py-3 text-fg">
                   {tx.description || "-"}
                 </td>
                 <td className="px-4 py-3">
@@ -255,10 +255,10 @@ function TransactionTable({
                   {amountPrefix}
                   {fmt(tx.amount)}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3 text-muted">
                   {tx.category?.name ?? "-"}
                   {tx.toCategoryId && (
-                    <span className="text-slate-400">
+                    <span className="text-faint">
                       {" "}
                       /{" "}
                       {categories.find((c) => c.id === tx.toCategoryId)
@@ -266,7 +266,7 @@ function TransactionTable({
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                <td className="px-4 py-3 text-muted whitespace-nowrap">
                   {accountStr}
                 </td>
                 <td className="px-4 py-3">
@@ -290,13 +290,13 @@ function TransactionTable({
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => startEditTx(tx)}
-                        className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors"
+                        className="text-muted hover:text-fg text-sm font-medium transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => setConfirmDeleteTxId(tx.id)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                        className="text-neg hover:text-red-800 text-sm font-medium transition-colors"
                       >
                         Delete
                       </button>
@@ -496,7 +496,7 @@ export default function MonthDetailPage({
   if (!month) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-slate-500">Month not found.</p>
+        <p className="text-muted">Month not found.</p>
       </div>
     );
   }
@@ -529,7 +529,7 @@ export default function MonthDetailPage({
       <div className="mb-1">
         <Link
           href="/months"
-          className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          className="text-sm text-muted hover:text-fg-2 transition-colors"
         >
           &larr; Back to Months
         </Link>
@@ -537,24 +537,24 @@ export default function MonthDetailPage({
 
       {/* Header */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">
+        <h1 className="text-[28px] font-semibold tracking-tight text-fg">
           {MONTH_NAMES[month.month - 1]} {month.year}
         </h1>
         {month.budgetTemplate && (
-          <span className="px-3 py-1 text-sm bg-slate-100 text-slate-600 rounded-lg">
+          <span className="px-3 py-1 text-sm bg-surface-2 text-muted rounded-xl">
             Template: {month.budgetTemplate.name}
           </span>
         )}
         <div className="flex gap-2 ml-auto">
           <button
             onClick={() => setShowApply(!showApply)}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-fg-2 bg-surface-2 rounded-xl hover:bg-line transition-colors"
           >
             Apply Budget
           </button>
           <button
             onClick={() => setShowTxForm(!showTxForm)}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
           >
             {showTxForm ? "Cancel" : "Add Transaction"}
           </button>
@@ -563,16 +563,16 @@ export default function MonthDetailPage({
 
       {/* Apply Budget */}
       {showApply && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
+        <div className="bg-surface rounded-2xl border border-line p-4 mb-6">
           <div className="flex items-end gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-fg-2 mb-1">
                 Select Budget Template
               </label>
               <select
                 value={applyBudgetId}
                 onChange={(e) => setApplyBudgetId(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
                 <option value="">Choose...</option>
                 {budgets.map((b) => (
@@ -585,13 +585,13 @@ export default function MonthDetailPage({
             <button
               onClick={handleApplyBudget}
               disabled={!applyBudgetId}
-              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Apply
             </button>
             <button
               onClick={() => setShowApply(false)}
-              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-muted bg-surface-2 rounded-xl hover:bg-line transition-colors"
             >
               Cancel
             </button>
@@ -601,14 +601,14 @@ export default function MonthDetailPage({
 
       {/* Add Transaction Form */}
       {showTxForm && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <div className="bg-surface rounded-2xl border border-line p-5 mb-6">
+          <h2 className="text-lg font-semibold text-fg mb-4">
             New Transaction
           </h2>
           <form onSubmit={handleCreateTx}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-fg-2 mb-1">
                   Type
                 </label>
                 <select
@@ -616,7 +616,7 @@ export default function MonthDetailPage({
                   onChange={(e) =>
                     setTxForm({ ...txForm, type: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 >
                   <option value="INCOME">INCOME</option>
                   <option value="SPENDING">SPENDING</option>
@@ -625,7 +625,7 @@ export default function MonthDetailPage({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-fg-2 mb-1">
                   Date
                 </label>
                 <input
@@ -634,13 +634,13 @@ export default function MonthDetailPage({
                   onChange={(e) =>
                     setTxForm({ ...txForm, date: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-fg-2 mb-1">
                   Amount
                 </label>
                 <input
@@ -652,13 +652,13 @@ export default function MonthDetailPage({
                     setTxForm({ ...txForm, amount: e.target.value })
                   }
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-fg-2 mb-1">
                   Description
                 </label>
                 <input
@@ -668,12 +668,12 @@ export default function MonthDetailPage({
                     setTxForm({ ...txForm, description: e.target.value })
                   }
                   placeholder="Optional"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-fg-2 mb-1">
                   Category
                 </label>
                 <select
@@ -681,7 +681,7 @@ export default function MonthDetailPage({
                   onChange={(e) =>
                     setTxForm({ ...txForm, categoryId: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   required
                 >
                   <option value="">Select category</option>
@@ -695,7 +695,7 @@ export default function MonthDetailPage({
 
               {txForm.type === "TRANSFER" && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-fg-2 mb-1">
                     To Category
                   </label>
                   <select
@@ -703,7 +703,7 @@ export default function MonthDetailPage({
                     onChange={(e) =>
                       setTxForm({ ...txForm, toCategoryId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="">Select category</option>
                     {categories.map((c) => (
@@ -717,7 +717,7 @@ export default function MonthDetailPage({
 
               {(txForm.type === "SPENDING" || txForm.type === "TRANSFER") && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-fg-2 mb-1">
                     From Account
                   </label>
                   <select
@@ -725,7 +725,7 @@ export default function MonthDetailPage({
                     onChange={(e) =>
                       setTxForm({ ...txForm, fromAccountId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="">Select account</option>
                     {accounts.map((a) => (
@@ -739,7 +739,7 @@ export default function MonthDetailPage({
 
               {(txForm.type === "INCOME" || txForm.type === "TRANSFER") && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-fg-2 mb-1">
                     To Account
                   </label>
                   <select
@@ -747,7 +747,7 @@ export default function MonthDetailPage({
                     onChange={(e) =>
                       setTxForm({ ...txForm, toAccountId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   >
                     <option value="">Select account</option>
                     {accounts.map((a) => (
@@ -760,7 +760,7 @@ export default function MonthDetailPage({
               )}
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-fg-2 mb-1">
                   Status
                 </label>
                 <select
@@ -768,7 +768,7 @@ export default function MonthDetailPage({
                   onChange={(e) =>
                     setTxForm({ ...txForm, status: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                 >
                   {STATUS_ORDER.map((s) => (
                     <option key={s} value={s}>
@@ -782,7 +782,7 @@ export default function MonthDetailPage({
             <div className="mt-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
               >
                 Save Transaction
               </button>
@@ -792,9 +792,9 @@ export default function MonthDetailPage({
       )}
 
       {/* Budget Transactions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">
+      <div className="bg-surface rounded-2xl border border-line overflow-hidden mb-6">
+        <div className="px-5 py-4 border-b border-line">
+          <h2 className="text-lg font-semibold text-fg">
             Budget Transactions ({templateTx.length})
           </h2>
         </div>
@@ -816,16 +816,16 @@ export default function MonthDetailPage({
             accounts={accounts}
           />
         ) : (
-          <div className="px-5 py-8 text-center text-slate-500">
+          <div className="px-5 py-8 text-center text-muted">
             No budget transactions. Apply a budget template to generate them.
           </div>
         )}
       </div>
 
       {/* Additional Transactions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">
+      <div className="bg-surface rounded-2xl border border-line overflow-hidden mb-6">
+        <div className="px-5 py-4 border-b border-line">
+          <h2 className="text-lg font-semibold text-fg">
             Additional Transactions ({manualTx.length})
           </h2>
         </div>
@@ -847,7 +847,7 @@ export default function MonthDetailPage({
             accounts={accounts}
           />
         ) : (
-          <div className="px-5 py-8 text-center text-slate-500">
+          <div className="px-5 py-8 text-center text-muted">
             No additional transactions. Add one manually above.
           </div>
         )}
@@ -855,30 +855,30 @@ export default function MonthDetailPage({
 
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">
+        <div className="bg-surface rounded-2xl border border-line p-5">
+          <h3 className="text-lg font-semibold text-fg mb-4">
             Paid Summary
           </h3>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-slate-600">Total Paid Income</span>
-              <span className="font-mono text-green-600">
+              <span className="text-muted">Total Paid Income</span>
+              <span className="font-mono text-pos">
                 +{fmt(paidIncome)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">Total Paid Spending</span>
-              <span className="font-mono text-red-600">
+              <span className="text-muted">Total Paid Spending</span>
+              <span className="font-mono text-neg">
                 -{fmt(paidSpending)}
               </span>
             </div>
-            <div className="border-t border-slate-200 pt-3 flex justify-between font-semibold">
-              <span className="text-slate-900">Net</span>
+            <div className="border-t border-line pt-3 flex justify-between font-semibold">
+              <span className="text-fg">Net</span>
               <span
                 className={`font-mono ${
                   paidIncome - paidSpending >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
+                    ? "text-pos"
+                    : "text-neg"
                 }`}
               >
                 {paidIncome - paidSpending >= 0 ? "+" : "-"}
@@ -888,43 +888,43 @@ export default function MonthDetailPage({
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">
+        <div className="bg-surface rounded-2xl border border-line p-5">
+          <h3 className="text-lg font-semibold text-fg mb-4">
             Planned vs Paid
           </h3>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-slate-600">Planned Income</span>
-              <span className="font-mono text-slate-700">
+              <span className="text-muted">Planned Income</span>
+              <span className="font-mono text-fg-2">
                 {fmt(plannedIncome)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">Paid Income</span>
-              <span className="font-mono text-green-600">
+              <span className="text-muted">Paid Income</span>
+              <span className="font-mono text-pos">
                 {fmt(paidIncome)}
               </span>
             </div>
-            <div className="border-t border-slate-100 pt-2" />
+            <div className="border-t border-line pt-2" />
             <div className="flex justify-between">
-              <span className="text-slate-600">Planned Spending</span>
-              <span className="font-mono text-slate-700">
+              <span className="text-muted">Planned Spending</span>
+              <span className="font-mono text-fg-2">
                 {fmt(plannedSpending)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">Paid Spending</span>
-              <span className="font-mono text-red-600">
+              <span className="text-muted">Paid Spending</span>
+              <span className="font-mono text-neg">
                 {fmt(paidSpending)}
               </span>
             </div>
-            <div className="border-t border-slate-200 pt-3 flex justify-between font-semibold">
-              <span className="text-slate-900">Planned Net</span>
+            <div className="border-t border-line pt-3 flex justify-between font-semibold">
+              <span className="text-fg">Planned Net</span>
               <span
                 className={`font-mono ${
                   plannedIncome - plannedSpending >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
+                    ? "text-pos"
+                    : "text-neg"
                 }`}
               >
                 {plannedIncome - plannedSpending >= 0 ? "+" : "-"}

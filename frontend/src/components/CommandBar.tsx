@@ -1,0 +1,158 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search, CornerDownLeft, ArrowRight } from "lucide-react";
+import { navItems } from "@/lib/nav";
+
+interface Command {
+  id: string;
+  label: string;
+  hint: string;
+  href: string;
+}
+
+const ACTIONS: Command[] = [
+  { id: "a-month", label: "Start a new month", hint: "Months", href: "/months" },
+  { id: "a-habit", label: "Check in a habit", hint: "Habits", href: "/habits" },
+  { id: "a-fitness", label: "Log weight or a workout", hint: "Fitness", href: "/fitness" },
+  { id: "a-goal", label: "Add a goal", hint: "Goals", href: "/goals" },
+  { id: "a-note", label: "Write a note", hint: "Notes", href: "/notes" },
+  { id: "a-trade", label: "Record a trade", hint: "Investments", href: "/investments/trades" },
+];
+
+const PAGES: Command[] = navItems.map((i) => ({
+  id: `p-${i.href}`,
+  label: `Go to ${i.label}`,
+  hint: `G ${i.key}`,
+  href: i.href,
+}));
+
+export function CommandBar() {
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        setOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const all = [...ACTIONS, ...PAGES];
+    const matches = q ? all.filter((c) => c.label.toLowerCase().includes(q)) : all.slice(0, 8);
+    if (q) {
+      matches.push({
+        id: "search",
+        label: `Search transactions for “${query.trim()}”`,
+        hint: "Search",
+        href: `/search?query=${encodeURIComponent(query.trim())}`,
+      });
+    }
+    return matches.slice(0, 9);
+  }, [query]);
+
+  function run(cmd: Command | undefined) {
+    if (!cmd) return;
+    router.push(cmd.href);
+    setQuery("");
+    setOpen(false);
+    inputRef.current?.blur();
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setActive((a) => Math.min(a + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => Math.max(a - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      run(results[active]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      inputRef.current?.blur();
+    }
+  }
+
+  const showList = open && results.length > 0;
+
+  return (
+    <div className="relative flex-1 min-w-0">
+      <label
+        htmlFor="command-input"
+        className="flex items-center gap-3 h-12 px-4 rounded-xl border border-line-strong bg-surface focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30 transition-colors cursor-text"
+      >
+        <Search size={18} className="text-muted shrink-0" aria-hidden="true" />
+        <span className="sr-only">Command bar</span>
+        <input
+          ref={inputRef}
+          id="command-input"
+          type="text"
+          role="combobox"
+          aria-expanded={showList}
+          aria-controls="command-results"
+          aria-activedescendant={showList ? `cmd-${results[active]?.id}` : undefined}
+          autoComplete="off"
+          placeholder="Jump to a page, start an action or search transactions…"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setActive(0);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 120)}
+          onKeyDown={onKeyDown}
+          className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-fg"
+        />
+        <kbd className="hidden sm:inline font-mono text-xs text-muted border border-line-strong rounded-md px-1.5 py-0.5">
+          ⌘K
+        </kbd>
+      </label>
+
+      {showList && (
+        <ul
+          id="command-results"
+          role="listbox"
+          aria-label="Commands"
+          className="absolute z-30 left-0 right-0 mt-2 p-1.5 rounded-xl border border-line-strong bg-surface shadow-2xl shadow-black/20"
+        >
+          {results.map((c, i) => (
+            <li
+              key={c.id}
+              id={`cmd-${c.id}`}
+              role="option"
+              aria-selected={i === active}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                run(c);
+              }}
+              onMouseEnter={() => setActive(i)}
+              className={`flex items-center gap-3 px-3 h-10 rounded-lg text-sm cursor-pointer ${
+                i === active ? "bg-surface-2 text-fg" : "text-fg-2"
+              }`}
+            >
+              <ArrowRight size={14} className={i === active ? "text-accent" : "text-faint"} aria-hidden="true" />
+              <span className="flex-1 truncate">{c.label}</span>
+              <span className="font-mono text-[11px] text-faint">{c.hint}</span>
+              {i === active && <CornerDownLeft size={13} className="text-muted" aria-hidden="true" />}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

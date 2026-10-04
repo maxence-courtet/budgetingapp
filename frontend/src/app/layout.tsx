@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import { Sidebar } from "@/components/Sidebar";
+import { CommandBar } from "@/components/CommandBar";
+import { AppearanceProvider } from "@/components/AppearanceProvider";
+import { appearanceInitScript, DEFAULT_ACCENT } from "@/lib/appearance";
+
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
   title: "Life Hub",
@@ -14,34 +21,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      data-theme="light"
+      data-accent={DEFAULT_ACCENT}
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
+        <script dangerouslySetInnerHTML={{ __html: appearanceInitScript }} />
       </head>
       <body>
         <Auth0Provider>
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-lg focus:shadow-lg focus:text-sm focus:font-medium"
-          >
-            Skip to main content
-          </a>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main
-              id="main-content"
-              className="flex-1 min-w-0 ml-64 transition-all duration-200"
+          <AppearanceProvider>
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-surface focus:text-fg focus:rounded-lg focus:shadow-lg focus:text-sm focus:font-medium"
             >
-              <div className="max-w-7xl mx-auto px-6 py-8">
-                {children}
-              </div>
-            </main>
-          </div>
+              Skip to main content
+            </a>
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <main id="main-content" className="flex-1 min-w-0 ml-64">
+                <div className="max-w-7xl mx-auto px-8 pt-5 pb-12">
+                  <div className="flex items-center gap-3 mb-8">
+                    <CommandBar />
+                  </div>
+                  {children}
+                </div>
+              </main>
+            </div>
+          </AppearanceProvider>
         </Auth0Provider>
       </body>
     </html>
