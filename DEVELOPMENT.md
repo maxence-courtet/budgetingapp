@@ -104,6 +104,11 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
 - Tools: `get_financial_summary`, `get_accounts`, `get_month_detail`, `search_transactions`, `create_month`, `get_portfolio`, `log_trade`, `log_habit`, `get_habits_summary`, `log_fitness`, `get_fitness_history`, `generate_fitness_plan`, `create_fitness_plan`, `get_fitness_plan`, `get_goals`, `update_goal_progress`, `add_note`, `get_notes`, `get_life_stats`, `get_market_price`
 - Service token auth bypass in backend middleware — MCP talks to backend without Auth0
 
+### Phase 6 — Command redesign & life features ✅
+- Command design: theme tokens in `globals.css`, light / dark / auto, five accent presets (Settings page), Geist fonts
+- Sidebar with Money nested in Life, mobile drawer; ⌘K command bar; quick-add transaction dialog
+- Habits grid with streaks and gamification; goal milestones; daily journal; net worth timeline; weekly review; patterns
+
 ### Phase 5 — AI Analytics ✅
 - Backend endpoint `GET /api/stats/life-overview` ✅
 - `POST /api/stats/insights` ✅ — sends the life-overview snapshot to Claude (`backend/src/services/insights.ts`, model `claude-opus-5-5`, structured JSON output) and returns `{ summary, highlights, alerts, suggestions }`. Requires `ANTHROPIC_API_KEY` in `backend/.env`; returns 503 with a clear message if missing.
@@ -439,12 +444,12 @@ Each pending item has **Approve** / **Reject** buttons. Approving sets `validate
 
 ## Confirmed Future Features
 
-- **Net worth timeline** — monthly `NetWorthSnapshot` model, chart on dashboard
-- **Habit streaks & gamification** — longest streak, weekly completion score, "perfect week" badge
-- **Correlation insights** — AI surfaces patterns via `get_life_stats` (e.g. "you spend more on dining when you skip workouts")
-- **Weekly review flow** — MCP `run_weekly_review` compiles habit/spending/fitness/goals into narrative + action items
-- **Daily journal** — Notes with `noteType: "JOURNAL"` and calendar picker on Notes page
-- **Goal milestones** — `GoalMilestone` model with timeline display on goal cards
+- **Net worth timeline** ✅ — `NetWorthSnapshot` model, `GET /api/stats/net-worth`, chart on the dashboard
+- **Habit streaks & gamification** ✅ — streaks, XP and levels, perfect days, badges (`frontend/src/lib/habitStats.ts`)
+- **Correlation insights** ✅ — `backend/src/services/patterns.ts`, `GET /api/stats/patterns`, MCP `get_correlations`; fed into AI Insights
+- **Weekly review flow** ✅ — `/review` page, `POST /api/stats/weekly-review`, MCP `run_weekly_review`; saved as `REVIEW` notes
+- **Daily journal** ✅ — Notes › Journal with calendar, streak and autosave; `Note.entryDate`
+- **Goal milestones** ✅ — timeline on goal cards with progress-bar markers
 - **Custom fitness metrics** — `FitnessEntry.type` is already a free string field
 
 ## Parked for Later
