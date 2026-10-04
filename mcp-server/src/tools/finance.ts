@@ -104,4 +104,22 @@ export const financeTools = [
     inputSchema: z.object({}),
     handler: async () => api("/stats/life-overview"),
   },
+  {
+    name: "get_correlations",
+    description:
+      "Statistical patterns from the last N days: spending on days a habit is or isn't done, workout days vs spending, " +
+      "habits that go together, and the biggest spending weekday. Correlations only, not causes.",
+    inputSchema: z.object({ days: z.number().min(28).max(365).default(90) }),
+    handler: async ({ days }: { days: number }) => api(`/stats/patterns?days=${days}`),
+  },
+  {
+    name: "run_weekly_review",
+    description:
+      "Compile the week (money vs last week, habit completion, fitness, goals and milestones, journal, patterns), " +
+      "write a review with wins, watch-outs and 3 action items, and save it as a note tagged weekly-review. " +
+      "Uses one paid AI call. Use week \"previous\" for the last full Monday–Sunday week.",
+    inputSchema: z.object({ week: z.enum(["current", "previous"]).default("previous") }),
+    handler: async ({ week }: { week: string }) =>
+      api("/stats/weekly-review", { method: "POST", body: { week, source: "MCP" } }),
+  },
 ];

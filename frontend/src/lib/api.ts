@@ -211,3 +211,7 @@ export const deleteNote = (id: string) =>
 export const getLifeOverview = () => fetchApi('/stats/life-overview');
 export const getLifeInsights = () => fetchApi('/stats/insights', { method: 'POST' });
 export const getNetWorthHistory = (months: number) => fetchApi(`/stats/net-worth?months=${months}`);
+export const getPatterns = (days = 90) => fetchApi(`/stats/patterns?days=${days}`);
+export const getWeeklySummary = (week: "current" | "previous") => fetchApi(`/stats/weekly-summary?week=${week}`);
+export const runWeeklyReview = (week: "current" | "previous") =>
+  fetchApi('/stats/weekly-review', { method: 'POST', body: JSON.stringify({ week }) });

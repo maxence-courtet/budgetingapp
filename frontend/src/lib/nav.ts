@@ -11,6 +11,7 @@ import {
   Activity,
   Target,
   StickyNote,
+  CalendarCheck,
   LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ export const lifeItems: NavItem[] = [
   { href: "/fitness", label: "Fitness", icon: Activity },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/notes", label: "Notes", icon: StickyNote },
+  { href: "/review", label: "Weekly review", icon: CalendarCheck },
 ];
 
 export const navItems = [homeItem, ...moneyItems, ...lifeItems];

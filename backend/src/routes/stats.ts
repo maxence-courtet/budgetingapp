@@ -3,6 +3,8 @@ import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
 import { generateInsights } from "../services/insights";
 import { netWorthHistory } from "../services/netWorth";
+import { findPatterns } from "../services/patterns";
+import { compileWeek, runWeeklyReview } from "../services/weeklyReview";
 
 const router = Router();
 router.use(authMiddleware);
@@ -101,8 +103,11 @@ export async function buildLifeOverview(userId: string) {
     return daysLeft < 30 && progress < 0.5;
   });
 
+  const { patterns } = await findPatterns(userId, 90);
+
   return {
     generatedAt: now.toISOString(),
+    patterns: patterns.slice(0, 5).map((p) => ({ title: p.title, detail: p.detail })),
     finance: {
       currentMonthIncome: monthIncome,
       currentMonthSpending: monthSpending,
@@ -147,6 +152,26 @@ router.get("/net-worth", async (req, res) => {
     res.json(await netWorthHistory(req.userId!, months));
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+const weekParam = (v: unknown) => (v === "previous" ? "previous" : "current");
+
+router.get("/patterns", async (req, res) => {
+  const days = Math.min(365, Math.max(28, Number(req.query.days) || 90));
+  res.json(await findPatterns(req.userId!, days));
+});
+
+router.get("/weekly-summary", async (req, res) => {
+  res.json(await compileWeek(req.userId!, weekParam(req.query.week)));
+});
+
+router.post("/weekly-review", async (req, res) => {
+  try {
+    const source = req.body?.source === "MCP" ? "MCP" : "MANUAL";
+    res.json(await runWeeklyReview(req.userId!, weekParam(req.body?.week), source));
+  } catch (err: any) {
+    res.status(err.status ?? 502).json({ error: err.message });
   }
 });
 

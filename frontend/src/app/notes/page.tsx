@@ -116,7 +116,7 @@ function NotesView() {
     setError("");
     try {
       const data = await getNotes();
-      setNotes((data ?? []).filter((n: any) => n.noteType !== "JOURNAL"));
+      setNotes((data ?? []).filter((n: any) => !n.noteType || n.noteType === "NOTE"));
     } catch (e: any) {
       setError(e.message);
     } finally {

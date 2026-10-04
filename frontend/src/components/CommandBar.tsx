@@ -23,6 +23,7 @@ const ACTIONS: Command[] = [
   { id: "a-note", label: "Write a note", hint: "Notes", href: "/notes" },
   { id: "a-journal", label: "Write today’s journal entry", hint: "Journal", href: "/notes?view=journal" },
   { id: "a-trade", label: "Record a trade", hint: "Investments", href: "/investments/trades" },
+  { id: "a-review", label: "Review my week", hint: "Review", href: "/review" },
   { id: "a-settings", label: "Change theme or accent color", hint: "Settings", href: "/settings" },
 ];
 
