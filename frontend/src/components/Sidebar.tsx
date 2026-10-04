@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Settings, ChevronRight, PiggyBank } from "lucide-react";
+import { LogOut, Settings, ChevronRight, PiggyBank, Menu, X } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { homeItem, moneyItems, lifeItems, NavItem } from "@/lib/nav";
 
@@ -13,6 +13,16 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // The mobile drawer closes on navigation and on Escape.
+  useEffect(() => setMobileOpen(false), [pathname]);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -48,7 +58,40 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-64 bg-side border-r border-line flex flex-col z-40">
+    <>
+    <div className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-4 bg-side border-b border-line">
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open menu"
+        aria-expanded={mobileOpen}
+        aria-controls="sidebar"
+        className="w-10 h-10 -ml-2 rounded-lg flex items-center justify-center text-fg hover:bg-surface-2"
+      >
+        <Menu size={20} aria-hidden="true" />
+      </button>
+      <div className="w-7 h-7 rounded-lg bg-accent text-accent-ink flex items-center justify-center">
+        <span className="text-sm font-bold">L</span>
+      </div>
+      <span className="font-semibold tracking-tight text-fg">Life Hub</span>
+    </div>
+    {mobileOpen && (
+      <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+    )}
+    <aside
+      id="sidebar"
+      className={`fixed inset-y-0 left-0 w-64 bg-side border-r border-line flex flex-col z-50 transition-transform duration-200 lg:translate-x-0 lg:visible ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full invisible"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setMobileOpen(false)}
+        aria-label="Close menu"
+        className="lg:hidden absolute top-4 right-3 w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2"
+      >
+        <X size={18} aria-hidden="true" />
+      </button>
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
         <div className="w-7 h-7 rounded-lg bg-accent text-accent-ink flex items-center justify-center shrink-0">
           <span className="text-sm font-bold">L</span>
@@ -119,6 +162,7 @@ export function Sidebar() {
         </a>
       </div>
     </aside>
+    </>
   );
 }
 

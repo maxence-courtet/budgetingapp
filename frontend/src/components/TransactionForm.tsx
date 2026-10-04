@@ -9,6 +9,9 @@ interface TransactionFormProps {
   onSave: (data: any) => void;
   onCancel: () => void;
   initial?: any;
+  /** Status for new transactions (defaults to PLANNED). */
+  defaultStatus?: string;
+  saving?: boolean;
 }
 
 const STATUSES = ["PLANNED", "PAID", "PENDING", "SKIPPED"];
@@ -21,6 +24,8 @@ export default function TransactionForm({
   onSave,
   onCancel,
   initial,
+  defaultStatus = "PLANNED",
+  saving = false,
 }: TransactionFormProps) {
   const [type, setType] = useState(initial?.type ?? "SPENDING");
   const [amount, setAmount] = useState<string>(initial?.amount?.toString() ?? "");
@@ -30,7 +35,7 @@ export default function TransactionForm({
   const [toCategoryId, setToCategoryId] = useState(initial?.toCategoryId ?? "");
   const [fromAccountId, setFromAccountId] = useState(initial?.fromAccountId ?? "");
   const [toAccountId, setToAccountId] = useState(initial?.toAccountId ?? "");
-  const [status, setStatus] = useState(initial?.status ?? "PLANNED");
+  const [status, setStatus] = useState(initial?.status ?? defaultStatus);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -101,11 +106,7 @@ export default function TransactionForm({
               aria-pressed={type === t}
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-xl border transition-colors ${
                 type === t
-                  ? t === "INCOME"
-                    ? "bg-green-100 border-green-300 text-green-800"
-                    : t === "SPENDING"
-                    ? "bg-red-100 border-red-300 text-red-800"
-                    : "bg-blue-100 border-blue-300 text-blue-800"
+                  ? "bg-accent-soft border-accent text-accent"
                   : "bg-surface border-line-strong text-muted hover:bg-surface-2"
               }`}
             >
@@ -240,9 +241,10 @@ export default function TransactionForm({
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+          disabled={saving}
+          className="px-4 py-2 text-sm font-semibold bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-60 transition-colors"
         >
-          {initial ? "Update Transaction" : "Create Transaction"}
+          {saving ? "Saving…" : initial ? "Update transaction" : "Add transaction"}
         </button>
         <button
           type="button"

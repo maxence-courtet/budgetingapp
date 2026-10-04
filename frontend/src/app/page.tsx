@@ -11,6 +11,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AiInsightsCard } from "@/components/AiInsightsCard";
+import { TRANSACTIONS_CHANGED } from "@/components/QuickAddTransaction";
 import { Account, Month, Transaction } from "@/lib/types";
 import { Plus, Check, ArrowRight } from "lucide-react";
 
@@ -81,6 +82,8 @@ export default function Dashboard() {
       }
     }
     load();
+    window.addEventListener(TRANSACTIONS_CHANGED, load);
+    return () => window.removeEventListener(TRANSACTIONS_CHANGED, load);
   }, []);
 
   async function checkIn(habit: HabitRow) {

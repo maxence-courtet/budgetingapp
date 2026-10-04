@@ -4,6 +4,7 @@ import "./globals.css";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 import { Sidebar } from "@/components/Sidebar";
 import { CommandBar } from "@/components/CommandBar";
+import { QuickAddButton, QuickAddTransaction } from "@/components/QuickAddTransaction";
 import { AppearanceProvider } from "@/components/AppearanceProvider";
 import { appearanceInitScript, DEFAULT_ACCENT } from "@/lib/appearance";
 
@@ -42,15 +43,17 @@ export default function RootLayout({
             </a>
             <div className="flex min-h-screen">
               <Sidebar />
-              <main id="main-content" className="flex-1 min-w-0 ml-64">
-                <div className="max-w-7xl mx-auto px-8 pt-5 pb-12">
+              <main id="main-content" className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64">
+                <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-5 pb-12">
                   <div className="flex items-center gap-3 mb-8">
                     <CommandBar />
+                    <QuickAddButton />
                   </div>
                   {children}
                 </div>
               </main>
             </div>
+            <QuickAddTransaction />
           </AppearanceProvider>
         </Auth0Provider>
       </body>

@@ -4,15 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, CornerDownLeft, ArrowRight } from "lucide-react";
 import { navItems } from "@/lib/nav";
+import { openQuickAdd } from "@/components/QuickAddTransaction";
 
 interface Command {
   id: string;
   label: string;
   hint: string;
-  href: string;
+  href?: string;
+  run?: () => void;
 }
 
 const ACTIONS: Command[] = [
+  { id: "a-transaction", label: "Add a transaction", hint: "Money", run: openQuickAdd },
   { id: "a-month", label: "Start a new month", hint: "Months", href: "/months" },
   { id: "a-habit", label: "Check in a habit", hint: "Habits", href: "/habits" },
   { id: "a-fitness", label: "Log weight or a workout", hint: "Fitness", href: "/fitness" },
@@ -66,7 +69,8 @@ export function CommandBar() {
 
   function run(cmd: Command | undefined) {
     if (!cmd) return;
-    router.push(cmd.href);
+    if (cmd.run) cmd.run();
+    else if (cmd.href) router.push(cmd.href);
     setQuery("");
     setOpen(false);
     inputRef.current?.blur();
