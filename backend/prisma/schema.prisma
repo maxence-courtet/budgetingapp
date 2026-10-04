@@ -332,6 +332,7 @@ model Note {
   content    String   // markdown
   tags       String[]
   noteType   String   @default("NOTE") // "NOTE" | "JOURNAL"
+  entryDate  DateTime? @db.Date // the day a JOURNAL entry is about (one per day)
   linkedType String?  // "TRANSACTION" | "MONTH" | "GOAL" | "HABIT" | null
   linkedId   String?
   source     String   @default("MANUAL") // "MANUAL" | "MCP"
@@ -342,4 +343,5 @@ model Note {
   user   User   @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([userId, noteType, entryDate])
 }

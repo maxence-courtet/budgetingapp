@@ -8,7 +8,7 @@ router.use(authMiddleware);
 // List notes
 router.get("/", async (req, res) => {
   const userId = req.userId!;
-  const { linkedType, linkedId, tag, noteType, limit } = req.query;
+  const { linkedType, linkedId, tag, noteType, limit, dateFrom, dateTo } = req.query;
 
   const notes = await prisma.note.findMany({
     where: {
@@ -17,6 +17,14 @@ router.get("/", async (req, res) => {
       ...(linkedId ? { linkedId: String(linkedId) } : {}),
       ...(noteType ? { noteType: String(noteType) } : {}),
       ...(tag ? { tags: { has: String(tag) } } : {}),
+      ...(dateFrom || dateTo
+        ? {
+            entryDate: {
+              ...(dateFrom ? { gte: new Date(String(dateFrom)) } : {}),
+              ...(dateTo ? { lte: new Date(String(dateTo)) } : {}),
+            },
+          }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     take: limit ? Number(limit) : 100,
@@ -35,7 +43,7 @@ router.get("/:id", async (req, res) => {
 // Create note
 router.post("/", async (req, res) => {
   const userId = req.userId!;
-  const { title, content, tags, noteType, linkedType, linkedId, source } = req.body;
+  const { title, content, tags, noteType, linkedType, linkedId, source, entryDate } = req.body;
   if (!title || !content) return res.status(400).json({ error: "title and content are required" });
 
   const note = await prisma.note.create({
@@ -45,6 +53,7 @@ router.post("/", async (req, res) => {
       content,
       tags: Array.isArray(tags) ? tags : [],
       noteType: noteType ?? "NOTE",
+      entryDate: entryDate ? new Date(entryDate) : null,
       linkedType: linkedType ?? null,
       linkedId: linkedId ?? null,
       source: source === "MCP" ? "MCP" : "MANUAL",
@@ -59,7 +68,7 @@ router.put("/:id", async (req, res) => {
   const note = await prisma.note.findFirst({ where: { id: req.params.id, userId } });
   if (!note) return res.status(404).json({ error: "Note not found" });
 
-  const { title, content, tags, noteType, linkedType, linkedId } = req.body;
+  const { title, content, tags, noteType, linkedType, linkedId, entryDate } = req.body;
   const updated = await prisma.note.update({
     where: { id: req.params.id },
     data: {
@@ -67,6 +76,7 @@ router.put("/:id", async (req, res) => {
       ...(content ? { content } : {}),
       ...(tags ? { tags: Array.isArray(tags) ? tags : [] } : {}),
       ...(noteType ? { noteType } : {}),
+      ...(entryDate !== undefined ? { entryDate: entryDate ? new Date(entryDate) : null } : {}),
       ...(linkedType !== undefined ? { linkedType } : {}),
       ...(linkedId !== undefined ? { linkedId } : {}),
     },

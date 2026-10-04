@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { getNotes, createNote, updateNote, deleteNote } from "@/lib/api";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Journal } from "@/components/Journal";
+import { NotebookPen, StickyNote } from "lucide-react";
 
 function formatDate(iso: string): string {
   try {
@@ -32,7 +35,59 @@ function truncate(str: string, len: number): string {
   return str.length <= len ? str : str.slice(0, len) + "…";
 }
 
+type View = "notes" | "journal";
+
 export default function NotesPage() {
+  return (
+    <Suspense fallback={<LoadingState message="Loading notes..." />}>
+      <NotesOrJournal />
+    </Suspense>
+  );
+}
+
+function NotesOrJournal() {
+  const router = useRouter();
+  const view: View = useSearchParams().get("view") === "journal" ? "journal" : "notes";
+
+  function switchTo(v: View) {
+    router.replace(v === "journal" ? "/notes?view=journal" : "/notes", { scroll: false });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div role="tablist" aria-label="Notes or journal" className="inline-flex gap-1 p-1 rounded-xl bg-surface-2">
+        {([
+          { id: "notes", label: "Notes", icon: StickyNote },
+          { id: "journal", label: "Journal", icon: NotebookPen },
+        ] as const).map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={view === id}
+            onClick={() => switchTo(id)}
+            className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium transition-colors ${
+              view === id ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
+            }`}
+          >
+            <Icon size={15} aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </div>
+      {view === "journal" ? (
+        <div className="space-y-6">
+          <PageHeader title="Journal" />
+          <Journal />
+        </div>
+      ) : (
+        <NotesView />
+      )}
+    </div>
+  );
+}
+
+function NotesView() {
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -45,7 +100,6 @@ export default function NotesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [formTitle, setFormTitle] = useState("");
   const [formTags, setFormTags] = useState("");
-  const [formType, setFormType] = useState("NOTE");
   const [formContent, setFormContent] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -62,7 +116,7 @@ export default function NotesPage() {
     setError("");
     try {
       const data = await getNotes();
-      setNotes(data ?? []);
+      setNotes((data ?? []).filter((n: any) => n.noteType !== "JOURNAL"));
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -88,7 +142,6 @@ export default function NotesPage() {
   const resetCreateForm = () => {
     setFormTitle("");
     setFormTags("");
-    setFormType("NOTE");
     setFormContent("");
     setShowCreate(false);
   };
@@ -101,7 +154,7 @@ export default function NotesPage() {
         title: formTitle.trim(),
         content: formContent.trim(),
         tags: parseTags(formTags),
-        type: formType,
+        noteType: "NOTE",
       });
       resetCreateForm();
       await loadNotes();
@@ -279,20 +332,6 @@ export default function NotesPage() {
                     placeholder="Note title"
                     className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
-                </div>
-                <div>
-                  <label htmlFor="note-type" className="block text-sm font-medium text-muted mb-1">
-                    Type
-                  </label>
-                  <select
-                    id="note-type"
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value)}
-                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
-                  >
-                    <option value="NOTE">Note</option>
-                    <option value="JOURNAL">Journal</option>
-                  </select>
                 </div>
                 <div>
                   <label htmlFor="note-tags" className="block text-sm font-medium text-muted mb-1">

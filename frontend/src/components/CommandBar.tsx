@@ -18,6 +18,7 @@ const ACTIONS: Command[] = [
   { id: "a-fitness", label: "Log weight or a workout", hint: "Fitness", href: "/fitness" },
   { id: "a-goal", label: "Add a goal", hint: "Goals", href: "/goals" },
   { id: "a-note", label: "Write a note", hint: "Notes", href: "/notes" },
+  { id: "a-journal", label: "Write today’s journal entry", hint: "Journal", href: "/notes?view=journal" },
   { id: "a-trade", label: "Record a trade", hint: "Investments", href: "/investments/trades" },
   { id: "a-settings", label: "Change theme or accent color", hint: "Settings", href: "/settings" },
 ];
