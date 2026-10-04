@@ -8,6 +8,7 @@ import {
   getPendingFitnessEntries,
   validateFitnessEntry,
 } from "@/lib/api";
+import { formatNumber } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -201,7 +202,7 @@ export default function FitnessPage() {
                   </span>
                   <span className="mx-2 text-slate-400">·</span>
                   <span className="text-sm text-slate-700">
-                    {entry.value} {entry.unit}
+                    {formatNumber(entry.value)} {entry.unit}
                   </span>
                   <span className="mx-2 text-slate-400">·</span>
                   <span className="text-xs text-slate-500">{formatDate(entry.date)}</span>
@@ -240,7 +241,7 @@ export default function FitnessPage() {
                   {TAB_LABELS[t]}
                 </p>
                 <p className="text-2xl font-bold text-slate-900">
-                  {entry.value}
+                  {formatNumber(entry.value)}
                   <span className="text-sm font-normal text-slate-500 ml-1">{entry.unit}</span>
                 </p>
                 <p className="text-xs text-slate-400 mt-1">{formatDate(entry.date)}</p>
@@ -387,7 +388,7 @@ export default function FitnessPage() {
                     <tr key={entry.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                       <td className="px-4 py-3 text-slate-700">{formatDate(entry.date)}</td>
                       <td className="px-4 py-3 font-medium text-slate-900">
-                        {entry.value} <span className="text-slate-500 font-normal text-xs">{entry.unit}</span>
+                        {formatNumber(entry.value)} <span className="text-slate-500 font-normal text-xs">{entry.unit}</span>
                       </td>
                       <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate">
                         {entry.note ?? "—"}

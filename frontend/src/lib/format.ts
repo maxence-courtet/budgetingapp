@@ -10,3 +10,7 @@ export function formatAmount(n: number, type?: string): string {
 export function formatDate(iso: string): string {
   return iso.slice(0, 10);
 }
+
+export function formatNumber(n: number): string {
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}

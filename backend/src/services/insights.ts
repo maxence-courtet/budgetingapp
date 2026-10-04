@@ -50,14 +50,13 @@ class InsightsError extends Error {
 let client: Anthropic | null = null;
 
 export async function generateInsights(overview: unknown): Promise<LifeInsights> {
-  try {
-    client ??= new Anthropic();
-  } catch {
+  if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
     throw new InsightsError("AI insights are not configured: set ANTHROPIC_API_KEY in backend/.env", 503);
   }
 
   let response;
   try {
+    client ??= new Anthropic();
     response = await client.beta.messages.create({
       model: "claude-opus-5-5",
       max_tokens: 16000,

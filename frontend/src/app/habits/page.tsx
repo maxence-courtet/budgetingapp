@@ -166,7 +166,7 @@ export default function HabitsPage() {
 
   const handleToggleActive = async (habit: any) => {
     try {
-      await updateHabit(habit.id, { isActive: !habit.isActive });
+      await updateHabit(habit.id, { active: !habit.active });
       await refreshAll();
     } catch (e: any) {
       setError(e.message);
@@ -364,7 +364,7 @@ export default function HabitsPage() {
             return (
               <div
                 key={habit.id}
-                className={`bg-white border border-slate-200 shadow-sm rounded-lg p-5 ${!habit.isActive ? "opacity-60" : ""}`}
+                className={`bg-white border border-slate-200 shadow-sm rounded-lg p-5 ${!habit.active ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -403,7 +403,7 @@ export default function HabitsPage() {
                         >
                           {habit.frequency ?? "DAILY"}
                         </span>
-                        {!habit.isActive && (
+                        {!habit.active && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">
                             Inactive
                           </span>
@@ -470,7 +470,7 @@ export default function HabitsPage() {
                             onClick={() => handleToggleActive(habit)}
                             className="px-3 py-1 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
                           >
-                            {habit.isActive ? "Deactivate" : "Activate"}
+                            {habit.active ? "Deactivate" : "Activate"}
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(habit.id)}
