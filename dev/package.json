@@ -1,0 +1,15 @@
+{
+  "name": "life-hub-dev",
+  "private": true,
+  "type": "module",
+  "description": "Local dev environment: embedded Postgres, seed data and an Auth0-free proxy",
+  "engines": { "node": ">=20.9" },
+  "scripts": {
+    "start": "node start.mjs",
+    "seed": "node seed.mjs",
+    "reset": "node -e \"require('fs').rmSync('.data',{recursive:true,force:true})\" && echo 'Local database deleted'"
+  },
+  "dependencies": {
+    "embedded-postgres": "^18.4.0-beta.17"
+  }
+}

@@ -6,7 +6,23 @@
 - Node.js 20+
 - Docker (for PostgreSQL)
 
-### First-time setup
+### Quick local run (no Docker, no Auth0)
+
+`dev/` runs the whole app against a throwaway embedded Postgres with sample data:
+
+```bash
+cd backend && npm install && cd ..
+cd frontend && npm install && cd ..
+cd dev && npm install && npm start
+# then open http://localhost:3002/dev-login
+```
+
+- Starts Postgres on 5433 (data in `dev/.data`), syncs the Prisma schema, the backend on 3001, an auth proxy on 3002 and the frontend on 3000. Ctrl+C stops everything.
+- Sample data is seeded on the first launch only. `npm run reset` deletes the database so the next start re-seeds it.
+- Auth0 is bypassed: the proxy adds the backend's `SERVICE_TOKEN` to every API call, and `/dev-login` sets the session cookie the frontend middleware checks. All data belongs to the `service|mcp` user.
+- Settings are passed to each process directly, so your `.env` files are not used, except for `ANTHROPIC_API_KEY` (from your shell or `backend/.env`) to enable AI Insights.
+
+### First-time setup (full stack with Docker + Auth0)
 
 ```bash
 # 1. Start the database

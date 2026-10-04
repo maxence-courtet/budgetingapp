@@ -5,3 +5,6 @@ dist
 .DS_Store
 .env
 .env.local
+
+# Local dev database (dev/start.mjs)
+dev/.data
