@@ -13,6 +13,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { GoalMilestones } from "@/components/GoalMilestones";
 
 type StatusFilter = "ALL" | "ACTIVE" | "COMPLETED" | "ABANDONED";
 
@@ -404,11 +405,25 @@ export default function GoalsPage() {
                         {current} / {target} {goal.unit ?? ""}
                       </span>
                     </div>
-                    <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-accent rounded-full transition-all duration-300"
-                        style={{ width: `${pct}%` }}
-                      />
+                    <div className="relative">
+                      <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-accent rounded-full transition-all duration-300"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      {(goal.milestones ?? [])
+                        .filter((m: any) => m.targetValue != null && m.targetValue > 0 && m.targetValue < target)
+                        .map((m: any) => (
+                          <span
+                            key={m.id}
+                            title={`${m.title} · ${m.targetValue} ${goal.unit ?? ""}`}
+                            className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-surface ${
+                              m.completedAt || current >= m.targetValue ? "bg-accent" : "bg-line-strong"
+                            }`}
+                            style={{ left: `${(m.targetValue / target) * 100}%` }}
+                          />
+                        ))}
                     </div>
                     <p className="text-xs text-faint mt-1 text-right">{pct}%</p>
                   </div>
@@ -427,6 +442,20 @@ export default function GoalsPage() {
                     {" · "}{formatDate(goal.deadline)}
                   </p>
                 )}
+
+                {/* Milestones */}
+                <div className="pt-2 border-t border-line">
+                  <GoalMilestones
+                    goalId={goal.id}
+                    unit={goal.unit ?? null}
+                    currentValue={current}
+                    milestones={goal.milestones ?? []}
+                    onChange={(ms) =>
+                      setGoals((gs) => gs.map((g) => (g.id === goal.id ? { ...g, milestones: ms } : g)))
+                    }
+                    onError={setError}
+                  />
+                </div>
 
                 {/* Status */}
                 <div>
