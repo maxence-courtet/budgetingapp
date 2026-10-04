@@ -55,6 +55,28 @@ router.delete("/:id", async (req, res) => {
   res.status(204).send();
 });
 
+// List logs across all habits (one call for streaks and stats)
+router.get("/logs", async (req, res) => {
+  const userId = req.userId!;
+  const { dateFrom, dateTo } = req.query;
+  const logs = await prisma.habitLog.findMany({
+    where: {
+      userId,
+      ...(dateFrom || dateTo
+        ? {
+            date: {
+              ...(dateFrom ? { gte: new Date(String(dateFrom)) } : {}),
+              ...(dateTo ? { lte: new Date(String(dateTo)) } : {}),
+            },
+          }
+        : {}),
+    },
+    select: { id: true, habitId: true, date: true, completed: true, source: true, validatedAt: true },
+    orderBy: { date: "asc" },
+  });
+  res.json(logs);
+});
+
 // List logs for a habit
 router.get("/:id/logs", async (req, res) => {
   const userId = req.userId!;

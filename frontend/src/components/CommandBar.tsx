@@ -19,12 +19,13 @@ const ACTIONS: Command[] = [
   { id: "a-goal", label: "Add a goal", hint: "Goals", href: "/goals" },
   { id: "a-note", label: "Write a note", hint: "Notes", href: "/notes" },
   { id: "a-trade", label: "Record a trade", hint: "Investments", href: "/investments/trades" },
+  { id: "a-settings", label: "Change theme or accent color", hint: "Settings", href: "/settings" },
 ];
 
 const PAGES: Command[] = navItems.map((i) => ({
   id: `p-${i.href}`,
   label: `Go to ${i.label}`,
-  hint: `G ${i.key}`,
+  hint: "Page",
   href: i.href,
 }));
 

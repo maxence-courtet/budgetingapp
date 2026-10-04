@@ -142,7 +142,11 @@ export const getHabitLogs = (habitId: string, params?: Record<string, string>) =
   const qs = params ? '?' + new URLSearchParams(params).toString() : '';
   return fetchApi(`/habits/${habitId}/logs${qs}`);
 };
-export const logHabit = (habitId: string, data: { date: string; completed?: boolean; note?: string; source?: string }) =>
+export const getAllHabitLogs = (params?: Record<string, string>) => {
+  const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+  return fetchApi(`/habits/logs${qs}`);
+};
+export const logHabit =(habitId: string, data: { date: string; completed?: boolean; note?: string; source?: string }) =>
   fetchApi(`/habits/${habitId}/logs`, { method: 'POST', body: JSON.stringify(data) });
 export const getPendingHabitLogs = () => fetchApi('/habits/pending/all');
 export const validateHabitLog = (logId: string) =>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAccounts, getMonths, getTransactions, getHabits, getHabitLogs, logHabit, getGoals } from "@/lib/api";
+import { getAccounts, getMonths, getTransactions, getHabits, getAllHabitLogs, logHabit, getGoals } from "@/lib/api";
+import { doneDatesByHabit, habitStats, addDays } from "@/lib/habitStats";
 import { fmt, formatAmount } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/constants";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -16,6 +17,9 @@ import { Plus, Check, ArrowRight } from "lucide-react";
 interface HabitRow {
   id: string;
   name: string;
+  frequency: string;
+  active: boolean;
+  createdAt?: string;
   done: Set<string>;
 }
 
@@ -36,12 +40,6 @@ function isoDaysAgo(n: number) {
 
 const LAST_7 = Array.from({ length: 7 }, (_, i) => isoDaysAgo(6 - i));
 const TODAY = LAST_7[6];
-
-function streak(done: Set<string>) {
-  let n = 0;
-  for (let i = 6; i >= 0 && done.has(LAST_7[i]); i--) n++;
-  return n;
-}
 
 function signed(n: number) {
   return (n < 0 ? "−" : "") + fmt(n);
@@ -71,16 +69,10 @@ export default function Dashboard() {
         setMonths(mos);
         setTransactions(Array.isArray(txns) ? txns : txns.data ?? []);
         setGoals((goalList ?? []).filter((g: Goal) => g.status === "ACTIVE").slice(0, 4));
-        const active = (habitList ?? []).filter((h: any) => h.active !== false).slice(0, 5);
-        const rows = await Promise.all(
-          active.map(async (h: any) => {
-            const logs = await getHabitLogs(h.id, { dateFrom: LAST_7[0], dateTo: TODAY }).catch(() => []);
-            const done = new Set<string>(
-              (logs ?? []).filter((l: any) => l.completed).map((l: any) => l.date?.slice(0, 10))
-            );
-            return { id: h.id, name: h.name, done };
-          })
-        );
+        const active = (habitList ?? []).filter((h: any) => h.active !== false).slice(0, 6);
+        const logs = await getAllHabitLogs({ dateFrom: addDays(TODAY, -400), dateTo: TODAY }).catch(() => []);
+        const done = doneDatesByHabit((logs ?? []).map((l: any) => ({ ...l, date: l.date.slice(0, 10) })));
+        const rows: HabitRow[] = active.map((h: any) => ({ ...h, done: done.get(h.id) ?? new Set<string>() }));
         setHabits(rows);
       } catch (e: any) {
         setError(e.message);
@@ -158,7 +150,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section aria-labelledby="habits-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-4">
-          <CardHeader id="habits-heading" title="Habits · last 7 days" href="/habits" shortcut="G H" />
+          <CardHeader id="habits-heading" title="Habits · last 7 days" href="/habits" />
           {habits.length === 0 ? (
             <p className="text-sm text-muted">No active habits. <Link href="/habits" className="text-accent font-medium">Create one →</Link></p>
           ) : (
@@ -187,7 +179,7 @@ export default function Dashboard() {
                           : "border border-line-strong text-fg hover:border-accent hover:text-accent"
                       }`}
                     >
-                      {doneToday ? <><Check size={13} aria-hidden="true" />{streak(h.done)}d</> : "Check"}
+                      {doneToday ? <><Check size={13} aria-hidden="true" />{habitStats(h, h.done, TODAY).current}{h.frequency === "WEEKLY" ? "w" : "d"}</> : "Check"}
                     </button>
                   </li>
                 );
@@ -197,7 +189,7 @@ export default function Dashboard() {
         </section>
 
         <section aria-labelledby="goals-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-4">
-          <CardHeader id="goals-heading" title="Goals" href="/goals" shortcut="G G" />
+          <CardHeader id="goals-heading" title="Goals" href="/goals" />
           {goals.length === 0 ? (
             <p className="text-sm text-muted">No active goals. <Link href="/goals" className="text-accent font-medium">Set one →</Link></p>
           ) : (
@@ -224,7 +216,7 @@ export default function Dashboard() {
       </div>
 
       <section aria-labelledby="accounts-heading" className="space-y-3">
-        <CardHeader id="accounts-heading" title="Accounts" href="/accounts" shortcut="G A" />
+        <CardHeader id="accounts-heading" title="Accounts" href="/accounts" />
         {accounts.length === 0 ? (
           <EmptyState
             message="No accounts yet."
@@ -308,12 +300,12 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
   );
 }
 
-function CardHeader({ id, title, href, shortcut }: { id: string; title: string; href: string; shortcut: string }) {
+function CardHeader({ id, title, href }: { id: string; title: string; href: string }) {
   return (
     <div className="flex items-center justify-between">
       <h2 id={id} className="text-[15px] font-semibold text-fg">{title}</h2>
       <Link href={href} className="font-mono text-xs text-faint hover:text-accent transition-colors" aria-label={`Open ${title}`}>
-        {shortcut} →
+        View all →
       </Link>
     </div>
   );
