@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
+import { aggregateHoldings } from "../services/portfolio";
 import { getQuote, getQuotes } from "../services/marketPrice";
 
 const router = Router();
@@ -112,40 +113,7 @@ router.get("/portfolio", async (req, res) => {
     orderBy: { date: "asc" },
   });
 
-  // Aggregate by ticker
-  const holdingsMap = new Map<string, {
-    ticker: string;
-    assetType: string;
-    quantity: number;
-    totalCost: number;
-    totalFees: number;
-  }>();
-
-  for (const trade of trades) {
-    const existing = holdingsMap.get(trade.ticker) ?? {
-      ticker: trade.ticker,
-      assetType: trade.assetType,
-      quantity: 0,
-      totalCost: 0,
-      totalFees: 0,
-    };
-
-    const tradeTotal = trade.quantity * trade.pricePerUnit;
-    if (trade.tradeType === "BUY") {
-      existing.quantity += trade.quantity;
-      existing.totalCost += tradeTotal;
-    } else {
-      existing.quantity -= trade.quantity;
-      // Reduce cost basis proportionally
-      const avgCost = existing.totalCost / Math.max(existing.quantity + trade.quantity, 1);
-      existing.totalCost -= avgCost * trade.quantity;
-    }
-    existing.totalFees += trade.fees;
-    holdingsMap.set(trade.ticker, existing);
-  }
-
-  // Filter out fully sold positions
-  const holdings = Array.from(holdingsMap.values()).filter((h) => h.quantity > 0.000001);
+  const holdings = aggregateHoldings(trades);
 
   // Fetch current prices
   const tickers = holdings.map((h) => h.ticker);

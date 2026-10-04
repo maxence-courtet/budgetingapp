@@ -29,6 +29,7 @@ model User {
   fitnessPlanDays   FitnessPlanDay[]
   notes             Note[]
   goalMilestones    GoalMilestone[]
+  netWorthSnapshots NetWorthSnapshot[]
 }
 
 model Account {
@@ -344,4 +345,23 @@ model Note {
 
   @@index([userId])
   @@index([userId, noteType, entryDate])
+}
+
+// ─── Net worth ───────────────────────────────────────────────────────────────
+
+// One row per user per month. Cash is always recomputed from transactions; the
+// snapshot preserves the live investment value, which can't be rebuilt later.
+model NetWorthSnapshot {
+  id          String   @id @default(uuid())
+  month       DateTime @db.Date // first day of the month
+  cash        Float
+  investments Float
+  total       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
 }

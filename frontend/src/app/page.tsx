@@ -11,6 +11,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AiInsightsCard } from "@/components/AiInsightsCard";
+import { NetWorthChart } from "@/components/NetWorthChart";
 import { TRANSACTIONS_CHANGED } from "@/components/QuickAddTransaction";
 import { Account, Month, Transaction } from "@/lib/types";
 import { Plus, Check, ArrowRight } from "lucide-react";
@@ -148,6 +149,8 @@ export default function Dashboard() {
           </Link>
         )}
       </section>
+
+      <NetWorthChart />
 
       <AiInsightsCard />
 

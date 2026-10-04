@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
 import { generateInsights } from "../services/insights";
+import { netWorthHistory } from "../services/netWorth";
 
 const router = Router();
 router.use(authMiddleware);
@@ -138,6 +139,15 @@ export async function buildLifeOverview(userId: string) {
 
 router.get("/life-overview", async (req, res) => {
   res.json(await buildLifeOverview(req.userId!));
+});
+
+router.get("/net-worth", async (req, res) => {
+  const months = Math.min(60, Math.max(2, Number(req.query.months) || 12));
+  try {
+    res.json(await netWorthHistory(req.userId!, months));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post("/insights", async (req, res) => {
