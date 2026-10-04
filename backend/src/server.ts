@@ -1,3 +1,4 @@
+import { errorHandler } from './middleware/asyncErrors'; // first: patches routers before routes load
 import express from 'express';
 import cors from 'cors';
 import { authMiddleware } from './middleware/auth';
@@ -42,6 +43,8 @@ app.use('/api/fitness', fitnessRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/stats', statsRoutes);
+
+app.use(errorHandler);
 
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`Life Hub API running on http://0.0.0.0:${PORT}`);
