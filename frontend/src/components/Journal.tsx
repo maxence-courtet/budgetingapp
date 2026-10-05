@@ -48,7 +48,7 @@ export function Journal() {
   const [selected, setSelected] = useState(today);
   const [view, setView] = useState(() => ({ y: Number(today.slice(0, 4)), m: Number(today.slice(5, 7)) - 1 }));
   const [draft, setDraft] = useState("");
-  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "removed">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const saveTimer = useRef<number | null>(null);
   const entriesRef = useRef<Entry[]>([]);
@@ -62,7 +62,16 @@ export function Journal() {
       .finally(() => setLoading(false));
   }, []);
 
-  const byDay = useMemo(() => new Map(entries.map((e) => [dayOf(e), e])), [entries]);
+  // If a day somehow has several entries, show the most recently edited one.
+  const byDay = useMemo(() => {
+    const m = new Map<string, Entry>();
+    const stamp = (e: Entry) => (e as Entry & { updatedAt?: string }).updatedAt ?? e.createdAt;
+    for (const e of entries) {
+      const cur = m.get(dayOf(e));
+      if (!cur || stamp(e) > stamp(cur)) m.set(dayOf(e), e);
+    }
+    return m;
+  }, [entries]);
   const current = byDay.get(selected);
 
   // Load the selected day's text into the editor.
@@ -83,7 +92,20 @@ export function Journal() {
 
   async function save(day: string, text: string) {
     const content = text.trim();
-    if (!content) return;
+    if (!content) {
+      // Erasing all the text removes the day's entry.
+      const existing = entriesRef.current.find((e) => dayOf(e) === day);
+      if (!existing) return;
+      try {
+        await deleteNote(existing.id);
+        entriesRef.current = entriesRef.current.filter((e) => e.id !== existing.id);
+        setEntries((es) => es.filter((e) => e.id !== existing.id));
+        setStatus("removed");
+      } catch (e: any) {
+        setError(e.message);
+      }
+      return;
+    }
     setStatus("saving");
     try {
       // A create for this day may still be in flight: wait for it, then update.
@@ -103,8 +125,9 @@ export function Journal() {
         });
         creating.current.set(day, request);
         const created = await request.finally(() => creating.current.delete(day));
-        entriesRef.current = [...entriesRef.current, created];
-        setEntries((es) => [...es, created]);
+        // The server returns the existing entry when the day already had one.
+        entriesRef.current = [...entriesRef.current.filter((e) => e.id !== created.id), created];
+        setEntries((es) => [...es.filter((e) => e.id !== created.id), created]);
       }
       setStatus("saved");
     } catch (e: any) {
@@ -163,7 +186,7 @@ export function Journal() {
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
               <h2 className="text-sm font-semibold text-fg">{monthLabel}</h2>
-              <button type="button" onClick={() => shiftMonth(1)} aria-label="Next month" className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2">
+              <button type="button" onClick={() => shiftMonth(1)} aria-label="Next month" disabled={monthPrefix >= today.slice(0, 7)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2 disabled:opacity-30 disabled:pointer-events-none">
                 <ChevronRight size={16} aria-hidden="true" />
               </button>
             </div>
@@ -224,7 +247,7 @@ export function Journal() {
               {selected === today ? "Today · " : ""}{longDate(selected)}
             </h2>
             <span className="font-mono text-xs text-muted" role="status">
-              {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : current ? `Last edited ${new Date((current as any).updatedAt ?? current.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
+              {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : status === "removed" ? "Entry removed" : current ? `Last edited ${new Date((current as any).updatedAt ?? current.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}
             </span>
           </div>
           <label htmlFor="journal-entry" className="sr-only">Journal entry for {longDate(selected)}</label>
@@ -240,6 +263,7 @@ export function Journal() {
               }
             }}
             disabled={loading}
+            autoFocus
             placeholder={"How did the day go?\n\nWhat went well, what got in the way, and what's the one thing for tomorrow?"}
             className="flex-1 min-h-[22rem] w-full resize-y bg-transparent border-0 outline-none text-[15px] leading-relaxed text-fg"
           />

@@ -4,6 +4,7 @@ import { localISO } from "@/lib/date";
 import { useState } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { createMilestone, toggleMilestone, deleteMilestone } from "@/lib/api";
+import { GoalLike, milestoneReached, isDecreasing, fmtNum } from "@/lib/goals";
 
 export interface Milestone {
   id: string;
@@ -14,6 +15,7 @@ export interface Milestone {
 }
 
 interface Props {
+  goal: GoalLike;
   goalId: string;
   unit: string | null;
   currentValue: number;
@@ -22,27 +24,40 @@ interface Props {
   onError: (message: string) => void;
 }
 
-/** Milestones ordered by target value, then due date; undated, untargeted ones last. */
-export function sortMilestones(ms: Milestone[]): Milestone[] {
-  return [...ms].sort((a, b) => {
-    if (a.targetValue != null && b.targetValue != null) return a.targetValue - b.targetValue;
-    if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-    return (a.targetValue ?? a.dueDate ? 0 : 1) - (b.targetValue ?? b.dueDate ? 0 : 1);
-  });
+/**
+ * A stable order: milestones with a target first (in the goal's direction, ties by due date),
+ * then date-only ones by due date, then the rest by creation order.
+ */
+export function sortMilestones(ms: Milestone[], decreasing = false): Milestone[] {
+  const rank = (m: Milestone) => (m.targetValue != null ? 0 : m.dueDate ? 1 : 2);
+  return ms
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => {
+      const r = rank(a.m) - rank(b.m);
+      if (r) return r;
+      if (a.m.targetValue != null && b.m.targetValue != null && a.m.targetValue !== b.m.targetValue) {
+        return decreasing ? b.m.targetValue - a.m.targetValue : a.m.targetValue - b.m.targetValue;
+      }
+      if (a.m.dueDate && b.m.dueDate && a.m.dueDate !== b.m.dueDate) return a.m.dueDate.localeCompare(b.m.dueDate);
+      if (a.m.dueDate !== b.m.dueDate) return a.m.dueDate ? -1 : 1;
+      return a.i - b.i;
+    })
+    .map(({ m }) => m);
 }
 
 function shortDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-export function GoalMilestones({ goalId, unit, currentValue, milestones, onChange, onError }: Props) {
+export function GoalMilestones({ goal, goalId, unit, milestones, onChange, onError }: Props) {
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState("");
   const [due, setDue] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const sorted = sortMilestones(milestones);
+  const sorted = sortMilestones(milestones, isDecreasing(goal));
+  const goalHasTarget = goal.targetValue != null;
   const doneCount = milestones.filter((m) => m.completedAt).length;
   const today = localISO();
 
@@ -109,7 +124,7 @@ export function GoalMilestones({ goalId, unit, currentValue, milestones, onChang
       {sorted.length > 0 && (
         <ol className="relative ml-2.5 border-l border-line">
           {sorted.map((m) => {
-            const reached = m.targetValue != null && currentValue >= m.targetValue;
+            const reached = milestoneReached(goal, m.targetValue);
             const overdue = !m.completedAt && m.dueDate && m.dueDate.slice(0, 10) < today;
             return (
               <li key={m.id} className="group relative pl-5 py-1.5">
@@ -130,7 +145,7 @@ export function GoalMilestones({ goalId, unit, currentValue, milestones, onChang
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm leading-snug ${m.completedAt ? "text-muted line-through" : "text-fg"}`}>{m.title}</p>
                     <p className="font-mono text-[11px] text-muted">
-                      {m.targetValue != null && `${m.targetValue.toLocaleString("en-US")} ${unit ?? ""}`}
+                      {m.targetValue != null && `${fmtNum(m.targetValue)}${unit ? ` ${unit}` : ""}`}
                       {m.targetValue != null && m.dueDate && " · "}
                       {m.dueDate && <span className={overdue ? "text-neg" : ""}>{overdue ? "overdue · " : "by "}{shortDate(m.dueDate)}</span>}
                       {reached && !m.completedAt && <span className="text-accent"> · target reached, tick it off</span>}
@@ -168,7 +183,8 @@ export function GoalMilestones({ goalId, unit, currentValue, milestones, onChang
             className="w-full h-9 border border-line-strong rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <div className="flex gap-2">
-            <div className="flex-1">
+            {/* A target only makes sense when the goal itself has one to measure against. */}
+            <div className="flex-1" hidden={!goalHasTarget}>
               <label htmlFor={`ms-target-${goalId}`} className="block text-[11px] text-muted mb-0.5">Target {unit ? `(${unit})` : ""}</label>
               <input
                 id={`ms-target-${goalId}`}

@@ -23,11 +23,13 @@ function formatDate(iso: string): string {
   }
 }
 
+/** Comma-separated tags, trimmed, without empties or case-insensitive duplicates. */
 function parseTags(raw: string): string[] {
+  const seen = new Set<string>();
   return raw
     .split(",")
     .map((t) => t.trim())
-    .filter(Boolean);
+    .filter((t) => t && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase()));
 }
 
 function truncate(str: string, len: number): string {
@@ -115,8 +117,9 @@ function NotesView() {
   const loadNotes = useCallback(async () => {
     setError("");
     try {
-      const data = await getNotes();
-      setNotes((data ?? []).filter((n: any) => !n.noteType || n.noteType === "NOTE"));
+      // Ask for regular notes only, so journal entries and reviews can't push them out of the result limit.
+      const data = await getNotes({ noteType: "NOTE", limit: "500" });
+      setNotes(data ?? []);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -129,15 +132,17 @@ function NotesView() {
   }, [loadNotes]);
 
   // All unique tags across all notes
-  const allTags = Array.from(
-    new Set(notes.flatMap((n) => n.tags ?? []))
-  ).sort();
+  // Tags are matched case-insensitively ("Finance" and "finance" are one chip).
+  const tagMap = new Map<string, string>();
+  notes.forEach((n) => (n.tags ?? []).forEach((t: string) => !tagMap.has(t.toLowerCase()) && tagMap.set(t.toLowerCase(), t)));
+  const allTags = [...tagMap.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
 
   const filteredNotes = activeTag
-    ? notes.filter((n) => (n.tags ?? []).includes(activeTag))
+    ? notes.filter((n) => (n.tags ?? []).some((t: string) => t.toLowerCase() === activeTag.toLowerCase()))
     : notes;
 
-  const selectedNote = selectedId ? notes.find((n) => n.id === selectedId) : null;
+  // A note hidden by the tag filter isn't shown on the right either.
+  const selectedNote = selectedId ? filteredNotes.find((n) => n.id === selectedId) : null;
 
   const resetCreateForm = () => {
     setFormTitle("");
@@ -296,9 +301,9 @@ function NotesView() {
                 </p>
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex flex-wrap gap-1">
-                    {(note.tags ?? []).map((tag: string) => (
+                    {(note.tags ?? []).map((tag: string, i: number) => (
                       <span
-                        key={tag}
+                        key={`${tag}-${i}`}
                         className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-2 text-muted"
                       >
                         {tag}
@@ -477,9 +482,9 @@ function NotesView() {
                   {/* Tags */}
                   {(selectedNote.tags ?? []).length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                      {(selectedNote.tags ?? []).map((tag: string) => (
+                      {(selectedNote.tags ?? []).map((tag: string, i: number) => (
                         <span
-                          key={tag}
+                          key={`${tag}-${i}`}
                           className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-soft text-accent-strong"
                         >
                           {tag}
@@ -490,7 +495,7 @@ function NotesView() {
 
                   {/* Content */}
                   <div className="prose prose-sm max-w-none">
-                    <p className="text-fg-2 leading-relaxed whitespace-pre-wrap text-sm">
+                    <p className="text-fg-2 leading-relaxed whitespace-pre-wrap break-words text-sm">
                       {selectedNote.content}
                     </p>
                   </div>

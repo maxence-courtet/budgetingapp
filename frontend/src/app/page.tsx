@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAccounts, getMonths, getTransactions, getHabits, getAllHabitLogs, logHabit, getGoals, getNetWorthHistory } from "@/lib/api";
 import { doneDatesByHabit, habitStats, addDays } from "@/lib/habitStats";
+import { goalProgress, isDecreasing, fmtNum } from "@/lib/goals";
 import { fmt, formatAmount } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/constants";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -33,6 +34,7 @@ interface Goal {
   unit: string | null;
   currentValue: number | null;
   targetValue: number | null;
+  startValue?: number | null;
 }
 
 function isoDaysAgo(n: number) {
@@ -210,13 +212,17 @@ export default function Dashboard() {
           ) : (
             <ul className="space-y-4">
               {goals.map((g) => {
-                const pct = g.targetValue ? Math.min(100, Math.max(0, ((g.currentValue ?? 0) / g.targetValue) * 100)) : 0;
+                const pct = g.targetValue != null ? goalProgress(g).pct : 0;
                 return (
                   <li key={g.id} className="space-y-2">
                     <div className="flex justify-between gap-3 text-sm">
                       <span className="font-medium text-fg truncate">{g.title}</span>
                       <span className="font-mono text-xs text-muted shrink-0">
-                        {g.targetValue ? `${(g.currentValue ?? 0).toLocaleString("en-US")} / ${g.targetValue.toLocaleString("en-US")} ${g.unit ?? ""}` : "No target"}
+                        {g.targetValue == null
+                          ? "No target"
+                          : isDecreasing(g)
+                          ? `${fmtNum(g.currentValue)} → ${fmtNum(g.targetValue)}${g.unit ? ` ${g.unit}` : ""}`
+                          : `${fmtNum(g.currentValue)} / ${fmtNum(g.targetValue)}${g.unit ? ` ${g.unit}` : ""}`}
                       </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label={g.title}>

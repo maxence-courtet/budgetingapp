@@ -18,6 +18,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 
 type MetricTab = "WEIGHT" | "BODY_FAT" | "STEPS" | "WORKOUT_DURATION" | "OTHER";
 
+/** Unit to suggest when the metric type changes. */
+const DEFAULT_UNITS: Record<string, string> = { WEIGHT: "kg", BODY_FAT: "%", STEPS: "steps", WORKOUT_DURATION: "min" };
+
 const MAIN_TYPES: MetricTab[] = ["WEIGHT", "BODY_FAT", "STEPS", "WORKOUT_DURATION"];
 
 const TAB_LABELS: Record<MetricTab, string> = {
@@ -62,6 +65,7 @@ export default function FitnessPage() {
   const [formType, setFormType] = useState("WEIGHT");
   const [formValue, setFormValue] = useState("");
   const [formUnit, setFormUnit] = useState("kg");
+  const [rejectConfirm, setRejectConfirm] = useState<string | null>(null);
   const [formDate, setFormDate] = useState(todayISO());
   const [formNote, setFormNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -99,17 +103,26 @@ export default function FitnessPage() {
   };
 
   const handleCreate = async () => {
-    if (!formType.trim() || !formValue) return;
+    if (!formType.trim()) return setError("Pick or type a metric.");
+    if (formValue === "" || Number.isNaN(parseFloat(formValue))) return setError("Enter a value.");
+    if (parseFloat(formValue) < 0) return setError("Values can't be negative.");
+    if (!formDate) return setError("Pick a date.");
+    const builtIn = isMainType(formType.trim().toUpperCase());
+    if (!formUnit.trim() && !builtIn) return setError("A custom metric needs a unit.");
     setSaving(true);
     try {
+      // Built-in metrics are stored as their code (WEIGHT…); a custom one keeps the user's spelling.
+      const type = builtIn ? formType.trim().toUpperCase() : formType.trim();
       await createFitnessEntry({
-        type: formType.trim().toUpperCase(),
+        type,
         value: parseFloat(formValue),
         unit: formUnit.trim() || undefined,
         date: formDate,
         note: formNote.trim() || undefined,
       });
       resetForm();
+      // Show the tab the new entry landed in.
+      setActiveTab(builtIn ? (type as MetricTab) : "OTHER");
       await loadData();
     } catch (e: any) {
       setError(e.message);
@@ -139,6 +152,7 @@ export default function FitnessPage() {
 
   const handleReject = async (id: string) => {
     try {
+      setRejectConfirm(null);
       await deleteFitnessEntry(id);
       await loadData();
     } catch (e: any) {
@@ -154,12 +168,13 @@ export default function FitnessPage() {
 
   // Latest value per main metric type
   const latestByType = MAIN_TYPES.reduce<Record<string, any>>((acc, t) => {
-    const typeEntries = entries.filter((e) => e.type === t);
+    const typeEntries = entries.filter((e) => e.type === t && e.validatedAt);
     if (typeEntries.length > 0) {
       // Sort descending by date and take first
-      const sorted = [...typeEntries].sort((a, b) =>
-        (b.date ?? "").localeCompare(a.date ?? "")
-      );
+      const sorted = typeEntries
+        .map((e, i) => ({ e, i }))
+        .sort((a, b) => (b.e.date ?? "").localeCompare(a.e.date ?? "") || a.i - b.i)
+        .map(({ e }) => e);
       acc[t] = sorted[0];
     }
     return acc;
@@ -212,18 +227,28 @@ export default function FitnessPage() {
                   )}
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => handleApprove(entry.id)}
-                    className="px-3 py-1 text-xs font-medium bg-green-600 text-accent-ink rounded-xl hover:bg-green-700 transition-colors"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleReject(entry.id)}
-                    className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
-                  >
-                    Reject
-                  </button>
+                  {rejectConfirm === entry.id ? (
+                    <ConfirmDelete
+                      label="Reject and delete this entry?"
+                      onConfirm={() => handleReject(entry.id)}
+                      onCancel={() => setRejectConfirm(null)}
+                    />
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleApprove(entry.id)}
+                        className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => setRejectConfirm(entry.id)}
+                        className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -266,7 +291,12 @@ export default function FitnessPage() {
                 type="text"
                 list="fitness-type-suggestions"
                 value={formType}
-                onChange={(e) => setFormType(e.target.value)}
+                onChange={(e) => {
+                  setFormType(e.target.value);
+                  // Suggest the matching unit for built-in metrics (kg, %, steps, min).
+                  const unit = DEFAULT_UNITS[e.target.value.trim().toUpperCase()];
+                  if (unit) setFormUnit(unit);
+                }}
                 placeholder="e.g. WEIGHT"
                 className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
@@ -346,12 +376,14 @@ export default function FitnessPage() {
       )}
 
       {/* Tab selector */}
-      <div className="flex gap-1 border-b border-line">
+      <div role="tablist" aria-label="Metric" className="flex gap-1 border-b border-line overflow-x-auto">
         {(["WEIGHT", "BODY_FAT", "STEPS", "WORKOUT_DURATION", "OTHER"] as MetricTab[]).map((tab) => (
           <button
             key={tab}
+            role="tab"
+            aria-selected={activeTab === tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
                 ? "border-accent text-accent"
                 : "border-transparent text-muted hover:text-fg-2"
@@ -375,6 +407,7 @@ export default function FitnessPage() {
               <thead>
                 <tr className="bg-surface-2 border-b border-line">
                   <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Date</th>
+                  {activeTab === "OTHER" && <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Metric</th>}
                   <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Value</th>
                   <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Note</th>
                   <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Source</th>
@@ -388,6 +421,7 @@ export default function FitnessPage() {
                   .map((entry: any) => (
                     <tr key={entry.id} className="border-b border-line last:border-0 hover:bg-surface-2">
                       <td className="px-4 py-3 text-fg-2">{formatDate(entry.date)}</td>
+                      {activeTab === "OTHER" && <td className="px-4 py-3 text-fg-2">{entry.type}</td>}
                       <td className="px-4 py-3 font-medium text-fg">
                         {formatNumber(entry.value)} <span className="text-muted font-normal text-xs">{entry.unit}</span>
                       </td>
@@ -403,7 +437,9 @@ export default function FitnessPage() {
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted">
                             AI
                           </span>
-                        ) : null}
+                        ) : (
+                          <span className="text-xs text-muted">Manual</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {deleteConfirm === entry.id ? (

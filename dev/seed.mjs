@@ -36,7 +36,8 @@ await post("/fitness", { type: "BODY_FAT", value: 19.2, unit: "%", date: d(2) })
 await post("/fitness", { type: "STEPS", value: 8432, unit: "steps", date: d(1) });
 await post("/fitness", { type: "WEIGHT", value: 77.6, unit: "kg", date: d(0), source: "MCP" });
 await post("/goals", { title: "Emergency fund", type: "FINANCIAL", targetValue: 10000, unit: "EUR", deadline: d(-180) });
-await post("/goals", { title: "Reach 76 kg", type: "FITNESS", targetValue: 76, unit: "kg", deadline: d(-20) });
+const weightGoal = await post("/goals", { title: "Reach 76 kg", type: "FITNESS", targetValue: 76, startValue: 79.4, unit: "kg", deadline: d(-20) });
+await fetch(`${API}/goals/${weightGoal.id}/progress`, { method: "PATCH", headers: H, body: JSON.stringify({ currentValue: 77.6 }) });
 await post("/goals", { title: "Read 12 books this year", type: "PERSONAL", targetValue: 12, unit: "books", deadline: d(-88) });
 await post("/notes", { title: "Q4 priorities", content: "- Build the emergency fund\n- Run 3x per week\n- Cut dining out", tags: ["planning", "finance"] });
 await post("/notes", { title: "Workout ideas", content: "Try interval runs on Tuesdays.", tags: ["fitness"] });
