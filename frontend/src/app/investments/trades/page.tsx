@@ -1,5 +1,6 @@
 "use client";
 
+import { localISO } from "@/lib/date";
 import { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
 import {
@@ -42,17 +43,18 @@ interface Trade {
 const ASSET_TYPES = ["STOCK", "ETF", "CRYPTO", "OTHER"] as const;
 const TRADE_TYPES = ["BUY", "SELL"] as const;
 
-const BLANK_FORM = {
+/** A fresh form; the date is today in the user's timezone, computed when the form is reset. */
+const blankForm = () => ({
   ticker: "",
   assetType: "STOCK",
   tradeType: "BUY",
   accountId: "",
-  date: new Date().toISOString().slice(0, 10),
+  date: localISO(),
   quantity: "",
   pricePerUnit: "",
   fees: "",
   notes: "",
-};
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -91,11 +93,11 @@ export default function TradesPage() {
 
   // Create form
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ ...BLANK_FORM });
+  const [form, setForm] = useState(blankForm());
 
   // Inline edit
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ ...BLANK_FORM });
+  const [editForm, setEditForm] = useState(blankForm());
 
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -127,7 +129,7 @@ export default function TradesPage() {
   // ── Create ────────────────────────────────────────────────────────────────
 
   const resetCreateForm = () => {
-    setForm({ ...BLANK_FORM });
+    setForm(blankForm());
     setShowCreate(false);
   };
 
@@ -176,7 +178,7 @@ export default function TradesPage() {
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditForm({ ...BLANK_FORM });
+    setEditForm(blankForm());
   };
 
   const handleUpdate = async () => {
@@ -260,7 +262,7 @@ export default function TradesPage() {
                 type="text"
                 value={form.ticker}
                 onChange={(e) => setForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="e.g. AAPL"
               />
             </div>
@@ -274,7 +276,7 @@ export default function TradesPage() {
                 id="create-assetType"
                 value={form.assetType}
                 onChange={(e) => setForm((f) => ({ ...f, assetType: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {ASSET_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -316,7 +318,7 @@ export default function TradesPage() {
                 id="create-accountId"
                 value={form.accountId}
                 onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">— None —</option>
                 {investmentAccounts.map((a) => (
@@ -335,7 +337,7 @@ export default function TradesPage() {
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -351,7 +353,7 @@ export default function TradesPage() {
                 step="0.000001"
                 value={form.quantity}
                 onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="0.000000"
               />
             </div>
@@ -368,7 +370,7 @@ export default function TradesPage() {
                 step="0.01"
                 value={form.pricePerUnit}
                 onChange={(e) => setForm((f) => ({ ...f, pricePerUnit: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="0.00"
               />
             </div>
@@ -385,7 +387,7 @@ export default function TradesPage() {
                 step="0.01"
                 value={form.fees}
                 onChange={(e) => setForm((f) => ({ ...f, fees: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="0.00"
               />
             </div>
@@ -400,7 +402,7 @@ export default function TradesPage() {
                 rows={1}
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
                 placeholder="Optional notes"
               />
             </div>
@@ -466,7 +468,7 @@ export default function TradesPage() {
                           type="date"
                           value={editForm.date}
                           onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
-                          className="w-32 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-32 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </td>
                       {/* Ticker */}
@@ -475,7 +477,7 @@ export default function TradesPage() {
                           type="text"
                           value={editForm.ticker}
                           onChange={(e) => setEditForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))}
-                          className="w-20 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-20 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </td>
                       {/* Trade Type toggle */}
@@ -504,7 +506,7 @@ export default function TradesPage() {
                         <select
                           value={editForm.assetType}
                           onChange={(e) => setEditForm((f) => ({ ...f, assetType: e.target.value }))}
-                          className="border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
                         >
                           {ASSET_TYPES.map((t) => (
                             <option key={t} value={t}>{t}</option>
@@ -519,7 +521,7 @@ export default function TradesPage() {
                           step="0.000001"
                           value={editForm.quantity}
                           onChange={(e) => setEditForm((f) => ({ ...f, quantity: e.target.value }))}
-                          className="w-24 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-24 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </td>
                       {/* Price */}
@@ -530,7 +532,7 @@ export default function TradesPage() {
                           step="0.01"
                           value={editForm.pricePerUnit}
                           onChange={(e) => setEditForm((f) => ({ ...f, pricePerUnit: e.target.value }))}
-                          className="w-24 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-24 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </td>
                       {/* Fees */}
@@ -541,7 +543,7 @@ export default function TradesPage() {
                           step="0.01"
                           value={editForm.fees}
                           onChange={(e) => setEditForm((f) => ({ ...f, fees: e.target.value }))}
-                          className="w-20 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-20 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </td>
                       {/* Total (computed, read-only) */}
@@ -559,7 +561,7 @@ export default function TradesPage() {
                         <select
                           value={editForm.accountId}
                           onChange={(e) => setEditForm((f) => ({ ...f, accountId: e.target.value }))}
-                          className="border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
                         >
                           <option value="">— None —</option>
                           {investmentAccounts.map((a) => (
@@ -573,7 +575,7 @@ export default function TradesPage() {
                           type="text"
                           value={editForm.notes}
                           onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
-                          className="w-32 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-32 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
                           placeholder="Notes"
                         />
                       </td>

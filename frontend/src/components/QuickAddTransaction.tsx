@@ -58,6 +58,11 @@ export function QuickAddTransaction() {
     return () => window.removeEventListener(OPEN_EVENT, open);
   }, []);
 
+  // Start typing the amount right away once the form is ready.
+  useEffect(() => {
+    if (accounts.length && dialogRef.current?.open) document.getElementById("tx-amount")?.focus();
+  }, [accounts, formKey]);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 3500);

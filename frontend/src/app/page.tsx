@@ -1,8 +1,9 @@
 "use client";
 
+import { localISO } from "@/lib/date";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAccounts, getMonths, getTransactions, getHabits, getAllHabitLogs, logHabit, getGoals } from "@/lib/api";
+import { getAccounts, getMonths, getTransactions, getHabits, getAllHabitLogs, logHabit, getGoals, getNetWorthHistory } from "@/lib/api";
 import { doneDatesByHabit, habitStats, addDays } from "@/lib/habitStats";
 import { fmt, formatAmount } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/constants";
@@ -37,7 +38,7 @@ interface Goal {
 function isoDaysAgo(n: number) {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 
 const LAST_7 = Array.from({ length: 7 }, (_, i) => isoDaysAgo(6 - i));
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [habits, setHabits] = useState<HabitRow[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [netWorth, setNetWorth] = useState<{ cash: number; investments: number; total: number } | null>(null);
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -60,13 +62,16 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const [accts, mos, txns, habitList, goalList] = await Promise.all([
+        const [accts, mos, txns, habitList, goalList, nw] = await Promise.all([
           getAccounts(),
           getMonths(),
-          getTransactions({ limit: "8", sort: "date:desc" }),
+          // Recent activity: nothing dated in the future
+          getTransactions({ limit: "8", sort: "date:desc", until: TODAY }),
           getHabits(),
           getGoals(),
+          getNetWorthHistory(2).catch(() => null),
         ]);
+        setNetWorth(Array.isArray(nw) && nw.length ? nw[nw.length - 1] : null);
         setAccounts(accts);
         setMonths(mos);
         setTransactions(Array.isArray(txns) ? txns : txns.data ?? []);
@@ -95,7 +100,7 @@ export default function Dashboard() {
         hs.map((h) => (h.id === habit.id ? { ...h, done: new Set([...h.done, TODAY]) } : h))
       );
     } catch (e: any) {
-      setError(e.message);
+      setError(`Couldn't check in “${habit.name}”: ${e.message}`);
     } finally {
       setCheckingIn(null);
     }
@@ -103,7 +108,9 @@ export default function Dashboard() {
 
   if (loading) return <LoadingState message="Loading dashboard..." />;
 
-  const totalBalance = accounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
+  const cashTotal = accounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
+  // Same figure as the chart's latest point: cash plus investments.
+  const totalBalance = netWorth ? netWorth.total : cashTotal;
   const now = new Date();
   const currentMonth = months.find(
     (m) => m.month === now.getMonth() + 1 && m.year === now.getFullYear()
@@ -125,7 +132,9 @@ export default function Dashboard() {
             {signed(totalBalance)}
           </p>
           <p className="text-sm text-muted">
-            across {accounts.length} account{accounts.length !== 1 ? "s" : ""}
+            {netWorth && netWorth.investments > 0
+              ? `${signed(cashTotal)} cash · ${signed(netWorth.investments)} investments`
+              : `across ${accounts.length} account${accounts.length !== 1 ? "s" : ""}`}
           </p>
         </div>
         {currentMonth ? (
@@ -166,7 +175,7 @@ export default function Dashboard() {
                 return (
                   <li key={h.id} className="flex items-center gap-3">
                     <span className="flex-1 min-w-0 truncate text-sm font-medium text-fg">{h.name}</span>
-                    <span className="flex gap-1" aria-label={`${h.done.size} of the last 7 days`}>
+                    <span className="flex gap-1" aria-label={`${LAST_7.filter((d) => h.done.has(d)).length} of the last 7 days`}>
                       {LAST_7.map((d) => (
                         <span
                           key={d}
@@ -181,7 +190,7 @@ export default function Dashboard() {
                       aria-label={doneToday ? `${h.name} done today` : `Check in ${h.name} for today`}
                       className={`flex items-center justify-center gap-1 w-16 h-8 rounded-lg font-mono text-xs transition-colors ${
                         doneToday
-                          ? "bg-accent-soft text-accent"
+                          ? "bg-accent-soft text-accent-strong"
                           : "border border-line-strong text-fg hover:border-accent hover:text-accent"
                       }`}
                     >
@@ -274,7 +283,12 @@ export default function Dashboard() {
                 {transactions.map((t) => (
                   <tr key={t.id} className="border-b border-line last:border-0 hover:bg-surface-2/60">
                     <td className="pl-5 pr-3 py-3 font-mono text-xs text-muted whitespace-nowrap">
-                      {new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" })}
+                      {new Date(t.date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "2-digit",
+                        year: t.date.slice(0, 4) === TODAY.slice(0, 4) ? undefined : "numeric",
+                        timeZone: "UTC",
+                      })}
                     </td>
                     <td className="px-3 py-3 font-medium text-fg">{t.description ?? "—"}</td>
                     <td className="px-3 py-3 text-muted">{t.category?.name}</td>

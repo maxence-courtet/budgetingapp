@@ -33,7 +33,7 @@ interface PortfolioSummary {
 }
 
 const ASSET_TYPE_STYLES: Record<string, string> = {
-  STOCK: "bg-accent-soft text-accent",
+  STOCK: "bg-accent-soft text-accent-strong",
   ETF: "bg-surface-2 text-fg-2",
   CRYPTO: "bg-purple-100 text-purple-700",
 };

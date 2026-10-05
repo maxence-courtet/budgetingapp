@@ -101,7 +101,7 @@ export function NetWorthChart() {
         <button
           type="button"
           onClick={() => setAsTable((v) => !v)}
-          aria-pressed={asTable}
+          aria-label={asTable ? "Show as chart" : "Show as table"}
           className="h-8 px-2.5 rounded-lg text-xs font-medium text-muted hover:text-fg hover:bg-surface-2"
         >
           {asTable ? "Chart" : "Table"}
@@ -210,6 +210,8 @@ function Plot({
   function onKey(e: React.KeyboardEvent) {
     if (e.key === "ArrowRight") setHover(Math.min((hover ?? -1) + 1, data.length - 1));
     else if (e.key === "ArrowLeft") setHover(Math.max((hover ?? data.length) - 1, 0));
+    else if (e.key === "Home") setHover(0);
+    else if (e.key === "End") setHover(data.length - 1);
     else return;
     e.preventDefault();
   }
@@ -219,14 +221,14 @@ function Plot({
 
   return (
     <div
-      className="relative outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-xl"
+      className="relative overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-xl"
       tabIndex={0}
       role="img"
       aria-label={`Net worth by month, from ${signed(data[0].total)} in ${monthLabel(data[0].month, true)} to ${signed(data[data.length - 1].total)} in ${monthLabel(data[data.length - 1].month, true)}. Use arrow keys to read each month.`}
       onKeyDown={onKey}
       onBlur={() => setHover(null)}
     >
-      <svg width={width} height={HEIGHT} className="block overflow-visible" aria-hidden="true">
+      <svg width={width} height={HEIGHT} className="block max-w-full" aria-hidden="true">
         {yTicks.map((t) => (
           <g key={t}>
             <line x1={PAD.left} x2={PAD.left + innerW} y1={y(t)} y2={y(t)} className="stroke-line" strokeWidth={1} />
@@ -236,9 +238,10 @@ function Plot({
           </g>
         ))}
         {data.map((p, i) =>
-          i % labelEvery === 0 || i === data.length - 1 ? (
+          (i % labelEvery === 0 && x(data.length - 1) - x(i) >= 44) || i === data.length - 1 ? (
             <text key={p.month} x={x(i)} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-[11px]">
               {monthLabel(p.month)}
+              {data.length > 12 && p.month.endsWith("-01") ? ` ’${p.month.slice(2, 4)}` : ""}
             </text>
           ) : null
         )}

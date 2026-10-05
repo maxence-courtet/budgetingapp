@@ -305,7 +305,7 @@ export default function ReviewPage() {
               const Icon = PATTERN_ICON[p.kind] ?? Link2;
               return (
                 <li key={p.id} className="flex gap-3 bg-surface border border-line rounded-2xl p-4">
-                  <span className="w-9 h-9 shrink-0 rounded-xl bg-accent-soft text-accent flex items-center justify-center">
+                  <span className="w-9 h-9 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center">
                     <Icon size={17} aria-hidden="true" />
                   </span>
                   <span>

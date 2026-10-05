@@ -147,7 +147,7 @@ function SearchPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Search by description..."
-            className="w-full px-4 py-3 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full px-4 py-3 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
@@ -161,7 +161,7 @@ function SearchPage() {
               <select
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">All</option>
                 {accounts.map((a) => (
@@ -179,7 +179,7 @@ function SearchPage() {
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">All</option>
                 {categories.map((c) => (
@@ -197,7 +197,7 @@ function SearchPage() {
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">All</option>
                 <option value="INCOME">INCOME</option>
@@ -213,7 +213,7 @@ function SearchPage() {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">All</option>
                 <option value="PLANNED">PLANNED</option>
@@ -231,7 +231,7 @@ function SearchPage() {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -243,7 +243,7 @@ function SearchPage() {
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -258,7 +258,7 @@ function SearchPage() {
                 value={amountMin}
                 onChange={(e) => setAmountMin(e.target.value)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -273,7 +273,7 @@ function SearchPage() {
                 value={amountMax}
                 onChange={(e) => setAmountMax(e.target.value)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
           </div>

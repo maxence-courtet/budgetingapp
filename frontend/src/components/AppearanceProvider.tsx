@@ -43,12 +43,15 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemePref>(DEFAULT_THEME);
   const [accent, setAccentState] = useState<AccentId>(DEFAULT_ACCENT);
   const [systemDark, setSystemDark] = useState(false);
+  // Until the saved choice is read, leave <html> as the inline head script set it (no flash of defaults).
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     setThemeState(read(THEME_KEY, THEME_PREFS, DEFAULT_THEME));
     setAccentState(read(ACCENT_KEY, ACCENTS.map((a) => a.id), DEFAULT_ACCENT));
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     setSystemDark(mq.matches);
+    setLoaded(true);
     const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
@@ -56,13 +59,17 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 
   const resolvedTheme = theme === "system" ? (systemDark ? "dark" : "light") : theme;
 
+  // Colours switch in one frame: transitions are paused while the attributes change.
   useEffect(() => {
-    document.documentElement.dataset.theme = resolvedTheme;
-  }, [resolvedTheme]);
-
-  useEffect(() => {
-    document.documentElement.dataset.accent = accent;
-  }, [accent]);
+    if (!loaded) return;
+    const root = document.documentElement;
+    if (root.dataset.theme === resolvedTheme && root.dataset.accent === accent) return;
+    root.classList.add("theme-switching");
+    root.dataset.theme = resolvedTheme;
+    root.dataset.accent = accent;
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switching")));
+    return () => cancelAnimationFrame(id);
+  }, [loaded, resolvedTheme, accent]);
 
   const setTheme = useCallback((t: ThemePref) => {
     setThemeState(t);

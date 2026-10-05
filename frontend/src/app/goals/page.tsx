@@ -1,5 +1,6 @@
 "use client";
 
+import { localISO } from "@/lib/date";
 import { useState, useEffect, useCallback } from "react";
 import {
   getGoals,
@@ -20,7 +21,7 @@ type StatusFilter = "ALL" | "ACTIVE" | "COMPLETED" | "ABANDONED";
 const STATUS_FILTERS: StatusFilter[] = ["ALL", "ACTIVE", "COMPLETED", "ABANDONED"];
 
 const TYPE_BADGE_STYLES: Record<string, string> = {
-  FINANCIAL: "bg-accent-soft text-accent",
+  FINANCIAL: "bg-accent-soft text-accent-strong",
   HABIT: "bg-green-100 text-green-700",
   FITNESS: "bg-orange-100 text-orange-700",
   PERSONAL: "bg-purple-100 text-purple-700",
@@ -33,7 +34,7 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
 };
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localISO();
 }
 
 function daysUntil(dateISO: string): number {
@@ -225,7 +226,7 @@ export default function GoalsPage() {
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="e.g. Run a 5K"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div>
@@ -236,7 +237,7 @@ export default function GoalsPage() {
                 id="goal-type"
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="PERSONAL">Personal</option>
                 <option value="FINANCIAL">Financial</option>
@@ -253,7 +254,7 @@ export default function GoalsPage() {
                 type="date"
                 value={formDeadline}
                 onChange={(e) => setFormDeadline(e.target.value)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div>
@@ -267,7 +268,7 @@ export default function GoalsPage() {
                 onChange={(e) => setFormTarget(e.target.value)}
                 placeholder="Optional"
                 step="any"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div>
@@ -280,7 +281,7 @@ export default function GoalsPage() {
                 value={formUnit}
                 onChange={(e) => setFormUnit(e.target.value)}
                 placeholder='e.g. "$", "kg", "days"'
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div className="sm:col-span-2">
@@ -293,7 +294,7 @@ export default function GoalsPage() {
                 onChange={(e) => setFormDescription(e.target.value)}
                 rows={2}
                 placeholder="Optional description"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
           </div>
@@ -353,13 +354,13 @@ export default function GoalsPage() {
                           type="text"
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
-                          className="w-full border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-full border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                           autoFocus
                         />
                         <select
                           value={editStatus}
                           onChange={(e) => setEditStatus(e.target.value)}
-                          className="w-full border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-full border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                         >
                           <option value="ACTIVE">Active</option>
                           <option value="COMPLETED">Completed</option>
@@ -475,7 +476,7 @@ export default function GoalsPage() {
                         setProgressInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))
                       }
                       placeholder="+/- value"
-                      className="flex-1 border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="flex-1 border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                     <button
                       onClick={() => handleProgressUpdate(goal)}

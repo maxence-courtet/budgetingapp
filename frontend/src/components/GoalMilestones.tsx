@@ -1,5 +1,6 @@
 "use client";
 
+import { localISO } from "@/lib/date";
 import { useState } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { createMilestone, toggleMilestone, deleteMilestone } from "@/lib/api";
@@ -43,7 +44,7 @@ export function GoalMilestones({ goalId, unit, currentValue, milestones, onChang
 
   const sorted = sortMilestones(milestones);
   const doneCount = milestones.filter((m) => m.completedAt).length;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localISO();
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -164,7 +165,7 @@ export function GoalMilestones({ goalId, unit, currentValue, milestones, onChang
             placeholder="e.g. First $2,500 saved"
             autoFocus
             required
-            className="w-full h-9 border border-line-strong rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full h-9 border border-line-strong rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <div className="flex gap-2">
             <div className="flex-1">
@@ -175,7 +176,7 @@ export function GoalMilestones({ goalId, unit, currentValue, milestones, onChang
                 step="any"
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
-                className="w-full h-9 border border-line-strong rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full h-9 border border-line-strong rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div className="flex-1">
@@ -185,7 +186,7 @@ export function GoalMilestones({ goalId, unit, currentValue, milestones, onChang
                 type="date"
                 value={due}
                 onChange={(e) => setDue(e.target.value)}
-                className="w-full h-9 border border-line-strong rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full h-9 border border-line-strong rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
           </div>

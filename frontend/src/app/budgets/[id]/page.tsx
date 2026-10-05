@@ -244,7 +244,7 @@ export default function BudgetDetailPage({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="text-2xl font-bold text-fg border border-line-strong rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="text-2xl font-bold text-fg border border-line-strong rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent"
               autoFocus
             />
             <button
@@ -349,7 +349,7 @@ export default function BudgetDetailPage({
                         <select
                           value={editForm.type}
                           onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
-                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                         >
                           <option value="INCOME">INCOME</option>
                           <option value="SPENDING">SPENDING</option>
@@ -363,7 +363,7 @@ export default function BudgetDetailPage({
                           min="0"
                           value={editForm.amount}
                           onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-accent"
                           required
                         />
                       </td>
@@ -371,7 +371,7 @@ export default function BudgetDetailPage({
                         <select
                           value={editForm.categoryId}
                           onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })}
-                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                           required
                         >
                           <option value="">Select</option>
@@ -385,7 +385,7 @@ export default function BudgetDetailPage({
                           <select
                             value={editForm.fromAccountId}
                             onChange={(e) => setEditForm({ ...editForm, fromAccountId: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                            className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                           >
                             <option value="">None</option>
                             {accounts.map((a) => (
@@ -401,7 +401,7 @@ export default function BudgetDetailPage({
                           <select
                             value={editForm.toAccountId}
                             onChange={(e) => setEditForm({ ...editForm, toAccountId: e.target.value })}
-                            className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                            className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                           >
                             <option value="">None</option>
                             {accounts.map((a) => (
@@ -418,14 +418,14 @@ export default function BudgetDetailPage({
                           value={editForm.description}
                           onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                           placeholder="Optional"
-                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </td>
                       <td className="px-4 py-2 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={handleUpdateDef}
-                            className="text-pos hover:text-green-800 text-sm font-medium transition-colors"
+                            className="text-pos hover:text-accent-hover text-sm font-medium transition-colors"
                           >
                             Save
                           </button>
@@ -537,7 +537,7 @@ export default function BudgetDetailPage({
                   onChange={(e) =>
                     setForm({ ...form, type: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   <option value="INCOME">INCOME</option>
                   <option value="SPENDING">SPENDING</option>
@@ -562,7 +562,7 @@ export default function BudgetDetailPage({
                     setForm({ ...form, amount: e.target.value })
                   }
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   required
                 />
               </div>
@@ -580,7 +580,7 @@ export default function BudgetDetailPage({
                   onChange={(e) =>
                     setForm({ ...form, categoryId: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   required
                 >
                   <option value="">Select category</option>
@@ -606,7 +606,7 @@ export default function BudgetDetailPage({
                     onChange={(e) =>
                       setForm({ ...form, toCategoryId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select category</option>
                     {categories.map((c) => (
@@ -632,7 +632,7 @@ export default function BudgetDetailPage({
                     onChange={(e) =>
                       setForm({ ...form, fromAccountId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select account</option>
                     {accounts.map((a) => (
@@ -658,7 +658,7 @@ export default function BudgetDetailPage({
                     onChange={(e) =>
                       setForm({ ...form, toAccountId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select account</option>
                     {accounts.map((a) => (
@@ -685,7 +685,7 @@ export default function BudgetDetailPage({
                     setForm({ ...form, description: e.target.value })
                   }
                   placeholder="Optional description"
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
             </div>

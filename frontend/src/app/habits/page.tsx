@@ -122,23 +122,25 @@ export default function HabitsPage() {
   const level = levelInfo(xp);
   const badgeList = computeBadges([...stats.values()], perfect, done);
   const dailyActive = active.filter((h) => h.frequency !== "WEEKLY");
-  const doneTodayCount = active.filter((h) => stats.get(h.id)?.doneToday).length;
+  const doneTodayCount = active.filter((h) => stats.get(h.id)?.doneForPeriod).length;
   const bestCurrent = active
     .map((h) => ({ h, s: stats.get(h.id)! }))
     .sort((a, b) => b.s.current - a.s.current)[0];
 
   // Celebrate level-ups and perfect days triggered by this session's check-ins.
   const prevLevel = useRef<number | null>(null);
+  const maxLevelSeen = useRef(0);
   const prevPerfectToday = useRef<boolean | null>(null);
   useEffect(() => {
     if (loading) return;
     const perfectToday = perfect.has(today);
-    if (prevLevel.current !== null && level.level > prevLevel.current) {
+    if (prevLevel.current !== null && level.level > prevLevel.current && level.level > maxLevelSeen.current) {
       setCelebration(`Level ${level.level} — ${level.title}!`);
     } else if (prevPerfectToday.current === false && perfectToday) {
       setCelebration(`Perfect day! +${PERFECT_DAY_XP} XP`);
     }
     prevLevel.current = level.level;
+    maxLevelSeen.current = Math.max(maxLevelSeen.current, level.level);
     prevPerfectToday.current = perfectToday;
   }, [loading, level.level, level.title, perfect, today]);
   useEffect(() => {
@@ -146,6 +148,26 @@ export default function HabitsPage() {
     const t = setTimeout(() => setCelebration(null), 4000);
     return () => clearTimeout(t);
   }, [celebration]);
+
+  useEffect(() => {
+    if (!menuId) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuId(null);
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("[data-habit-menu]")) setMenuId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onDown);
+    };
+  }, [menuId]);
+
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = gridScrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [loading]);
 
   // ── Actions ────────────────────────────────────────────────────────────
   const resetForm = () => {
@@ -157,7 +179,10 @@ export default function HabitsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim()) return;
+    if (!formName.trim()) {
+      setError("A habit needs a name.");
+      return;
+    }
     setSaving(true);
     try {
       await createHabit({
@@ -187,7 +212,10 @@ export default function HabitsPage() {
   };
 
   const handleRename = async (id: string) => {
-    if (!editName.trim()) return;
+    if (!editName.trim()) {
+      setError("A habit needs a name.");
+      return;
+    }
     try {
       await updateHabit(id, { name: editName.trim() });
       setEditingId(null);
@@ -237,9 +265,10 @@ export default function HabitsPage() {
 
   if (loading) return <LoadingState message="Loading habits..." />;
 
-  const gridCols = `2.25rem minmax(9rem, 1fr) 4.5rem repeat(${GRID_DAYS}, 1.5rem) 3rem 2rem`;
+  const gridCols = `2.25rem minmax(7rem, 1fr) 3.75rem repeat(${GRID_DAYS}, 1.375rem) 2.5rem 1.75rem`;
 
-  const renderRow = (habit: Habit) => {
+  const renderRow = (habit: Habit, index: number, rows: Habit[]) => {
+    const menuUp = rows.length > 3 && index >= rows.length - 2;
     const s = stats.get(habit.id)!;
     const habitDone = done.get(habit.id) ?? new Set<string>();
     const pending = pendingByHabit.get(habit.id);
@@ -249,7 +278,7 @@ export default function HabitsPage() {
       <li
         key={habit.id}
         role="row"
-        className="grid items-center gap-x-1 px-3 h-11 border-b border-line last:border-0 hover:bg-surface-2/50"
+        className="grid items-center gap-x-0.5 px-3 h-11 border-b border-line last:border-0 hover:bg-surface-2/50"
         style={{ gridTemplateColumns: gridCols }}
       >
         <span role="cell">
@@ -258,9 +287,19 @@ export default function HabitsPage() {
             onClick={() => handleToggleDay(habit, today)}
             disabled={!habit.active}
             aria-pressed={s.doneToday}
-            aria-label={s.doneToday ? `Undo ${habit.name} for today` : `Check in ${habit.name} for today`}
+            aria-label={
+              s.doneToday
+                ? `Undo ${habit.name} for today`
+                : s.doneForPeriod
+                ? `${habit.name} is done this week; check in again today`
+                : `Check in ${habit.name} for today`
+            }
             className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 ${
-              s.doneToday ? "bg-accent text-accent-ink" : "border-[1.5px] border-line-strong text-transparent hover:border-accent hover:text-accent"
+              s.doneToday
+                ? "bg-accent text-accent-ink"
+                : s.doneForPeriod
+                ? "bg-accent-soft text-accent-strong"
+                : "border-[1.5px] border-line-strong text-transparent hover:border-accent hover:text-accent"
             }`}
           >
             <Check size={14} strokeWidth={3} aria-hidden="true" />
@@ -283,13 +322,13 @@ export default function HabitsPage() {
                 onChange={(e) => setEditName(e.target.value)}
                 onKeyDown={(e) => e.key === "Escape" && setEditingId(null)}
                 autoFocus
-                className="flex-1 min-w-0 h-7 border border-line-strong rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="flex-1 min-w-0 h-7 border border-line-strong rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <button type="submit" className="h-7 px-2 text-xs font-medium bg-accent text-accent-ink rounded-lg">Save</button>
             </form>
           ) : (
             <>
-              <span className="truncate text-sm font-medium text-fg" title={habit.description ?? undefined}>
+              <span className="truncate text-sm font-medium text-fg" title={habit.description ? `${habit.name} — ${habit.description}` : habit.name}>
                 {habit.name}
               </span>
               {habit.frequency === "WEEKLY" && (
@@ -350,7 +389,7 @@ export default function HabitsPage() {
               {Math.round(s.rate30 * 100)}%
             </span>
 
-            <span role="cell" className="relative flex justify-end">
+            <span role="cell" className="relative flex justify-end" data-habit-menu>
               <button
                 type="button"
                 onClick={() => setMenuId(menuId === habit.id ? null : habit.id)}
@@ -363,7 +402,7 @@ export default function HabitsPage() {
               {menuId === habit.id && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-8 z-20 w-40 p-1 rounded-xl border border-line-strong bg-surface shadow-xl shadow-black/20"
+                  className={`absolute right-0 ${menuUp ? "bottom-8" : "top-8"} z-20 w-40 p-1 rounded-xl border border-line-strong bg-surface shadow-xl shadow-black/20`}
                 >
                   <button
                     role="menuitem"
@@ -466,6 +505,7 @@ export default function HabitsPage() {
               strokeLinecap="round"
               className="stroke-accent transition-all"
               strokeDasharray={`${active.length ? (doneTodayCount / active.length) * 144.5 : 0} 144.5`}
+              opacity={doneTodayCount ? 1 : 0}
             />
           </svg>
           <div>
@@ -506,7 +546,7 @@ export default function HabitsPage() {
                 key={b.id}
                 title={`${b.label} — ${b.description}${b.earned ? "" : " (locked)"}`}
                 className={`flex items-center gap-1 h-6 px-2 rounded-md text-[11px] font-medium ${
-                  b.earned ? "bg-accent-soft text-accent" : "bg-surface-2 text-faint"
+                  b.earned ? "bg-accent-soft text-accent-strong" : "bg-surface-2 text-faint"
                 }`}
               >
                 {b.earned ? <Trophy size={11} aria-hidden="true" /> : <Lock size={11} aria-hidden="true" />}
@@ -522,7 +562,7 @@ export default function HabitsPage() {
       {pendingLogs.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
           <p className="text-sm font-medium text-yellow-800 mb-3">
-            {pendingLogs.length} habit {pendingLogs.length === 1 ? "entry" : "entries"} added by AI — approve to count them toward streaks
+            {pendingLogs.length} habit {pendingLogs.length === 1 ? "entry" : "entries"} added by AI — approve to count {pendingLogs.length === 1 ? "it" : "them"} toward streaks
           </p>
           <ul className="space-y-1.5">
             {pendingLogs.map((log: any) => (
@@ -568,7 +608,7 @@ export default function HabitsPage() {
               placeholder="e.g. Morning run"
               autoFocus
               required
-              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
           <div className="flex-[1_1_8rem]">
@@ -577,7 +617,7 @@ export default function HabitsPage() {
               id="habit-frequency"
               value={formFrequency}
               onChange={(e) => setFormFrequency(e.target.value)}
-              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="DAILY">Daily</option>
               <option value="WEEKLY">Weekly</option>
@@ -590,13 +630,13 @@ export default function HabitsPage() {
               type="text"
               value={formDescription}
               onChange={(e) => setFormDescription(e.target.value)}
-              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
           <div className="flex gap-2">
             <button
               type="submit"
-              disabled={saving || !formName.trim()}
+              disabled={saving}
               className="h-10 px-4 text-sm font-semibold bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
               {saving ? "Adding…" : "Add habit"}
@@ -621,14 +661,14 @@ export default function HabitsPage() {
       ) : (
         <section aria-labelledby="habits-grid-heading" className="bg-surface border border-line rounded-2xl">
           <h2 id="habits-grid-heading" className="sr-only">Your habits</h2>
-          <div className="overflow-x-auto">
-            <div role="table" aria-label="Habits, last 14 days" className="min-w-[46rem]">
+          <div ref={gridScrollRef} className="overflow-x-auto">
+            <div role="table" aria-label="Habits, last 14 days" className="min-w-[39rem]">
               <div
                 role="row"
-                className="grid items-end gap-x-1 px-3 pt-3 pb-2 border-b border-line"
+                className="grid items-end gap-x-0.5 px-3 pt-3 pb-2 border-b border-line"
                 style={{ gridTemplateColumns: gridCols }}
               >
-                <span role="columnheader" className="sr-only">Today</span>
+                <span role="columnheader"><span className="sr-only">Today</span></span>
                 <span role="columnheader" className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">
                   {active.length} active
                 </span>
@@ -649,7 +689,7 @@ export default function HabitsPage() {
                   );
                 })}
                 <span role="columnheader" className="font-mono text-[11px] text-muted text-right">30d</span>
-                <span role="columnheader" className="sr-only">Options</span>
+                <span role="columnheader"><span className="sr-only">Options</span></span>
               </div>
               <ul role="rowgroup">{active.map(renderRow)}</ul>
               {active.length === 0 && (
@@ -671,7 +711,7 @@ export default function HabitsPage() {
               </button>
               {showPaused && (
                 <div className="overflow-x-auto opacity-70">
-                  <div role="table" aria-label="Paused habits" className="min-w-[46rem]">
+                  <div role="table" aria-label="Paused habits" className="min-w-[39rem]">
                     <ul role="rowgroup">{paused.map(renderRow)}</ul>
                   </div>
                 </div>

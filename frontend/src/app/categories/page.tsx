@@ -142,7 +142,7 @@ export default function CategoriesPage() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, handleCreate)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="Category name"
                 autoFocus
               />
@@ -205,7 +205,7 @@ export default function CategoriesPage() {
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, handleUpdate)}
-                        className="w-full max-w-xs border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        className="w-full max-w-xs border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                         autoFocus
                       />
                     </td>

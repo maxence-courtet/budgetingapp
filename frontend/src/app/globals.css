@@ -16,7 +16,7 @@
   --fg: #0b0b0c;
   --fg-2: #3f3f46;
   --muted: #5e5e66;
-  --faint: #8a8a92;
+  --faint: #6b6b73;
   --accent: #6d4ae8;
   --accent-ink: #ffffff;
   --neg: #b4410e;
@@ -24,6 +24,7 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --accent-strong: var(--accent);
   --bg: #0a0a0b;
   --side: #0a0a0b;
   --surface: #111113;
@@ -33,7 +34,7 @@
   --fg: #ededef;
   --fg-2: #c9c9cf;
   --muted: #9a9aa3;
-  --faint: #6f6f78;
+  --faint: #8b8b94;
   --accent: #a78bfa;
   --accent-ink: #0a0a0b;
   --neg: #ff9a62;
@@ -54,6 +55,8 @@
 :root {
   --accent-hover: color-mix(in oklab, var(--accent) 86%, var(--fg));
   --accent-soft: color-mix(in oklab, var(--accent) 14%, var(--surface));
+  /* accent as text on the soft tint (badges): a darker step in light mode keeps 4.5:1 for every preset */
+  --accent-strong: color-mix(in oklab, var(--accent) 72%, #000);
   --pos: var(--accent);
 }
 
@@ -75,8 +78,19 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
+  --color-accent-strong: var(--accent-strong);
   --color-pos: var(--pos);
   --color-neg: var(--neg);
+}
+
+/* Light mode: darker steps where Tailwind's default fails 4.5:1 (white text on green-600, yellow/orange/amber text on white). */
+:root:not([data-theme="dark"]) {
+  --color-green-600: #15803d;
+  --color-green-700: #166534;
+  --color-red-600: #c81e1e;
+  --color-yellow-600: #a16207;
+  --color-orange-500: #c2410c;
+  --color-amber-600: #b45309;
 }
 
 /*
@@ -179,4 +193,22 @@ textarea {
 
 ::selection {
   background: color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+/* One visible focus style for every control (3:1 against the surface). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0;
+}
+
+/* Set for one frame while the theme changes so colours switch at once instead of fading through low contrast. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
 }

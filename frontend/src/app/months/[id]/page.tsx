@@ -89,7 +89,7 @@ function TransactionTable({
                       type="date"
                       value={editTxForm.date}
                       onChange={(e) => setEditTxForm({ ...editTxForm, date: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                       required
                     />
                   </td>
@@ -99,14 +99,14 @@ function TransactionTable({
                       value={editTxForm.description}
                       onChange={(e) => setEditTxForm({ ...editTxForm, description: e.target.value })}
                       placeholder="Optional"
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   </td>
                   <td className="px-4 py-2">
                     <select
                       value={editTxForm.type}
                       onChange={(e) => setEditTxForm({ ...editTxForm, type: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     >
                       <option value="INCOME">INCOME</option>
                       <option value="SPENDING">SPENDING</option>
@@ -120,7 +120,7 @@ function TransactionTable({
                       min="0"
                       value={editTxForm.amount}
                       onChange={(e) => setEditTxForm({ ...editTxForm, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-accent"
                       required
                     />
                   </td>
@@ -128,7 +128,7 @@ function TransactionTable({
                     <select
                       value={editTxForm.categoryId}
                       onChange={(e) => setEditTxForm({ ...editTxForm, categoryId: e.target.value })}
-                      className={`w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40${editTxForm.type === "TRANSFER" ? " mb-1" : ""}`}
+                      className={`w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent${editTxForm.type === "TRANSFER" ? " mb-1" : ""}`}
                       required
                     >
                       <option value="">From category</option>
@@ -140,7 +140,7 @@ function TransactionTable({
                       <select
                         value={editTxForm.toCategoryId}
                         onChange={(e) => setEditTxForm({ ...editTxForm, toCategoryId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                       >
                         <option value="">To category</option>
                         {categories.map((c) => (
@@ -154,7 +154,7 @@ function TransactionTable({
                       <select
                         value={editTxForm.fromAccountId}
                         onChange={(e) => setEditTxForm({ ...editTxForm, fromAccountId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 mb-1"
+                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent mb-1"
                       >
                         <option value="">From...</option>
                         {accounts.map((a) => (
@@ -166,7 +166,7 @@ function TransactionTable({
                       <select
                         value={editTxForm.toAccountId}
                         onChange={(e) => setEditTxForm({ ...editTxForm, toAccountId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                       >
                         <option value="">To...</option>
                         {accounts.map((a) => (
@@ -182,7 +182,7 @@ function TransactionTable({
                     <select
                       value={editTxForm.status}
                       onChange={(e) => setEditTxForm({ ...editTxForm, status: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     >
                       {STATUS_ORDER.map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -193,7 +193,7 @@ function TransactionTable({
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={handleUpdateTx}
-                        className="text-pos hover:text-green-800 text-sm font-medium transition-colors"
+                        className="text-pos hover:text-accent-hover text-sm font-medium transition-colors"
                       >
                         Save
                       </button>
@@ -572,7 +572,7 @@ export default function MonthDetailPage({
               <select
                 value={applyBudgetId}
                 onChange={(e) => setApplyBudgetId(e.target.value)}
-                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">Choose...</option>
                 {budgets.map((b) => (
@@ -616,7 +616,7 @@ export default function MonthDetailPage({
                   onChange={(e) =>
                     setTxForm({ ...txForm, type: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   <option value="INCOME">INCOME</option>
                   <option value="SPENDING">SPENDING</option>
@@ -634,7 +634,7 @@ export default function MonthDetailPage({
                   onChange={(e) =>
                     setTxForm({ ...txForm, date: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   required
                 />
               </div>
@@ -652,7 +652,7 @@ export default function MonthDetailPage({
                     setTxForm({ ...txForm, amount: e.target.value })
                   }
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   required
                 />
               </div>
@@ -668,7 +668,7 @@ export default function MonthDetailPage({
                     setTxForm({ ...txForm, description: e.target.value })
                   }
                   placeholder="Optional"
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
 
@@ -681,7 +681,7 @@ export default function MonthDetailPage({
                   onChange={(e) =>
                     setTxForm({ ...txForm, categoryId: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   required
                 >
                   <option value="">Select category</option>
@@ -703,7 +703,7 @@ export default function MonthDetailPage({
                     onChange={(e) =>
                       setTxForm({ ...txForm, toCategoryId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select category</option>
                     {categories.map((c) => (
@@ -725,7 +725,7 @@ export default function MonthDetailPage({
                     onChange={(e) =>
                       setTxForm({ ...txForm, fromAccountId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select account</option>
                     {accounts.map((a) => (
@@ -747,7 +747,7 @@ export default function MonthDetailPage({
                     onChange={(e) =>
                       setTxForm({ ...txForm, toAccountId: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select account</option>
                     {accounts.map((a) => (
@@ -768,7 +768,7 @@ export default function MonthDetailPage({
                   onChange={(e) =>
                     setTxForm({ ...txForm, status: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   {STATUS_ORDER.map((s) => (
                     <option key={s} value={s}>

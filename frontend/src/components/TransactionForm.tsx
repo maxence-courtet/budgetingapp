@@ -1,5 +1,6 @@
 "use client";
 
+import { localISO } from "@/lib/date";
 import { useState, useEffect } from "react";
 
 interface TransactionFormProps {
@@ -29,7 +30,7 @@ export default function TransactionForm({
 }: TransactionFormProps) {
   const [type, setType] = useState(initial?.type ?? "SPENDING");
   const [amount, setAmount] = useState<string>(initial?.amount?.toString() ?? "");
-  const [date, setDate] = useState(initial?.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(initial?.date?.slice(0, 10) ?? localISO());
   const [description, setDescription] = useState(initial?.description ?? "");
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
   const [toCategoryId, setToCategoryId] = useState(initial?.toCategoryId ?? "");
@@ -43,12 +44,12 @@ export default function TransactionForm({
       setFromAccountId(accounts[0].id);
     }
     if (!toAccountId && accounts.length > 0 && type !== "SPENDING") {
-      setToAccountId(accounts[0].id);
+      // A transfer defaults to a different account than its source.
+      const other = type === "TRANSFER" ? accounts.find((a) => a.id !== (fromAccountId || accounts[0].id)) : null;
+      setToAccountId((other ?? accounts[0]).id);
     }
-    if (!categoryId && categories.length > 0) {
-      setCategoryId(categories[0].id);
-    }
-  }, [accounts, categories, type, fromAccountId, toAccountId, categoryId]);
+    // No default category: the user picks one, so income doesn't silently land in "Dining Out".
+  }, [accounts, type, fromAccountId, toAccountId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +62,10 @@ export default function TransactionForm({
     }
     if (!categoryId) {
       setError("Please select a category.");
+      return;
+    }
+    if (type === "TRANSFER" && fromAccountId && fromAccountId === toAccountId) {
+      setError("A transfer needs two different accounts.");
       return;
     }
 
@@ -126,7 +131,7 @@ export default function TransactionForm({
             min="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="0.00"
             required
           />
@@ -138,7 +143,7 @@ export default function TransactionForm({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
       </div>
@@ -150,7 +155,7 @@ export default function TransactionForm({
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+          className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           placeholder="Transaction description"
         />
       </div>
@@ -162,7 +167,7 @@ export default function TransactionForm({
             id="tx-category"
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             required
           >
             <option value="">Select category</option>
@@ -178,7 +183,7 @@ export default function TransactionForm({
               id="tx-to-category"
               value={toCategoryId}
               onChange={(e) => setToCategoryId(e.target.value)}
-              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Same as category</option>
               {categories.map((c: any) => (
@@ -197,7 +202,7 @@ export default function TransactionForm({
               id="tx-from-account"
               value={fromAccountId}
               onChange={(e) => setFromAccountId(e.target.value)}
-              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Select account</option>
               {accounts.map((a: any) => (
@@ -213,7 +218,7 @@ export default function TransactionForm({
               id="tx-to-account"
               value={toAccountId}
               onChange={(e) => setToAccountId(e.target.value)}
-              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Select account</option>
               {accounts.map((a: any) => (
@@ -230,7 +235,7 @@ export default function TransactionForm({
           id="tx-status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+          className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>

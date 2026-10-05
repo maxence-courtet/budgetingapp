@@ -330,7 +330,7 @@ function NotesView() {
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                     placeholder="Note title"
-                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
                 <div>
@@ -343,7 +343,7 @@ function NotesView() {
                     value={formTags}
                     onChange={(e) => setFormTags(e.target.value)}
                     placeholder="e.g. health, ideas, work"
-                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
                 <div>
@@ -356,7 +356,7 @@ function NotesView() {
                     onChange={(e) => setFormContent(e.target.value)}
                     rows={10}
                     placeholder="Write your note here..."
-                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
               </div>
@@ -389,7 +389,7 @@ function NotesView() {
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   </div>
                   <div>
@@ -401,7 +401,7 @@ function NotesView() {
                       type="text"
                       value={editTags}
                       onChange={(e) => setEditTags(e.target.value)}
-                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   </div>
                   <div>
@@ -413,7 +413,7 @@ function NotesView() {
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
                       rows={12}
-                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                      className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   </div>
                   <div className="flex gap-3">
@@ -442,7 +442,7 @@ function NotesView() {
                       <p className="text-xs text-faint mt-1">
                         {selectedNote.createdAt ? formatDate(selectedNote.createdAt) : ""}
                         {selectedNote.type && selectedNote.type !== "NOTE" && (
-                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent-soft text-accent">
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent-soft text-accent-strong">
                             {selectedNote.type}
                           </span>
                         )}
@@ -480,7 +480,7 @@ function NotesView() {
                       {(selectedNote.tags ?? []).map((tag: string) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-soft text-accent"
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-soft text-accent-strong"
                         >
                           {tag}
                         </span>

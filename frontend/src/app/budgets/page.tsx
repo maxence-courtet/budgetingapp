@@ -95,7 +95,7 @@ export default function BudgetsPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Budget template name"
-              className="flex-1 px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="flex-1 px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               autoFocus
             />
             <button

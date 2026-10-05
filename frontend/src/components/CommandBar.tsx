@@ -27,7 +27,7 @@ const ACTIONS: Command[] = [
   { id: "a-settings", label: "Change theme or accent color", hint: "Settings", href: "/settings" },
 ];
 
-const PAGES: Command[] = navItems.map((i) => ({
+const PAGES: Command[] = [...navItems, { href: "/settings", label: "Settings" }, { href: "/notes?view=journal", label: "Journal" }].map((i) => ({
   id: `p-${i.href}`,
   label: `Go to ${i.label}`,
   hint: "Page",
@@ -56,7 +56,7 @@ export function CommandBar() {
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     const all = [...ACTIONS, ...PAGES];
-    const matches = q ? all.filter((c) => c.label.toLowerCase().includes(q)) : all.slice(0, 8);
+    const matches = q ? all.filter((c) => `${c.label} ${c.hint}`.toLowerCase().includes(q)) : all.slice(0, 8);
     if (q) {
       matches.push({
         id: "search",
@@ -113,7 +113,7 @@ export function CommandBar() {
           aria-controls="command-results"
           aria-activedescendant={showList ? `cmd-${results[active]?.id}` : undefined}
           autoComplete="off"
-          placeholder="Jump to a page, start an action or search transactions…"
+          placeholder="Search, jump to a page or do something…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

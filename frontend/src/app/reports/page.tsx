@@ -168,7 +168,7 @@ export default function ReportsPage() {
             <select
               value={selectedMonthId}
               onChange={(e) => setSelectedMonthId(e.target.value)}
-              className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Choose a month</option>
               {months.map((m: any) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import { localISO } from "@/lib/date";
 import { useState, useEffect, useCallback } from "react";
 import {
   getFitnessEntries,
@@ -30,7 +31,7 @@ const TAB_LABELS: Record<MetricTab, string> = {
 const TYPE_SUGGESTIONS = ["WEIGHT", "BODY_FAT", "STEPS", "WORKOUT_DURATION"];
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localISO();
 }
 
 function formatDate(iso: string): string {
@@ -267,7 +268,7 @@ export default function FitnessPage() {
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
                 placeholder="e.g. WEIGHT"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <datalist id="fitness-type-suggestions">
                 {TYPE_SUGGESTIONS.map((s) => <option key={s} value={s} />)}
@@ -282,7 +283,7 @@ export default function FitnessPage() {
                 type="date"
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div>
@@ -296,7 +297,7 @@ export default function FitnessPage() {
                 onChange={(e) => setFormValue(e.target.value)}
                 placeholder="0"
                 step="any"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div>
@@ -309,7 +310,7 @@ export default function FitnessPage() {
                 value={formUnit}
                 onChange={(e) => setFormUnit(e.target.value)}
                 placeholder="e.g. kg, lbs, %, steps, min"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div className="sm:col-span-2">
@@ -322,7 +323,7 @@ export default function FitnessPage() {
                 onChange={(e) => setFormNote(e.target.value)}
                 rows={2}
                 placeholder="Optional note"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
           </div>

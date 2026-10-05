@@ -154,7 +154,7 @@ export default function AccountsPage() {
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="Account name"
               />
             </div>
@@ -166,7 +166,7 @@ export default function AccountsPage() {
                 id="account-type"
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {ACCOUNT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -184,7 +184,7 @@ export default function AccountsPage() {
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
                 rows={2}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="Optional notes"
               />
             </div>
@@ -250,14 +250,14 @@ export default function AccountsPage() {
                         type="text"
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
-                        className="w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        className="w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                       />
                     </td>
                     <td className="px-4 py-3">
                       <select
                         value={formType}
                         onChange={(e) => setFormType(e.target.value)}
-                        className="w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                        className="w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                       >
                         {ACCOUNT_TYPES.map((t) => (
                           <option key={t} value={t}>

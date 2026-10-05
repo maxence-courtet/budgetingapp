@@ -1,6 +1,8 @@
 // Streaks, XP, levels and badges for habits, computed from the raw logs.
 // Dates are ISO day strings (YYYY-MM-DD), matching how logs are written.
 
+import { localISO } from "./date";
+
 export interface HabitLite {
   id: string;
   name: string;
@@ -23,6 +25,8 @@ export interface HabitStats {
   rate30: number; // 0–1
   total: number;
   doneToday: boolean;
+  /** Daily: done today. Weekly: done at least once this week (Monday–today). */
+  doneForPeriod: boolean;
 }
 
 export const XP_PER_CHECKIN = 10;
@@ -36,7 +40,15 @@ export function addDays(iso: string, n: number): string {
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localISO();
+}
+
+/** When tracking really started: the creation day, or an earlier back-filled log. */
+export function effectiveStart(habit: HabitLite, done: Set<string>): string {
+  const created = habit.createdAt?.slice(0, 10);
+  const first = [...done].sort()[0];
+  if (!created) return first ?? todayISO();
+  return first && first < created ? first : created;
 }
 
 function weekKey(iso: string): string {
@@ -76,32 +88,44 @@ const stepWeek = (k: string, n: number) => addDays(k, 7 * n);
 
 export function habitStats(habit: HabitLite, done: Set<string>, today = todayISO()): HabitStats {
   const weekly = habit.frequency === "WEEKLY";
-  const created = habit.createdAt?.slice(0, 10) ?? addDays(today, -29);
+  const start = effectiveStart(habit, done);
 
   if (weekly) {
     const weeks = new Set([...done].map(weekKey));
     const { current, best } = runs(weeks, weekKey(today), stepWeek);
-    let inLast4 = 0;
-    for (let i = 0; i < 4; i++) if (weeks.has(weekKey(addDays(today, -7 * i)))) inLast4++;
-    return { current, best, unit: "week", rate30: inLast4 / 4, total: done.size, doneToday: done.has(today) };
+    const weeksTracked = Math.min(4, Math.max(1, Math.round((Date.parse(weekKey(today)) - Date.parse(weekKey(start))) / (7 * DAY_MS)) + 1));
+    let inWindow = 0;
+    for (let i = 0; i < weeksTracked; i++) if (weeks.has(weekKey(addDays(today, -7 * i)))) inWindow++;
+    const thisWeek = weeks.has(weekKey(today));
+    return { current, best, unit: "week", rate30: inWindow / weeksTracked, total: done.size, doneToday: done.has(today), doneForPeriod: thisWeek };
   }
 
   const { current, best } = runs(done, today, addDays);
-  const daysTracked = Math.min(30, Math.max(1, Math.round((Date.parse(today) - Date.parse(created)) / DAY_MS) + 1));
+  const daysTracked = Math.min(30, Math.max(1, Math.round((Date.parse(today) - Date.parse(start)) / DAY_MS) + 1));
   let inWindow = 0;
   for (let i = 0; i < daysTracked; i++) if (done.has(addDays(today, -i))) inWindow++;
-  return { current, best, unit: "day", rate30: inWindow / daysTracked, total: done.size, doneToday: done.has(today) };
+  return { current, best, unit: "day", rate30: inWindow / daysTracked, total: done.size, doneToday: done.has(today), doneForPeriod: done.has(today) };
 }
 
-/** Days on which every daily habit that existed then was done. */
+/**
+ * Days on which every daily habit that was being tracked then was done.
+ * A habit counts from its effective start; a paused habit only up to its last completion,
+ * so pausing (or resuming) a habit never rewrites past perfect days, XP or badges.
+ */
 export function perfectDays(habits: HabitLite[], done: Map<string, Set<string>>): Set<string> {
-  const daily = habits.filter((h) => h.active && h.frequency !== "WEEKLY");
+  const daily = habits
+    .filter((h) => h.frequency !== "WEEKLY")
+    .map((h) => {
+      const days = done.get(h.id) ?? new Set<string>();
+      const sorted = [...days].sort();
+      return { h, days, start: effectiveStart(h, days), end: h.active ? "9999-12-31" : sorted[sorted.length - 1] ?? "" };
+    });
   const candidates = new Set<string>();
-  daily.forEach((h) => done.get(h.id)?.forEach((d) => candidates.add(d)));
+  daily.forEach((d) => d.days.forEach((x) => candidates.add(x)));
   const perfect = new Set<string>();
   for (const day of candidates) {
-    const due = daily.filter((h) => !h.createdAt || h.createdAt.slice(0, 10) <= day);
-    if (due.length > 0 && due.every((h) => done.get(h.id)?.has(day))) perfect.add(day);
+    const due = daily.filter((d) => d.start <= day && day <= d.end);
+    if (due.length > 0 && due.every((d) => d.days.has(day))) perfect.add(day);
   }
   return perfect;
 }

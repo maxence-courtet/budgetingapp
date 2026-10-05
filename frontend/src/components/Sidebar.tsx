@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Settings, ChevronRight, PiggyBank, Menu, X } from "lucide-react";
@@ -15,13 +15,44 @@ export function Sidebar() {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
+  const wasOpen = useRef(false);
+
   // The mobile drawer closes on navigation and on Escape.
   useEffect(() => setMobileOpen(false), [pathname]);
+  // While open: focus moves into the drawer and stays there, and the page behind doesn't scroll.
+  // On close, focus returns to the menu button.
   useEffect(() => {
-    if (!mobileOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
+    if (!mobileOpen) {
+      if (wasOpen.current) menuButtonRef.current?.focus();
+      wasOpen.current = false;
+      return;
+    }
+    wasOpen.current = true;
+    closeButtonRef.current?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return setMobileOpen(false);
+      if (e.key !== "Tab" || !asideRef.current) return;
+      const items = asideRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])");
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [mobileOpen]);
 
   const isActive = (href: string) =>
@@ -62,6 +93,7 @@ export function Sidebar() {
     <div className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-4 bg-side border-b border-line">
       <button
         type="button"
+        ref={menuButtonRef}
         onClick={() => setMobileOpen(true)}
         aria-label="Open menu"
         aria-expanded={mobileOpen}
@@ -79,6 +111,7 @@ export function Sidebar() {
       <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} aria-hidden="true" />
     )}
     <aside
+      ref={asideRef}
       id="sidebar"
       className={`fixed inset-y-0 left-0 w-64 bg-side border-r border-line flex flex-col z-50 transition-transform duration-200 lg:translate-x-0 lg:visible ${
         mobileOpen ? "translate-x-0" : "-translate-x-full invisible"
@@ -86,6 +119,7 @@ export function Sidebar() {
     >
       <button
         type="button"
+        ref={closeButtonRef}
         onClick={() => setMobileOpen(false)}
         aria-label="Close menu"
         className="lg:hidden absolute top-4 right-3 w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2"
@@ -219,7 +253,11 @@ function GroupToggle({
       >
         {label}
       </span>
-      {showDot && <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />}
+      {showDot && (
+        <span className="w-1.5 h-1.5 rounded-full bg-accent">
+          <span className="sr-only">(contains the current page)</span>
+        </span>
+      )}
       <span className="font-mono text-[11px] text-faint">{count}</span>
       <ChevronRight size={14} aria-hidden="true" className={`transition-transform ${expanded ? "rotate-90" : ""}`} />
     </button>

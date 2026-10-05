@@ -117,7 +117,7 @@ export default function MonthsPage() {
                 id="form-month"
                 value={formMonth}
                 onChange={(e) => setFormMonth(parseInt(e.target.value))}
-                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {MONTH_NAMES.map((name, i) => (
                   <option key={i} value={i + 1}>
@@ -135,7 +135,7 @@ export default function MonthsPage() {
                 type="number"
                 value={formYear}
                 onChange={(e) => setFormYear(parseInt(e.target.value))}
-                className="w-24 px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-24 px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div>
@@ -146,7 +146,7 @@ export default function MonthsPage() {
                 id="form-budget"
                 value={formBudgetId}
                 onChange={(e) => setFormBudgetId(e.target.value)}
-                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">None</option>
                 {budgets.map((b) => (

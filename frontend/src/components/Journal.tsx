@@ -185,7 +185,7 @@ export function Journal() {
                       day === selected
                         ? "bg-accent text-accent-ink"
                         : byDay.has(day)
-                        ? "bg-accent-soft text-accent hover:ring-1 hover:ring-accent"
+                        ? "bg-accent-soft text-accent-strong hover:ring-1 hover:ring-accent"
                         : "text-fg-2 hover:bg-surface-2"
                     } ${day === today && day !== selected ? "ring-1 ring-accent" : ""}`}
                   >
