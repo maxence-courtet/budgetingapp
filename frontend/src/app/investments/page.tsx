@@ -15,13 +15,15 @@ interface Holding {
   name: string;
   quantity: number;
   avgCostBasis: number;
-  currentPrice: number;
+  currentPrice: number | null;
+  priceAvailable: boolean;
+  costBasisTotal: number;
   currentValue: number;
-  gainLoss: number;
-  gainLossPct: number;
+  gainLoss: number | null;
+  gainLossPct: number | null;
   currency: string;
-  dayChange: number;
-  dayChangePercent: number;
+  dayChange: number | null;
+  dayChangePercent: number | null;
 }
 
 interface PortfolioSummary {
@@ -29,7 +31,9 @@ interface PortfolioSummary {
   totalGainLoss: number;
   totalGainLossPct: number;
   holdingsCount: number;
-  lastUpdated: string;
+  unpricedCount: number;
+  currencies: string[];
+  lastUpdated: string | null;
 }
 
 const ASSET_TYPE_STYLES: Record<string, string> = {
@@ -47,13 +51,18 @@ function assetTypeBadge(type: string) {
   );
 }
 
-function gainLossColor(value: number) {
-  return value >= 0 ? "text-pos" : "text-neg";
+function gainLossColor(value: number | null) {
+  return value == null ? "text-muted" : value >= 0 ? "text-pos" : "text-neg";
+}
+
+/** Always signed, so a loss never reads as a gain when the colour isn't seen. */
+function signedMoney(n: number) {
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${fmt(n)}`;
 }
 
 function formatPct(pct: number) {
-  const sign = pct >= 0 ? "+" : "";
-  return `${sign}${pct.toFixed(2)}%`;
+  const sign = pct > 0 ? "+" : pct < 0 ? "−" : "";
+  return `${sign}${Math.abs(pct).toFixed(2)}%`;
 }
 
 function formatLastUpdated(iso: string) {
@@ -86,7 +95,7 @@ export default function InvestmentsPage() {
     }
     setError("");
     try {
-      const data = await getPortfolio();
+      const data = await getPortfolio(isRefresh);
       setHoldings(data.holdings ?? []);
       setSummary(data.summary ?? null);
     } catch (e: any) {
@@ -123,14 +132,15 @@ export default function InvestmentsPage() {
             <p className="font-mono text-5xl font-medium tracking-[-0.04em] leading-none text-fg">
               {fmt(summary.totalValue)}
             </p>
-            <p className="text-xs text-muted">Last updated: {formatLastUpdated(summary.lastUpdated)}</p>
+            <p className="text-xs text-muted">
+              {summary.lastUpdated ? `Prices updated ${formatLastUpdated(summary.lastUpdated)}` : "Live prices unavailable"}
+            </p>
           </div>
           <div className="flex items-end gap-6">
             <div className="space-y-1">
               <p className="text-xs text-muted">Total gain/loss</p>
-              <p className={`font-mono text-xl ${summary.totalGainLoss >= 0 ? "text-pos" : "text-neg"}`}>
-                {summary.totalGainLoss >= 0 ? "+" : "−"}
-                {fmt(summary.totalGainLoss)}{" "}
+              <p className={`font-mono text-xl ${gainLossColor(summary.totalGainLoss)}`}>
+                {signedMoney(summary.totalGainLoss)}{" "}
                 <span className="text-sm">({formatPct(summary.totalGainLossPct)})</span>
               </p>
             </div>
@@ -145,6 +155,18 @@ export default function InvestmentsPage() {
             </button>
           </div>
         </section>
+      )}
+
+      {summary && summary.unpricedCount > 0 && (
+        <p role="status" className="text-sm rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-800 px-4 py-3">
+          Live prices are unavailable for {summary.unpricedCount} of {summary.holdingsCount} holdings right now, so{" "}
+          {summary.unpricedCount === 1 ? "it is" : "they are"} valued at what you paid. Try Refresh in a few minutes.
+        </p>
+      )}
+      {summary && summary.currencies?.length > 1 && (
+        <p className="text-xs text-muted">
+          Holdings are priced in {summary.currencies.join(" and ")}; totals add them without currency conversion.
+        </p>
       )}
 
       {/* Holdings table or empty state */}
@@ -214,11 +236,21 @@ export default function InvestmentsPage() {
 
                     {/* Current Price + Day Change */}
                     <td className="px-4 py-3 text-right tabular-nums">
-                      <p className="text-fg font-medium">{fmt(h.currentPrice)}</p>
-                      <p className={`text-xs mt-0.5 ${gainLossColor(h.dayChange)}`}>
-                        {h.dayChange >= 0 ? "+" : ""}
-                        {fmt(h.dayChange)} ({formatPct(h.dayChangePercent)})
-                      </p>
+                      {h.priceAvailable && h.currentPrice != null ? (
+                        <>
+                          <p className="text-fg font-medium">
+                            {fmt(h.currentPrice)}
+                            {h.currency && h.currency !== "USD" && <span className="ml-1 text-xs text-muted">{h.currency}</span>}
+                          </p>
+                          {h.dayChange != null && h.dayChangePercent != null && (
+                            <p className={`text-xs mt-0.5 ${gainLossColor(h.dayChange)}`}>
+                              {signedMoney(h.dayChange)} today ({formatPct(h.dayChangePercent)})
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted">Price unavailable</p>
+                      )}
                     </td>
 
                     {/* Current Value */}
@@ -228,11 +260,14 @@ export default function InvestmentsPage() {
 
                     {/* Gain / Loss */}
                     <td className={`px-4 py-3 text-right font-medium tabular-nums ${gainLossColor(h.gainLoss)}`}>
-                      <p>
-                        {h.gainLoss >= 0 ? "+" : ""}
-                        {fmt(h.gainLoss)}
-                      </p>
-                      <p className="text-xs mt-0.5">{formatPct(h.gainLossPct)}</p>
+                      {h.gainLoss == null ? (
+                        <p className="text-xs">—</p>
+                      ) : (
+                        <>
+                          <p>{signedMoney(h.gainLoss)}</p>
+                          {h.gainLossPct != null && <p className="text-xs mt-0.5">{formatPct(h.gainLossPct)}</p>}
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

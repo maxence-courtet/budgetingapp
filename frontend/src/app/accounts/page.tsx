@@ -68,6 +68,7 @@ export default function AccountsPage() {
         type: formType,
         notes: formNotes.trim() || undefined,
       });
+      setError("");
       resetForm();
       await loadAccounts();
     } catch (e: any) {
@@ -80,7 +81,7 @@ export default function AccountsPage() {
   const startEdit = (account: any) => {
     setEditingId(account.id);
     setFormName(account.name);
-    setFormType(account.type);
+    setFormType(String(account.type).toLowerCase().replace(/_/g, " "));
     setFormNotes(account.notes ?? "");
     setShowCreate(false);
   };
@@ -92,8 +93,9 @@ export default function AccountsPage() {
       await updateAccount(editingId, {
         name: formName.trim(),
         type: formType,
-        notes: formNotes.trim() || undefined,
+        notes: formNotes.trim() || null, // null clears the notes
       });
+      setError("");
       resetForm();
       await loadAccounts();
     } catch (e: any) {
@@ -107,8 +109,10 @@ export default function AccountsPage() {
     try {
       await deleteAccount(id);
       setDeleteConfirm(null);
+      setError("");
       await loadAccounts();
     } catch (e: any) {
+      setDeleteConfirm(null);
       setError(e.message);
     }
   };
@@ -265,6 +269,15 @@ export default function AccountsPage() {
                           </option>
                         ))}
                       </select>
+                      <label className="sr-only" htmlFor={`edit-notes-${a.id}`}>Notes</label>
+                      <input
+                        id={`edit-notes-${a.id}`}
+                        type="text"
+                        value={formNotes}
+                        onChange={(e) => setFormNotes(e.target.value)}
+                        placeholder="Notes"
+                        className="mt-1 w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                      />
                     </td>
                     <td className="px-4 py-3 text-right text-muted">
                       {fmt(a.balance ?? 0)}
@@ -301,7 +314,7 @@ export default function AccountsPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-muted capitalize">
-                      {a.type?.replace("_", " ")}
+                      {String(a.type ?? "").replace("_", " ").toLowerCase()}
                     </td>
                     <td
                       className={`px-4 py-3 text-right font-medium ${

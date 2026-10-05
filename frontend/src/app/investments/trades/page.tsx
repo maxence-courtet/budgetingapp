@@ -58,8 +58,9 @@ const blankForm = () => ({
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function totalCost(quantity: number, price: number, fees: number) {
-  return quantity * price + fees;
+/** What a buy cost (fees added) or a sell brought in (fees taken off). */
+function totalCost(quantity: number, price: number, fees: number, tradeType = "BUY") {
+  return tradeType === "SELL" ? quantity * price - fees : quantity * price + fees;
 }
 
 function tradeBadge(type: string) {
@@ -124,7 +125,9 @@ export default function TradesPage() {
     loadData();
   }, [loadData]);
 
-  const investmentAccounts = accounts.filter((a) => a.type === "investment");
+  // Prefer investment accounts; with none yet, any account can hold trades.
+  const investmentOnly = accounts.filter((a) => String(a.type).toLowerCase() === "investment");
+  const investmentAccounts = investmentOnly.length ? investmentOnly : accounts;
 
   // ── Create ────────────────────────────────────────────────────────────────
 
@@ -195,7 +198,7 @@ export default function TradesPage() {
         quantity: parseFloat(editForm.quantity),
         pricePerUnit: parseFloat(editForm.pricePerUnit),
         fees: parseFloat(editForm.fees || "0"),
-        notes: editForm.notes.trim() || undefined,
+        notes: editForm.notes.trim() || null, // null clears the note
       });
       cancelEdit();
       await loadData();
@@ -320,11 +323,16 @@ export default function TradesPage() {
                 onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
                 className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
-                <option value="">— None —</option>
+                <option value="">Choose an account</option>
                 {investmentAccounts.map((a) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
+              {investmentOnly.length === 0 && (
+                <p className="mt-1 text-xs text-muted">
+                  Tip: add an account of type “Investment” on the Accounts page to keep trades separate.
+                </p>
+              )}
             </div>
 
             {/* Date */}
@@ -553,6 +561,7 @@ export default function TradesPage() {
                               parseFloat(editForm.quantity),
                               parseFloat(editForm.pricePerUnit),
                               parseFloat(editForm.fees || "0"),
+                              editForm.tradeType,
                             ))
                           : "—"}
                       </td>
@@ -619,7 +628,7 @@ export default function TradesPage() {
                         {fmt(trade.fees ?? 0)}
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-fg tabular-nums">
-                        {fmt(totalCost(trade.quantity, trade.pricePerUnit, trade.fees ?? 0))}
+                        {fmt(totalCost(trade.quantity, trade.pricePerUnit, trade.fees ?? 0, trade.tradeType))}
                       </td>
                       <td className="px-4 py-3 text-muted">
                         {trade.account?.name ?? "—"}

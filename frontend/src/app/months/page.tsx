@@ -51,7 +51,7 @@ export default function MonthsPage() {
       setMonths(m);
       setBudgets(b);
     } catch (e: any) {
-      console.error(e);
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -63,10 +63,15 @@ export default function MonthsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!Number.isInteger(formYear) || formYear < 1900 || formYear > 2200) {
+      setError("Enter a 4-digit year.");
+      return;
+    }
     try {
       const payload: any = { month: formMonth, year: formYear };
       if (formBudgetId) payload.budgetTemplateId = formBudgetId;
       await createMonth(payload);
+      setError("");
       setShowForm(false);
       setFormBudgetId("");
       load();

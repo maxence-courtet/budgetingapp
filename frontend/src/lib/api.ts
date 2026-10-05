@@ -45,7 +45,7 @@ export const getAccounts = () => fetchApi('/accounts');
 export const getAccount = (id: string) => fetchApi(`/accounts/${id}`);
 export const createAccount = (data: { name: string; type: string; notes?: string }) =>
   fetchApi('/accounts', { method: 'POST', body: JSON.stringify(data) });
-export const updateAccount = (id: string, data: { name?: string; type?: string; notes?: string }) =>
+export const updateAccount = (id: string, data: { name?: string; type?: string; notes?: string | null }) =>
   fetchApi(`/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteAccount = (id: string) =>
   fetchApi(`/accounts/${id}`, { method: 'DELETE' });
@@ -116,7 +116,7 @@ export const searchTransactions = (params: Record<string, string>) => {
 };
 
 // Investments
-export const getPortfolio = () => fetchApi('/investments/portfolio');
+export const getPortfolio = (refresh = false) => fetchApi(`/investments/portfolio${refresh ? '?refresh=1' : ''}`);
 export const getTrades = (params?: Record<string, string>) => {
   const qs = params ? '?' + new URLSearchParams(params).toString() : '';
   return fetchApi(`/investments/trades${qs}`);

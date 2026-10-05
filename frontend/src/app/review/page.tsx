@@ -36,10 +36,12 @@ const PATTERN_ICON = {
 const shortDate = (d: string) =>
   new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
-function Delta({ now, before, invert = false, asPoints = false }: { now: number; before: number; invert?: boolean; asPoints?: boolean }) {
+function Delta({ now, before, invert = false, asPoints = false, partial = false }: { now: number; before: number; invert?: boolean; asPoints?: boolean; partial?: boolean }) {
   if (!before && !now) return null;
-  const diff = asPoints ? (now - before) * 100 : before ? ((now - before) / before) * 100 : 100;
-  if (Math.abs(diff) < 1) return <span className="font-mono text-xs text-muted">same as last week</span>;
+  const vs = partial ? "vs the same days last week" : "vs last week";
+  if (!asPoints && !before) return <span className="font-mono text-xs text-muted">none {vs.replace("vs ", "")}</span>;
+  const diff = asPoints ? (now - before) * 100 : ((now - before) / before) * 100;
+  if (Math.abs(diff) < 1) return <span className="font-mono text-xs text-muted">same as {vs.replace("vs ", "")}</span>;
   const good = invert ? diff < 0 : diff > 0;
   const Icon = diff > 0 ? TrendingUp : TrendingDown;
   return (
@@ -47,7 +49,7 @@ function Delta({ now, before, invert = false, asPoints = false }: { now: number;
       <Icon size={12} aria-hidden="true" />
       {diff > 0 ? "+" : "−"}
       {Math.abs(Math.round(diff))}
-      {asPoints ? " pts" : "%"} vs last week
+      {asPoints ? " pts" : "%"} {vs}
     </span>
   );
 }
@@ -133,7 +135,10 @@ export default function ReviewPage() {
       ) : (
         <>
           <p className="font-mono text-xs text-muted uppercase tracking-[0.08em]">
-            {shortDate(summary.week.start)} – {shortDate(summary.week.end)} · {summary.week.days} day{summary.week.days > 1 ? "s" : ""}
+            {summary.week.start === summary.week.end
+              ? shortDate(summary.week.start)
+              : `${shortDate(summary.week.start)} – ${shortDate(summary.week.end)}`}{" "}
+            · {summary.week.days} day{summary.week.days > 1 ? "s" : ""}
             {!summary.week.complete && " so far"}
           </p>
 
@@ -204,8 +209,8 @@ export default function ReviewPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <Card title="Money">
               <div>
-                <p className="font-mono text-2xl text-fg">−{fmt(summary.money.spending)}</p>
-                <Delta now={summary.money.spending} before={summary.money.spendingPreviousWeek} invert />
+                <p className="font-mono text-2xl text-fg">{summary.money.spending ? `−${fmt(summary.money.spending)}` : "Nothing spent"}</p>
+                <Delta now={summary.money.spending} before={summary.money.spendingPreviousWeek} invert partial={!summary.week.complete} />
               </div>
               {summary.money.income > 0 && <p className="text-sm text-muted">Income <span className="font-mono text-pos">+{fmt(summary.money.income)}</span></p>}
               <ul className="space-y-1.5">
@@ -226,18 +231,23 @@ export default function ReviewPage() {
                   <div>
                     <p className="font-mono text-2xl text-fg">{Math.round(summary.habits.completionRate * 100)}%</p>
                     {summary.habits.completionRatePreviousWeek !== null && (
-                      <Delta now={summary.habits.completionRate} before={summary.habits.completionRatePreviousWeek} asPoints />
+                      <Delta now={summary.habits.completionRate} before={summary.habits.completionRatePreviousWeek} asPoints partial={!summary.week.complete} />
                     )}
                   </div>
                   <p className="text-sm text-muted">{summary.habits.perfectDays} perfect day{summary.habits.perfectDays === 1 ? "" : "s"}</p>
                   <ul className="space-y-1.5">
-                    {summary.habits.perHabit.slice(0, 6).map((h: any) => (
+                    {summary.habits.perHabit.slice(0, 8).map((h: any) => (
                       <li key={h.name} className="flex justify-between gap-2 text-sm">
                         <span className="text-fg-2 truncate">{h.name}</span>
                         <span className="font-mono text-fg shrink-0">{h.done}/{h.outOf}</span>
                       </li>
                     ))}
                   </ul>
+                  {summary.habits.perHabit.length > 8 && (
+                    <Link href="/habits" className="text-xs text-accent font-medium">
+                      All {summary.habits.perHabit.length} habits →
+                    </Link>
+                  )}
                 </>
               )}
             </Card>
@@ -251,7 +261,10 @@ export default function ReviewPage() {
                     <li key={f.type} className="text-sm">
                       <span className="block text-fg-2 capitalize">{f.type.toLowerCase().replace(/_/g, " ")}</span>
                       <span className="font-mono text-fg">
-                        {f.entries > 1 && f.first !== f.last ? `${f.first} → ${f.last}` : f.last} {f.unit}
+                        {f.entries > 1 && f.first !== f.last
+                          ? `${f.first.toLocaleString("en-US")} → ${f.last.toLocaleString("en-US")}`
+                          : f.last.toLocaleString("en-US")}{" "}
+                        {f.unit}
                       </span>
                       <span className="text-xs text-muted"> · {f.entries} entr{f.entries === 1 ? "y" : "ies"}</span>
                     </li>

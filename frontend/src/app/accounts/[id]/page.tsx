@@ -43,58 +43,19 @@ export default function AccountDetail({
     return <LoadingState message="Loading account..." />;
   }
 
-  if (!account && !error) {
+  if (!account) {
     return (
-      <div className="bg-surface-2 border border-line text-muted rounded-xl p-4">
-        Account not found.
+      <div className="space-y-4">
+        {error && <ErrorBanner message={error} />}
+        <div className="bg-surface-2 border border-line text-muted rounded-xl p-4">
+          Account not found. <Link href="/accounts" className="text-accent font-medium">Back to accounts</Link>
+        </div>
       </div>
     );
   }
 
-  // Build category balances from transactions
-  const categoryMap = new Map<
-    string,
-    { name: string; balance: number }
-  >();
-  for (const t of transactions) {
-    if (t.type === "INCOME") {
-      const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
-      const catId = t.categoryId ?? catName;
-      if (!categoryMap.has(catId)) {
-        categoryMap.set(catId, { name: catName, balance: 0 });
-      }
-      categoryMap.get(catId)!.balance += t.amount ?? 0;
-    } else if (t.type === "SPENDING") {
-      const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
-      const catId = t.categoryId ?? catName;
-      if (!categoryMap.has(catId)) {
-        categoryMap.set(catId, { name: catName, balance: 0 });
-      }
-      categoryMap.get(catId)!.balance -= t.amount ?? 0;
-    } else if (t.type === "TRANSFER") {
-      // Outgoing transfer: use categoryId (from category)
-      if (t.fromAccountId === id) {
-        const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
-        const catId = t.categoryId ?? catName;
-        if (!categoryMap.has(catId)) {
-          categoryMap.set(catId, { name: catName, balance: 0 });
-        }
-        categoryMap.get(catId)!.balance -= t.amount ?? 0;
-      }
-      // Incoming transfer: use toCategoryId (to category)
-      if (t.toAccountId === id) {
-        const catName = t.toCategory?.name ?? "Uncategorized";
-        const catId = t.toCategoryId ?? t.categoryId ?? catName;
-        if (!categoryMap.has(catId)) {
-          categoryMap.set(catId, { name: catName, balance: 0 });
-        }
-        categoryMap.get(catId)!.balance += t.amount ?? 0;
-      }
-    }
-  }
-  const categoryBalances = Array.from(categoryMap.values()).sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+  // Per-category balances come from the API: PAID transactions up to today, signed for this account.
+  const categoryBalances: { id: string; name: string; balance: number }[] = account.categoryBalances ?? [];
 
   return (
     <div className="space-y-8">
@@ -113,7 +74,7 @@ export default function AccountDetail({
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm font-medium text-muted uppercase tracking-wide capitalize">
-              {account.type?.replace("_", " ")}
+              {account.type?.replace("_", " ").toLowerCase()}
             </p>
             <h1 className="text-[28px] font-semibold tracking-tight text-fg mt-1">
               {account.name}
@@ -159,7 +120,7 @@ export default function AccountDetail({
               <tbody>
                 {categoryBalances.map((c) => (
                   <tr
-                    key={c.name}
+                    key={c.id ?? c.name}
                     className="border-b border-line last:border-0"
                   >
                     <td className="px-4 py-3 text-fg font-medium">
@@ -239,11 +200,8 @@ export default function AccountDetail({
                           : "text-muted"
                       }`}
                     >
-                      {t.type === "INCOME"
-                        ? "+"
-                        : t.type === "SPENDING"
-                        ? "-"
-                        : ""}
+                      {/* Signed from this account's point of view: money in +, money out − (transfers too). */}
+                      {t.toAccountId === id ? "+" : "−"}
                       {fmt(t.amount ?? 0)}
                     </td>
                     <td className="px-4 py-3 text-muted">

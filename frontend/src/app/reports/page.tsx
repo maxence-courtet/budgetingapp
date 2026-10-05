@@ -51,6 +51,8 @@ export default function ReportsPage() {
   }, [tab]);
 
   useEffect(() => {
+    // "Choose a month" clears the previous month's figures.
+    if (!selectedMonthId) setMonthlyData(null);
     if (selectedMonthId) {
       setMonthlyLoading(true);
       getMonthlySummary(selectedMonthId)

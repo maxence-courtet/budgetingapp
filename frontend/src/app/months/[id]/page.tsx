@@ -20,6 +20,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import { TRANSACTIONS_CHANGED } from "@/components/QuickAddTransaction";
 
 type Status = (typeof STATUS_ORDER)[number];
 
@@ -347,8 +348,8 @@ export default function MonthDetailPage({
       setBudgets(b);
       setCategories(cats);
       setAccounts(accs);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -356,6 +357,9 @@ export default function MonthDetailPage({
 
   useEffect(() => {
     load();
+    // Reload after a transaction is added from the quick-add dialog.
+    window.addEventListener(TRANSACTIONS_CHANGED, load);
+    return () => window.removeEventListener(TRANSACTIONS_CHANGED, load);
   }, [load]);
 
   // Set default date to first day of month when month loads

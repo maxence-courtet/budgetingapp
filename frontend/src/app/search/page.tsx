@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   searchTransactions,
@@ -49,6 +49,8 @@ export default function SearchPageWrapper() {
 
 function SearchPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const [total, setTotal] = useState(0);
   const urlQuery = searchParams.get("query") ?? "";
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -104,7 +106,9 @@ function SearchPage() {
       if (amountMax) params.amountMax = amountMax;
 
       const data = await searchTransactions(params);
-      setResults(Array.isArray(data) ? data : data.transactions ?? []);
+      const rows = Array.isArray(data) ? data : data.transactions ?? [];
+      setResults(rows);
+      setTotal(Array.isArray(data) ? rows.length : data.total ?? rows.length);
     } catch (e: any) {
       setError(e.message);
       setResults([]);
@@ -114,6 +118,8 @@ function SearchPage() {
   };
 
   const handleClear = () => {
+    // Drop ?query= too, so a reload doesn't bring the old search back.
+    if (urlQuery) router.replace("/search");
     setDescription("");
     setAccountId("");
     setCategoryId("");
@@ -302,7 +308,9 @@ function SearchPage() {
       ) : searched ? (
         <div>
           <p className="text-sm text-muted mb-3">
-            {results.length} result{results.length !== 1 ? "s" : ""} found
+            {total > results.length
+              ? `Showing the ${results.length} most recent of ${total} results. Narrow the filters to see the rest.`
+              : `${results.length} result${results.length !== 1 ? "s" : ""} found`}
           </p>
 
           {results.length > 0 ? (
