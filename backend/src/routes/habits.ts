@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
+import { date as parseDate, text, oneOf } from "../services/validate";
 
 const router = Router();
 router.use(authMiddleware);
@@ -18,11 +19,12 @@ router.get("/", async (req, res) => {
 // Create habit
 router.post("/", async (req, res) => {
   const userId = req.userId!;
-  const { name, description, frequency } = req.body;
-  if (!name) return res.status(400).json({ error: "name is required" });
+  const name = text(req.body.name, "name", { max: 80 })!;
+  const { description } = req.body;
+  const frequency = oneOf(req.body.frequency, "frequency", ["DAILY", "WEEKLY"] as const, { optional: true }) ?? "DAILY";
 
   const habit = await prisma.habit.create({
-    data: { userId, name, description: description ?? null, frequency: frequency ?? "DAILY" },
+    data: { userId, name, description: description ?? null, frequency },
   });
   res.status(201).json(habit);
 });
@@ -37,9 +39,9 @@ router.put("/:id", async (req, res) => {
   const updated = await prisma.habit.update({
     where: { id: req.params.id },
     data: {
-      ...(name ? { name } : {}),
+      ...(name !== undefined ? { name: text(name, "name", { max: 80 })! } : {}),
       ...(description !== undefined ? { description } : {}),
-      ...(frequency ? { frequency } : {}),
+      ...(frequency !== undefined ? { frequency: oneOf(frequency, "frequency", ["DAILY", "WEEKLY"] as const)! } : {}),
       ...(active !== undefined ? { active: Boolean(active) } : {}),
     },
   });
@@ -112,8 +114,11 @@ router.post("/:id/logs", async (req, res) => {
   const habit = await prisma.habit.findFirst({ where: { id: req.params.id, userId } });
   if (!habit) return res.status(404).json({ error: "Habit not found" });
 
-  const logDate = new Date(date);
+  const logDate = parseDate(date, "date")!;
   const isMcp = source === "MCP";
+  // Every write records who made it: AI (MCP) writes always wait for approval, even when the
+  // day already had a manual log; a manual write (e.g. clicking a pending square) approves it.
+  const provenance = { source: isMcp ? "MCP" : "MANUAL", validatedAt: isMcp ? null : new Date() };
 
   const log = await prisma.habitLog.upsert({
     where: { habitId_date: { habitId: req.params.id, date: logDate } },
@@ -128,7 +133,8 @@ router.post("/:id/logs", async (req, res) => {
     },
     update: {
       completed: completed ?? true,
-      note: note ?? null,
+      ...(note !== undefined ? { note: note ?? null } : {}),
+      ...provenance,
     },
   });
   res.status(201).json(log);

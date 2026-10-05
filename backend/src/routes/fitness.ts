@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
+import { num, date as parseDate, text } from "../services/validate";
+
+/** Unit used when none is given, for the built-in metrics. */
+const DEFAULT_UNITS: Record<string, string> = { WEIGHT: "kg", BODY_FAT: "%", STEPS: "steps", WORKOUT_DURATION: "min" };
 
 const router = Router();
 router.use(authMiddleware);
@@ -18,14 +22,14 @@ router.get("/", async (req, res) => {
       ...(dateFrom || dateTo
         ? {
             date: {
-              ...(dateFrom ? { gte: new Date(String(dateFrom)) } : {}),
-              ...(dateTo ? { lte: new Date(String(dateTo)) } : {}),
+              ...(dateFrom ? { gte: parseDate(dateFrom, "dateFrom")! } : {}),
+              ...(dateTo ? { lte: parseDate(dateTo, "dateTo")! } : {}),
             },
           }
         : {}),
     },
     orderBy: { date: "desc" },
-    take: limit ? Number(limit) : 200,
+    take: limit ? Math.min(1000, Math.max(1, Math.trunc(num(limit, "limit")!))) : 200,
   });
   res.json(entries);
 });
@@ -33,21 +37,22 @@ router.get("/", async (req, res) => {
 // Create entry
 router.post("/", async (req, res) => {
   const userId = req.userId!;
-  const { type, value, unit, note, date, source } = req.body;
-
-  if (!type || value === undefined || !unit || !date) {
-    return res.status(400).json({ error: "type, value, unit, date are required" });
-  }
+  const { note, source } = req.body;
+  const type = text(req.body.type, "type", { max: 60 })!;
+  const value = num(req.body.value, "value", { min: 0 })!;
+  const unit = text(req.body.unit, "unit", { optional: true, max: 20 }) ?? DEFAULT_UNITS[type.toUpperCase()];
+  if (!unit) return res.status(400).json({ error: "unit is required for a custom metric" });
+  const date = parseDate(req.body.date, "date")!;
 
   const isMcp = source === "MCP";
   const entry = await prisma.fitnessEntry.create({
     data: {
       userId,
       type,
-      value: Number(value),
+      value,
       unit,
       note: note ?? null,
-      date: new Date(date),
+      date,
       source: isMcp ? "MCP" : "MANUAL",
       validatedAt: isMcp ? null : new Date(),
     },
@@ -61,15 +66,15 @@ router.put("/:id", async (req, res) => {
   const entry = await prisma.fitnessEntry.findFirst({ where: { id: req.params.id, userId } });
   if (!entry) return res.status(404).json({ error: "Entry not found" });
 
-  const { type, value, unit, note, date } = req.body;
+  const b = req.body;
   const updated = await prisma.fitnessEntry.update({
     where: { id: req.params.id },
     data: {
-      ...(type ? { type } : {}),
-      ...(value !== undefined ? { value: Number(value) } : {}),
-      ...(unit ? { unit } : {}),
-      ...(note !== undefined ? { note } : {}),
-      ...(date ? { date: new Date(date) } : {}),
+      ...(b.type !== undefined ? { type: text(b.type, "type", { max: 60 })! } : {}),
+      ...(b.value !== undefined ? { value: num(b.value, "value", { min: 0 })! } : {}),
+      ...(b.unit !== undefined ? { unit: text(b.unit, "unit", { max: 20 })! } : {}),
+      ...(b.note !== undefined ? { note: b.note || null } : {}),
+      ...(b.date !== undefined ? { date: parseDate(b.date, "date")! } : {}),
     },
   });
   res.json(updated);

@@ -245,6 +245,7 @@ model Goal {
   description   String?
   type          String    // "FINANCIAL" | "HABIT" | "FITNESS" | "PERSONAL"
   targetValue   Float?
+  startValue    Float? // where the goal started; a target below it means "lower is better" (e.g. weight)
   currentValue  Float?    @default(0)
   unit          String?
   deadline      DateTime?

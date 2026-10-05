@@ -1,5 +1,11 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
+import { text, sendError } from '../services/validate';
+
+/** Names are trimmed and compared case-insensitively, so "Rent" and " rent " can't both exist. */
+async function findByName(userId: string, name: string) {
+  return prisma.category.findFirst({ where: { userId, name: { equals: name, mode: 'insensitive' } } });
+}
 
 const router = Router();
 
@@ -38,16 +44,10 @@ router.get('/', async (req: Request, res: Response) => {
 // POST / - create category
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name } = req.body;
     const userId = req.userId!;
+    const name = text(req.body.name, 'Name', { max: 60 })!;
 
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
-    }
-
-    const existing = await prisma.category.findUnique({
-      where: { name_userId: { name, userId } },
-    });
+    const existing = await findByName(userId, name);
     if (existing) {
       return res.status(409).json({ error: 'A category with this name already exists' });
     }
@@ -58,8 +58,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json(category);
   } catch (error) {
-    console.error('Error creating category:', error);
-    res.status(500).json({ error: 'Failed to create category' });
+    sendError(res, error, 'Failed to create category');
   }
 });
 
@@ -67,12 +66,8 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
     const userId = req.userId!;
-
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
-    }
+    const name = text(req.body.name, 'Name', { max: 60 })!;
 
     const existing = await prisma.category.findFirst({ where: { id, userId } });
     if (!existing) {
@@ -80,9 +75,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 
     // Check for name conflict with a different category for this user
-    const nameConflict = await prisma.category.findUnique({
-      where: { name_userId: { name, userId } },
-    });
+    const nameConflict = await findByName(userId, name);
     if (nameConflict && nameConflict.id !== id) {
       return res.status(409).json({ error: 'A category with this name already exists' });
     }
@@ -94,8 +87,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     res.json(category);
   } catch (error) {
-    console.error('Error updating category:', error);
-    res.status(500).json({ error: 'Failed to update category' });
+    sendError(res, error, 'Failed to update category');
   }
 });
 
@@ -110,8 +102,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Category not found' });
     }
 
+    // Transfers also reference a destination category (toCategoryId, no foreign key).
     const transactionCount = await prisma.transaction.count({
-      where: { categoryId: id, userId },
+      where: { userId, OR: [{ categoryId: id }, { toCategoryId: id }] },
     });
 
     if (transactionCount > 0) {
@@ -122,7 +115,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
 
     const definitionCount = await prisma.budgetTransactionDefinition.count({
-      where: { categoryId: id, userId },
+      where: { userId, OR: [{ categoryId: id }, { toCategoryId: id }] },
     });
 
     if (definitionCount > 0) {

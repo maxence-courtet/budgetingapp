@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
+import { date as parseDate, num, sendError } from '../services/validate';
 
 const router = Router();
 
@@ -26,11 +27,14 @@ router.get('/', async (req: Request, res: Response) => {
     if (query) {
       where.description = {
         contains: query as string,
+        mode: 'insensitive',
       };
     }
 
+    // A transfer matches its destination category too.
+    const and: any[] = [];
     if (categoryId) {
-      where.categoryId = categoryId as string;
+      and.push({ OR: [{ categoryId: categoryId as string }, { toCategoryId: categoryId as string }] });
     }
 
     if (type) {
@@ -46,20 +50,19 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     if (accountId) {
-      where.OR = [
-        { fromAccountId: accountId as string },
-        { toAccountId: accountId as string },
-      ];
+      and.push({ OR: [{ fromAccountId: accountId as string }, { toAccountId: accountId as string }] });
     }
+    if (and.length) where.AND = and;
 
     // Date range filters
     if (dateFrom || dateTo) {
       where.date = {};
       if (dateFrom) {
-        where.date.gte = new Date(dateFrom as string);
+        where.date.gte = parseDate(dateFrom, 'dateFrom');
       }
       if (dateTo) {
-        where.date.lte = new Date(dateTo as string);
+        // inclusive: the whole "to" day
+        where.date.lte = new Date(parseDate(dateTo, 'dateTo')!.getTime() + 86_400_000 - 1);
       }
     }
 
@@ -67,14 +70,15 @@ router.get('/', async (req: Request, res: Response) => {
     if (amountMin || amountMax) {
       where.amount = {};
       if (amountMin) {
-        where.amount.gte = parseFloat(amountMin as string);
+        where.amount.gte = num(amountMin, 'amountMin');
       }
       if (amountMax) {
-        where.amount.lte = parseFloat(amountMax as string);
+        where.amount.lte = num(amountMax, 'amountMax');
       }
     }
 
-    const transactions = await prisma.transaction.findMany({
+    const LIMIT = 100;
+    const [total, transactions] = await Promise.all([prisma.transaction.count({ where }), prisma.transaction.findMany({
       where,
       include: {
         category: true,
@@ -83,16 +87,17 @@ router.get('/', async (req: Request, res: Response) => {
         month: true,
       },
       orderBy: { date: 'desc' },
-      take: 100,
-    });
+      take: LIMIT,
+    })]);
 
     res.json({
       count: transactions.length,
+      total,
+      truncated: total > transactions.length,
       transactions,
     });
   } catch (error) {
-    console.error('Error searching transactions:', error);
-    res.status(500).json({ error: 'Failed to search transactions' });
+    sendError(res, error, 'Failed to search transactions');
   }
 });
 

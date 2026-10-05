@@ -15,6 +15,7 @@ import fitnessRoutes from './routes/fitness';
 import goalRoutes from './routes/goals';
 import noteRoutes from './routes/notes';
 import statsRoutes from './routes/stats';
+import { runDataFixes } from './services/dataFixes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -45,6 +46,8 @@ app.use('/api/notes', noteRoutes);
 app.use('/api/stats', statsRoutes);
 
 app.use(errorHandler);
+
+runDataFixes();
 
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`Life Hub API running on http://0.0.0.0:${PORT}`);

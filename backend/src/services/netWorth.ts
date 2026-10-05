@@ -1,6 +1,7 @@
 import prisma from "./prisma";
 import { aggregateHoldings } from "./portfolio";
 import { getQuotes } from "./marketPrice";
+import { endOfTodayUtc } from "./validate";
 
 export interface NetWorthPoint {
   month: string; // YYYY-MM
@@ -41,7 +42,7 @@ export async function netWorthHistory(userId: string, months: number): Promise<N
   // Money into an account counts +, out of an account −; transfers between own accounts cancel out.
   const signed = (t: (typeof txns)[number]) => (t.toAccountId ? t.amount : 0) - (t.fromAccountId ? t.amount : 0);
   const cashAt = (end: Date) => txns.filter((t) => t.date <= end).reduce((s, t) => s + signed(t), 0);
-  const currentCash = txns.reduce((s, t) => s + signed(t), 0); // matches the live account balances
+  const currentCash = cashAt(endOfTodayUtc()); // matches account balances: future-dated transactions don't count yet
   const costAt = (end: Date) =>
     aggregateHoldings(trades.filter((t) => t.date <= end)).reduce((s, h) => s + h.totalCost, 0);
 

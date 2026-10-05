@@ -1,13 +1,25 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
+import { date as parseDate, normalizeMoneyFlow, oneOf, sendError, BadRequest, TRANSACTION_STATUSES } from '../services/validate';
 
 const router = Router();
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** A transaction must be dated inside the month it belongs to. */
+async function assertDateInMonth(userId: string, monthId: string, date: Date) {
+  const month = await prisma.month.findFirst({ where: { id: monthId, userId } });
+  if (!month) throw new BadRequest('Month not found');
+  if (date.getUTCFullYear() !== month.year || date.getUTCMonth() + 1 !== month.month) {
+    throw new BadRequest(`The date must be in ${MONTH_NAMES[month.month - 1]} ${month.year}`);
+  }
+}
 
 // GET / - list transactions with query filters
 router.get('/', async (req: Request, res: Response) => {
   try {
     const userId = req.userId!;
-    const { monthId, categoryId, accountId, type, status, limit, offset } = req.query;
+    const { monthId, categoryId, accountId, type, status, limit, offset, until } = req.query;
 
     const where: any = { userId };
 
@@ -15,6 +27,8 @@ router.get('/', async (req: Request, res: Response) => {
     if (categoryId) where.categoryId = categoryId as string;
     if (type) where.type = type as string;
     if (status) where.status = status as string;
+    // ?until=YYYY-MM-DD: only transactions dated on or before that day (e.g. "recent activity" excludes future ones)
+    if (until) where.date = { lte: new Date(parseDate(until, 'until')!.getTime() + 86_400_000 - 1) };
     if (accountId) {
       where.OR = [
         { fromAccountId: accountId as string },
@@ -31,8 +45,8 @@ router.get('/', async (req: Request, res: Response) => {
         month: true,
       },
       orderBy: { date: 'desc' },
-      take: limit ? parseInt(limit as string, 10) : undefined,
-      skip: offset ? parseInt(offset as string, 10) : undefined,
+      take: limit ? Math.max(1, parseInt(limit as string, 10) || 50) : undefined,
+      skip: offset ? Math.max(0, parseInt(offset as string, 10) || 0) : undefined,
     });
 
     // Enrich transfers with toCategory data
@@ -49,8 +63,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     res.json(transactions);
   } catch (error) {
-    console.error('Error listing transactions:', error);
-    res.status(500).json({ error: 'Failed to list transactions' });
+    sendError(res, error, 'Failed to list transactions');
   }
 });
 
@@ -98,32 +111,22 @@ router.post('/', async (req: Request, res: Response) => {
       toCategoryId,
     } = req.body;
 
-    if (!type || !date || amount === undefined || !categoryId || !monthId) {
-      return res.status(400).json({ error: 'type, date, amount, categoryId, and monthId are required' });
+    if (!categoryId || !monthId) {
+      return res.status(400).json({ error: 'categoryId and monthId are required' });
     }
-
-    if (type === 'INCOME' && !toAccountId) {
-      return res.status(400).json({ error: 'toAccountId is required for INCOME' });
-    }
-    if (type === 'SPENDING' && !fromAccountId) {
-      return res.status(400).json({ error: 'fromAccountId is required for SPENDING' });
-    }
-    if (type === 'TRANSFER' && (!fromAccountId || !toAccountId)) {
-      return res.status(400).json({ error: 'fromAccountId and toAccountId are required for TRANSFER' });
-    }
+    const flow = normalizeMoneyFlow({ type, amount, fromAccountId, toAccountId, categoryId, toCategoryId });
+    const when = parseDate(date, 'date')!;
+    const txStatus = oneOf(status, 'status', TRANSACTION_STATUSES, { optional: true }) ?? 'PLANNED';
+    await assertDateInMonth(userId, monthId, when);
 
     const transaction = await prisma.transaction.create({
       data: {
-        type,
-        date: new Date(date),
-        amount,
+        ...flow,
+        date: when,
         description,
-        status: status || 'PLANNED',
+        status: txStatus,
         categoryId,
-        toCategoryId: type === 'TRANSFER' ? (toCategoryId || categoryId) : null,
         monthId,
-        fromAccountId: fromAccountId || null,
-        toAccountId: toAccountId || null,
         userId,
       },
       include: {
@@ -136,8 +139,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json(transaction);
   } catch (error) {
-    console.error('Error creating transaction:', error);
-    res.status(500).json({ error: 'Failed to create transaction' });
+    sendError(res, error, 'Failed to create transaction');
   }
 });
 
@@ -164,17 +166,22 @@ router.put('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    const data: any = {};
-    if (type !== undefined) data.type = type;
-    if (date !== undefined) data.date = new Date(date);
-    if (amount !== undefined) data.amount = amount;
+    const merged = {
+      type: type ?? existing.type,
+      amount: amount ?? existing.amount,
+      fromAccountId: fromAccountId !== undefined ? fromAccountId : existing.fromAccountId,
+      toAccountId: toAccountId !== undefined ? toAccountId : existing.toAccountId,
+      categoryId: categoryId ?? existing.categoryId,
+      toCategoryId: toCategoryId !== undefined ? toCategoryId : existing.toCategoryId,
+    };
+    const flow = normalizeMoneyFlow(merged);
+    const when = date !== undefined ? parseDate(date, 'date')! : existing.date;
+    const targetMonth = monthId ?? existing.monthId;
+    if (date !== undefined || monthId !== undefined) await assertDateInMonth(userId, targetMonth, when);
+
+    const data: any = { ...flow, categoryId: merged.categoryId, date: when, monthId: targetMonth };
     if (description !== undefined) data.description = description;
-    if (status !== undefined) data.status = status;
-    if (categoryId !== undefined) data.categoryId = categoryId;
-    if (toCategoryId !== undefined) data.toCategoryId = toCategoryId;
-    if (monthId !== undefined) data.monthId = monthId;
-    if (fromAccountId !== undefined) data.fromAccountId = fromAccountId;
-    if (toAccountId !== undefined) data.toAccountId = toAccountId;
+    if (status !== undefined) data.status = oneOf(status, 'status', TRANSACTION_STATUSES);
 
     const updated = await prisma.transaction.update({
       where: { id },
@@ -189,8 +196,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     res.json(updated);
   } catch (error) {
-    console.error('Error updating transaction:', error);
-    res.status(500).json({ error: 'Failed to update transaction' });
+    sendError(res, error, 'Failed to update transaction');
   }
 });
 

@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { todayUtc } from "./validate";
 import { findPatterns } from "./patterns";
 import { generateJson } from "./ai";
 
@@ -8,7 +9,7 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 /** Monday-to-Sunday range: the current week so far, or the previous full week. */
 export function weekRange(which: "current" | "previous") {
-  const today = new Date(iso(new Date()));
+  const today = todayUtc(); // local calendar day, as UTC midnight
   const monday = new Date(today.getTime() - ((today.getUTCDay() + 6) % 7) * DAY_MS);
   const start = which === "current" ? monday : new Date(monday.getTime() - 7 * DAY_MS);
   const end = which === "current" ? today : new Date(monday.getTime() - DAY_MS);
@@ -34,7 +35,7 @@ export async function compileWeek(userId: string, which: "current" | "previous")
     prisma.habitLog.findMany({ where: { userId, completed: true, validatedAt: { not: null }, date: inPrev } }),
     prisma.fitnessEntry.findMany({ where: { userId, validatedAt: { not: null }, date: inWeek }, orderBy: { date: "asc" } }),
     prisma.goal.findMany({ where: { userId, status: "ACTIVE" }, include: { milestones: true } }),
-    prisma.note.count({ where: { userId, noteType: "JOURNAL", entryDate: inWeek } }),
+    prisma.note.findMany({ where: { userId, noteType: "JOURNAL", entryDate: inWeek }, select: { entryDate: true } }),
     findPatterns(userId, 90),
   ]);
 
@@ -100,7 +101,7 @@ export async function compileWeek(userId: string, which: "current" | "previous")
       milestonesCompletedThisWeek: g.milestones.filter((m) => m.completedAt && m.completedAt >= start && m.completedAt <= endOfDay(end)).map((m) => m.title),
       milestonesDueSoon: g.milestones.filter((m) => !m.completedAt && m.dueDate && m.dueDate <= soon).map((m) => ({ title: m.title, due: iso(m.dueDate!) })),
     })),
-    journalEntries: journal,
+    journalEntries: new Set(journal.map((n) => n.entryDate && iso(n.entryDate))).size, // distinct days
     patterns: patterns.patterns.slice(0, 3).map((p) => ({ title: p.title, detail: p.detail })),
   };
 }

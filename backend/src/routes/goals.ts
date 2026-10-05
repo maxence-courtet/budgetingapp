@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
+import { num, date as parseDate, oneOf, text, GOAL_TYPES, GOAL_STATUSES } from "../services/validate";
 
 const router = Router();
 router.use(authMiddleware);
@@ -27,7 +28,7 @@ router.get("/:id", async (req, res) => {
   const userId = req.userId!;
   const goal = await prisma.goal.findFirst({
     where: { id: req.params.id, userId },
-    include: { fitnessPlan: { include: { days: true } }, milestones: true },
+    include: { fitnessPlan: { include: { days: true } }, milestones: { orderBy: { dueDate: "asc" } } },
   });
   if (!goal) return res.status(404).json({ error: "Goal not found" });
   res.json(goal);
@@ -36,8 +37,12 @@ router.get("/:id", async (req, res) => {
 // Create goal
 router.post("/", async (req, res) => {
   const userId = req.userId!;
-  const { title, description, type, targetValue, unit, deadline, linkedType, linkedId } = req.body;
-  if (!title || !type) return res.status(400).json({ error: "title and type are required" });
+  const { description, unit, linkedType, linkedId } = req.body;
+  const title = text(req.body.title, "title", { max: 120 })!;
+  const type = oneOf(req.body.type, "type", GOAL_TYPES)!;
+  const targetValue = num(req.body.targetValue, "targetValue", { optional: true });
+  const startValue = num(req.body.startValue, "startValue", { optional: true });
+  const deadline = parseDate(req.body.deadline, "deadline", { optional: true });
 
   const goal = await prisma.goal.create({
     data: {
@@ -45,7 +50,9 @@ router.post("/", async (req, res) => {
       title,
       description: description ?? null,
       type,
-      targetValue: targetValue !== undefined ? Number(targetValue) : null,
+      targetValue,
+      startValue,
+      ...(startValue !== null ? { currentValue: startValue } : {}),
       unit: unit ?? null,
       deadline: deadline ? new Date(deadline) : null,
       linkedType: linkedType ?? null,
@@ -62,16 +69,19 @@ router.put("/:id", async (req, res) => {
   const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId } });
   if (!goal) return res.status(404).json({ error: "Goal not found" });
 
-  const { title, description, targetValue, unit, deadline, status, linkedType, linkedId } = req.body;
+  const { description, unit, linkedType, linkedId } = req.body;
+  const b = req.body;
   const updated = await prisma.goal.update({
     where: { id: req.params.id },
     data: {
-      ...(title ? { title } : {}),
+      ...(b.title !== undefined ? { title: text(b.title, "title", { max: 120 })! } : {}),
       ...(description !== undefined ? { description } : {}),
-      ...(targetValue !== undefined ? { targetValue: Number(targetValue) } : {}),
+      ...(b.type !== undefined ? { type: oneOf(b.type, "type", GOAL_TYPES)! } : {}),
+      ...(b.targetValue !== undefined ? { targetValue: num(b.targetValue, "targetValue", { optional: true }) } : {}),
+      ...(b.startValue !== undefined ? { startValue: num(b.startValue, "startValue", { optional: true }) } : {}),
       ...(unit !== undefined ? { unit } : {}),
-      ...(deadline !== undefined ? { deadline: deadline ? new Date(deadline) : null } : {}),
-      ...(status ? { status } : {}),
+      ...(b.deadline !== undefined ? { deadline: parseDate(b.deadline, "deadline", { optional: true }) } : {}),
+      ...(b.status !== undefined ? { status: oneOf(b.status, "status", GOAL_STATUSES)! } : {}),
       ...(linkedType !== undefined ? { linkedType } : {}),
       ...(linkedId !== undefined ? { linkedId } : {}),
     },
@@ -86,12 +96,13 @@ router.patch("/:id/progress", async (req, res) => {
   const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId } });
   if (!goal) return res.status(404).json({ error: "Goal not found" });
 
-  const { currentValue } = req.body;
-  if (currentValue === undefined) return res.status(400).json({ error: "currentValue is required" });
+  // Rounded to 4 decimals so repeated +/- steps don't accumulate float noise (49.99999999999999).
+  const currentValue = Math.round(num(req.body.currentValue, "currentValue")! * 1e4) / 1e4;
 
   const updated = await prisma.goal.update({
     where: { id: req.params.id },
-    data: { currentValue: Number(currentValue) },
+    data: { currentValue },
+    include: { milestones: true },
   });
   res.json(updated);
 });
@@ -111,16 +122,17 @@ router.post("/:id/milestones", async (req, res) => {
   const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId } });
   if (!goal) return res.status(404).json({ error: "Goal not found" });
 
-  const { title, targetValue, dueDate } = req.body;
-  if (!title) return res.status(400).json({ error: "title is required" });
+  const title = text(req.body.title, "title", { max: 120 })!;
+  const targetValue = num(req.body.targetValue, "targetValue", { optional: true });
+  const dueDate = parseDate(req.body.dueDate, "dueDate", { optional: true });
 
   const milestone = await prisma.goalMilestone.create({
     data: {
       goalId: req.params.id,
       userId,
       title,
-      targetValue: targetValue !== undefined ? Number(targetValue) : null,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      targetValue,
+      dueDate,
     },
   });
   res.status(201).json(milestone);

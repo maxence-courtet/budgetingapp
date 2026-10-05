@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { todayUtc } from "./validate";
 
 // Statistical links between what the user does and what they spend, found by
 // comparing days with and without an activity. These are correlations only.
@@ -25,7 +26,7 @@ const pct = (n: number) => `${Math.round(Math.abs(n) * 100)}%`;
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 
 export async function findPatterns(userId: string, windowDays = 90): Promise<{ windowDays: number; patterns: Pattern[] }> {
-  const today = new Date(iso(new Date()));
+  const today = todayUtc(); // local calendar day, as UTC midnight
   const from = new Date(today.getTime() - (windowDays - 1) * DAY_MS);
 
   const [txns, habits, logs, fitness] = await Promise.all([

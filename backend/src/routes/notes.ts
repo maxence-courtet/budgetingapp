@@ -1,6 +1,22 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
+import { date as parseDate, text } from "../services/validate";
+
+/** Trimmed tags, without empties or case-insensitive duplicates (first spelling wins). */
+function cleanTags(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of tags) {
+    const tag = String(t).trim();
+    if (tag && !seen.has(tag.toLowerCase())) {
+      seen.add(tag.toLowerCase());
+      out.push(tag);
+    }
+  }
+  return out;
+}
 
 const router = Router();
 router.use(authMiddleware);
@@ -20,8 +36,8 @@ router.get("/", async (req, res) => {
       ...(dateFrom || dateTo
         ? {
             entryDate: {
-              ...(dateFrom ? { gte: new Date(String(dateFrom)) } : {}),
-              ...(dateTo ? { lte: new Date(String(dateTo)) } : {}),
+              ...(dateFrom ? { gte: parseDate(dateFrom, "dateFrom")! } : {}),
+              ...(dateTo ? { lte: parseDate(dateTo, "dateTo")! } : {}),
             },
           }
         : {}),
@@ -43,17 +59,28 @@ router.get("/:id", async (req, res) => {
 // Create note
 router.post("/", async (req, res) => {
   const userId = req.userId!;
-  const { title, content, tags, noteType, linkedType, linkedId, source, entryDate } = req.body;
-  if (!title || !content) return res.status(400).json({ error: "title and content are required" });
+  const { tags, noteType, linkedType, linkedId, source } = req.body;
+  const title = text(req.body.title, "title", { max: 200 })!;
+  const content = text(req.body.content, "content")!;
+  const entryDate = parseDate(req.body.entryDate, "entryDate", { optional: true });
+
+  // One journal entry per day: writing to a day that has one updates it instead of adding a duplicate.
+  if (noteType === "JOURNAL" && entryDate) {
+    const existing = await prisma.note.findFirst({ where: { userId, noteType: "JOURNAL", entryDate } });
+    if (existing) {
+      const updated = await prisma.note.update({ where: { id: existing.id }, data: { content } });
+      return res.status(200).json(updated);
+    }
+  }
 
   const note = await prisma.note.create({
     data: {
       userId,
       title,
       content,
-      tags: Array.isArray(tags) ? tags : [],
+      tags: cleanTags(tags),
       noteType: noteType ?? "NOTE",
-      entryDate: entryDate ? new Date(entryDate) : null,
+      entryDate,
       linkedType: linkedType ?? null,
       linkedId: linkedId ?? null,
       source: source === "MCP" ? "MCP" : "MANUAL",
@@ -74,9 +101,9 @@ router.put("/:id", async (req, res) => {
     data: {
       ...(title ? { title } : {}),
       ...(content ? { content } : {}),
-      ...(tags ? { tags: Array.isArray(tags) ? tags : [] } : {}),
+      ...(tags ? { tags: cleanTags(tags) } : {}),
       ...(noteType ? { noteType } : {}),
-      ...(entryDate !== undefined ? { entryDate: entryDate ? new Date(entryDate) : null } : {}),
+      ...(entryDate !== undefined ? { entryDate: parseDate(entryDate, "entryDate", { optional: true }) } : {}),
       ...(linkedType !== undefined ? { linkedType } : {}),
       ...(linkedId !== undefined ? { linkedId } : {}),
     },

@@ -26,6 +26,7 @@ export async function getQuote(ticker: string): Promise<QuoteResult> {
   }
 
   const quote = await yahooFinance.quote(upperTicker);
+  if (!quote?.regularMarketPrice) throw new Error(`No price available for ${upperTicker}`);
 
   const data: QuoteResult = {
     price: quote.regularMarketPrice ?? 0,
@@ -54,6 +55,7 @@ export async function getQuotes(tickers: string[]): Promise<Map<string, QuoteRes
   return results;
 }
 
-export function clearCache() {
-  cache.clear();
+export function clearCache(tickers?: string[]) {
+  if (!tickers) return cache.clear();
+  tickers.forEach((t) => cache.delete(t.toUpperCase()));
 }

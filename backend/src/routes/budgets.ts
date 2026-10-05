@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
+import { normalizeMoneyFlow, sendError } from '../services/validate';
 
 const router = Router();
 
@@ -156,20 +157,14 @@ router.post('/:id/definitions', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Budget template not found' });
     }
 
-    if (type === 'TRANSFER' && (!fromAccountId || !toAccountId)) {
-      return res.status(400).json({ error: 'fromAccountId and toAccountId are required for transfer definitions' });
-    }
+    const flow = normalizeMoneyFlow({ type, amount, fromAccountId, toAccountId, categoryId, toCategoryId });
 
     const definition = await prisma.budgetTransactionDefinition.create({
       data: {
-        type,
-        amount,
+        ...flow,
         description,
         categoryId,
         budgetTemplateId: id,
-        fromAccountId,
-        toAccountId,
-        toCategoryId,
         userId,
       },
       include: {
@@ -181,8 +176,7 @@ router.post('/:id/definitions', async (req: Request, res: Response) => {
 
     res.status(201).json(definition);
   } catch (error) {
-    console.error('Error adding budget definition:', error);
-    res.status(500).json({ error: 'Failed to add budget definition' });
+    sendError(res, error, 'Failed to add budget definition');
   }
 });
 
@@ -201,14 +195,16 @@ router.put('/:id/definitions/:defId', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Budget definition not found' });
     }
 
-    const data: any = {};
-    if (type !== undefined) data.type = type;
-    if (amount !== undefined) data.amount = amount;
+    const merged = {
+      type: type ?? existing.type,
+      amount: amount ?? existing.amount,
+      fromAccountId: fromAccountId !== undefined ? fromAccountId : existing.fromAccountId,
+      toAccountId: toAccountId !== undefined ? toAccountId : existing.toAccountId,
+      categoryId: categoryId ?? existing.categoryId,
+      toCategoryId: toCategoryId !== undefined ? toCategoryId : existing.toCategoryId,
+    };
+    const data: any = { ...normalizeMoneyFlow(merged), categoryId: merged.categoryId };
     if (description !== undefined) data.description = description;
-    if (categoryId !== undefined) data.categoryId = categoryId;
-    if (fromAccountId !== undefined) data.fromAccountId = fromAccountId;
-    if (toAccountId !== undefined) data.toAccountId = toAccountId;
-    if (toCategoryId !== undefined) data.toCategoryId = toCategoryId;
 
     const definition = await prisma.budgetTransactionDefinition.update({
       where: { id: defId },
@@ -222,8 +218,7 @@ router.put('/:id/definitions/:defId', async (req: Request, res: Response) => {
 
     res.json(definition);
   } catch (error) {
-    console.error('Error updating budget definition:', error);
-    res.status(500).json({ error: 'Failed to update budget definition' });
+    sendError(res, error, 'Failed to update budget definition');
   }
 });
 
