@@ -4,14 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Settings, ChevronRight, PiggyBank, Menu, X } from "lucide-react";
-import { useUser } from "@auth0/nextjs-auth0/client";
+import { authClient } from "@/lib/auth-client";
 import { homeItem, moneyItems, lifeItems, NavItem } from "@/lib/nav";
 
 const OPEN_KEY = "lh-nav-open";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user } = useUser();
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -188,13 +189,14 @@ export function Sidebar() {
           <Settings size={16} aria-hidden="true" />
           Settings
         </Link>
-        <a
-          href="/api/auth/logout"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg hover:bg-surface-2 transition-colors"
+        <button
+          type="button"
+          onClick={() => authClient.signOut().finally(() => (window.location.href = "/login"))}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg hover:bg-surface-2 transition-colors"
         >
           <LogOut size={16} aria-hidden="true" />
           Sign out
-        </a>
+        </button>
       </div>
     </aside>
     </>

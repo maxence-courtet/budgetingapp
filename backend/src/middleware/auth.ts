@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { auth } from 'express-oauth2-jwt-bearer';
+import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 import prisma from '../services/prisma';
 
 declare global {
@@ -10,44 +10,53 @@ declare global {
   }
 }
 
-const jwtCheck = auth({
-  audience: process.env.AUTH0_AUDIENCE,
-  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
-});
+// Better Auth runs in the frontend and signs short-lived JWTs; its public keys are served at /api/auth/jwks.
+const authUrl = (process.env.BETTER_AUTH_URL ?? '').replace(/\/$/, '');
+const jwks = authUrl ? createRemoteJWKSet(new URL(`${authUrl}/api/auth/jwks`)) : null;
 
-async function attachUserId(req: Request, res: Response, next: NextFunction) {
-  try {
-    const auth0Id = req.auth?.payload.sub;
-    if (!auth0Id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+interface AuthPayload extends JWTPayload {
+  email?: string;
+  emailVerified?: boolean;
+  name?: string;
+}
 
-    const user = await prisma.user.upsert({
-      where: { auth0Id },
-      update: {},
-      create: {
-        auth0Id,
-        email: (req.auth?.payload as any).email || '',
-        name: (req.auth?.payload as any).name || 'User',
-      },
+async function verifyToken(token: string): Promise<AuthPayload> {
+  if (!jwks) throw new Error('BETTER_AUTH_URL is not configured');
+  const { payload } = await jwtVerify(token, jwks, { issuer: authUrl, audience: authUrl });
+  return payload as AuthPayload;
+}
+
+async function findOrCreateUser(payload: AuthPayload) {
+  const authId = payload.sub!;
+  const existing = await prisma.user.findUnique({ where: { authId } });
+  if (existing) return existing;
+
+  // First sign-in after the move off Auth0: adopt the Auth0-era account with the same email.
+  // Only for verified emails, otherwise anyone could sign up with someone else's address.
+  if (payload.email && payload.emailVerified === true) {
+    const legacy = await prisma.user.findFirst({
+      where: { email: payload.email, authId: { startsWith: 'auth0|' } },
     });
-
-    req.userId = user.id;
-    next();
-  } catch (error) {
-    console.error('Error attaching user:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (legacy) {
+      return prisma.user.update({ where: { id: legacy.id }, data: { authId } });
+    }
   }
+
+  return prisma.user.upsert({
+    where: { authId },
+    update: {},
+    create: { authId, email: payload.email || '', name: payload.name || 'User' },
+  });
 }
 
 async function attachServiceUser(req: Request, res: Response, next: NextFunction) {
   try {
     // MCP service token: look up or create a designated service user
     const serviceUser = await prisma.user.upsert({
-      where: { auth0Id: 'service|mcp' },
+      where: { authId: 'service|mcp' },
       update: {},
       create: {
-        auth0Id: 'service|mcp',
+        authId: 'service|mcp',
         email: 'mcp@life-hub.internal',
         name: 'MCP Service',
       },
@@ -60,19 +69,36 @@ async function attachServiceUser(req: Request, res: Response, next: NextFunction
   }
 }
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Allow service token to bypass Auth0 JWT validation
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   const serviceToken = process.env.SERVICE_TOKEN;
 
+  // Allow service token to bypass user JWT validation
   if (serviceToken && authHeader === `Bearer ${serviceToken}`) {
     return attachServiceUser(req, res, next);
   }
 
-  jwtCheck(req, res, (err) => {
-    if (err) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-    attachUserId(req, res, next);
-  });
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  let payload: AuthPayload;
+  try {
+    payload = await verifyToken(token);
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+  if (!payload.sub) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const user = await findOrCreateUser(payload);
+    req.userId = user.id;
+    next();
+  } catch (error) {
+    console.error('Error attaching user:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }

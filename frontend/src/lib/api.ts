@@ -15,7 +15,7 @@ async function getToken(): Promise<string | null> {
   }
 }
 
-async function fetchApi(path: string, options?: RequestInit) {
+async function fetchApi(path: string, options?: RequestInit, retried = false): Promise<any> {
   const token = await getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -27,8 +27,10 @@ async function fetchApi(path: string, options?: RequestInit) {
   });
   if (res.status === 401) {
     cachedToken = null;
+    // Tokens are short-lived: fetch a fresh one once before sending the user to sign in.
+    if (!retried && token) return fetchApi(path, options, true);
     if (typeof window !== 'undefined') {
-      window.location.href = '/auth/login';
+      window.location.href = '/login';
     }
     throw new Error('Authentication required');
   }

@@ -19,10 +19,10 @@ cd dev && npm install && npm start
 
 - Starts Postgres on 5433 (data in `dev/.data`), syncs the Prisma schema, the backend on 3001, an auth proxy on 3002 and the frontend on 3000. Ctrl+C stops everything.
 - Sample data is seeded on the first launch only. `npm run reset` deletes the database so the next start re-seeds it.
-- Auth0 is bypassed: the proxy adds the backend's `SERVICE_TOKEN` to every API call, and `/dev-login` sets the session cookie the frontend middleware checks. All data belongs to the `service|mcp` user.
+- Sign-in is bypassed: the proxy adds the backend's `SERVICE_TOKEN` to every API call, and `/dev-login` sets the session cookie the frontend middleware checks. All data belongs to the `service|mcp` user.
 - Settings are passed to each process directly, so your `.env` files are not used, except for `ANTHROPIC_API_KEY` (from your shell or `backend/.env`) to enable AI Insights.
 
-### First-time setup (full stack with Docker + Auth0)
+### First-time setup (full stack with Docker + Better Auth)
 
 ```bash
 # 1. Start the database
@@ -38,7 +38,9 @@ cd backend && npm run db:push && cd ..
 
 # 4. Configure environment variables
 cp backend/.env.example backend/.env
-# Edit backend/.env — set DATABASE_URL, AUTH0_*, SERVICE_TOKEN, ANTHROPIC_API_KEY (optional, for AI Insights)
+# Edit backend/.env — set DATABASE_URL, BETTER_AUTH_URL (the frontend URL), SERVICE_TOKEN, ANTHROPIC_API_KEY (optional, for AI Insights)
+# The frontend needs DATABASE_URL, BETTER_AUTH_SECRET (any long random string), APP_BASE_URL and NEXT_PUBLIC_API_URL
+# in frontend/.env.local. Optional: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET to offer Google sign-in.
 
 cp mcp-server/.env.example mcp-server/.env
 # Edit mcp-server/.env — set LIFE_HUB_SERVICE_TOKEN (same value as SERVICE_TOKEN above)

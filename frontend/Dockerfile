@@ -8,13 +8,8 @@ RUN npm ci
 
 COPY . .
 
-# Auth0 env vars must be available at build time for Next.js Edge middleware
-ARG AUTH0_DOMAIN
-ARG AUTH0_CLIENT_ID
-ARG AUTH0_CLIENT_SECRET
-ARG AUTH0_SECRET
-ARG APP_BASE_URL
-ARG AUTH0_AUDIENCE
+# Inlined into the browser bundle, so it must be set at build time.
+# Auth secrets (BETTER_AUTH_SECRET, DATABASE_URL, ...) are only read at runtime.
 ARG NEXT_PUBLIC_API_URL
 
 ENV NEXT_TELEMETRY_DISABLED=1

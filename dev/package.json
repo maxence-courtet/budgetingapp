@@ -2,7 +2,7 @@
   "name": "life-hub-dev",
   "private": true,
   "type": "module",
-  "description": "Local dev environment: embedded Postgres, seed data and an Auth0-free proxy",
+  "description": "Local dev environment: embedded Postgres, seed data and an auth-bypass proxy",
   "engines": { "node": ">=20.9" },
   "scripts": {
     "start": "node start.mjs",

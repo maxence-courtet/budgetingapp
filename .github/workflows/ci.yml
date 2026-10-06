@@ -38,12 +38,8 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: 1
       # Placeholders so the build doesn't depend on real secrets.
-      AUTH0_DOMAIN: ci.example.auth0.com
-      AUTH0_CLIENT_ID: ci
-      AUTH0_CLIENT_SECRET: ci
-      AUTH0_SECRET: ci-0000000000000000000000000000000000000000000000000000000000000000
+      BETTER_AUTH_SECRET: ci-0000000000000000000000000000000000000000000000000000000000000000
       APP_BASE_URL: http://localhost:3000
-      AUTH0_AUDIENCE: https://ci.example.com
       NEXT_PUBLIC_API_URL: http://localhost:3001/api
     steps:
       - uses: actions/checkout@v4

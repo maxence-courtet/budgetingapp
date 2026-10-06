@@ -1,30 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth0 } from '@/lib/auth0';
+import { getSessionCookie } from 'better-auth/cookies';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Let Auth0 SDK handle /auth/* routes (login, callback, logout)
-  if (pathname.startsWith('/auth/')) {
-    return auth0.middleware(req);
-  }
-
-  // Allow the token endpoint and the healthcheck through
-  if (pathname === '/api/auth/token' || pathname === '/api/health') {
+  // Auth endpoints, the login page and the healthcheck are public
+  if (pathname.startsWith('/api/auth/') || pathname === '/login' || pathname === '/api/health') {
     return NextResponse.next();
   }
 
-  // Check for Auth0 session cookie (v4 default: __session, chunked: __session__0, legacy: appSession)
-  const hasSession = req.cookies.get('__session')?.value
-    || req.cookies.get('__session__0')?.value
-    || req.cookies.get('appSession')?.value;
-
-  if (hasSession) {
+  // Cheap presence check only; the session itself is validated when /api/auth/token issues a JWT
+  if (getSessionCookie(req)) {
     return NextResponse.next();
   }
 
-  // Redirect to Auth0 login
-  const loginUrl = new URL('/auth/login', req.url);
+  const loginUrl = new URL('/login', req.url);
   return NextResponse.redirect(loginUrl);
 }
 

@@ -1,4 +1,4 @@
-// Local dev environment: embedded Postgres + Auth0-free proxy + backend + frontend.
+// Local dev environment: embedded Postgres + auth-bypass proxy + backend + frontend.
 // Usage: cd dev && npm install && npm start   (requires Node >= 20.9)
 import EmbeddedPostgres from "embedded-postgres";
 import { spawn } from "node:child_process";
@@ -82,12 +82,12 @@ process.on("SIGTERM", shutdown);
 try {
   await runToCompletion("prisma", "npx", ["prisma", "db", "push"], path.join(root, "backend"), { DATABASE_URL });
 
-  // 2. Proxy: injects the backend service token so the frontend works without Auth0.
+  // 2. Proxy: injects the backend service token so the frontend works without signing in.
   //    /dev-login sets the session cookie the frontend middleware checks (cookies are shared across localhost ports).
   http
     .createServer((req, res) => {
       if (req.url === "/dev-login") {
-        res.writeHead(302, { "Set-Cookie": "__session=dev; Path=/; SameSite=Lax", Location: "http://localhost:3000/" });
+        res.writeHead(302, { "Set-Cookie": "better-auth.session_token=dev; Path=/; SameSite=Lax", Location: "http://localhost:3000/" });
         return res.end();
       }
       const headers = { ...req.headers, authorization: `Bearer ${SERVICE_TOKEN}`, host: "localhost:3001" };
@@ -108,21 +108,17 @@ try {
     DATABASE_URL,
     SERVICE_TOKEN,
     PORT: "3001",
-    AUTH0_AUDIENCE: "https://budget-api",
-    AUTH0_ISSUER_BASE_URL: "https://example.us.auth0.com",
+    BETTER_AUTH_URL: "http://localhost:3000",
   });
   await waitFor("http://localhost:3001/api/health");
   if (fresh) await runToCompletion("seed", "node", ["seed.mjs"], here);
 
-  // 4. Frontend (dummy Auth0 values so the SDK can initialise; login is bypassed via /dev-login)
+  // 4. Frontend (login is bypassed via /dev-login; real sign-up at /login also works locally)
   run("frontend", "npx", ["next", "dev"], path.join(root, "frontend"), {
     NEXT_PUBLIC_API_URL: "http://localhost:3002/api",
-    AUTH0_DOMAIN: "example.us.auth0.com",
-    AUTH0_CLIENT_ID: "dev",
-    AUTH0_CLIENT_SECRET: "dev-client-secret-not-used-locally",
-    AUTH0_SECRET: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    DATABASE_URL,
+    BETTER_AUTH_SECRET: "dev-secret-0123456789abcdef0123456789abcdef",
     APP_BASE_URL: "http://localhost:3000",
-    AUTH0_AUDIENCE: "https://budget-api",
   });
   await waitFor("http://localhost:3000/favicon.ico", 120_000);
   console.log("\n  Life Hub is running. Open http://localhost:3002/dev-login to sign in.\n");
