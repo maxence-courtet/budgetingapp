@@ -1,20 +1,27 @@
-const API_BASE = process.env.LIFE_HUB_API_URL ?? "http://localhost:3001/api";
-const SERVICE_TOKEN = process.env.LIFE_HUB_SERVICE_TOKEN;
+import { AsyncLocalStorage } from "node:async_hooks";
 
-if (!SERVICE_TOKEN) {
-  console.error("LIFE_HUB_SERVICE_TOKEN env var is required");
-  process.exit(1);
+// Tools call the backend REST API as the user the MCP request was authenticated for.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+
+const backendToken = new AsyncLocalStorage<string>();
+
+/** Runs `fn` (one MCP request) with every `api()` call inside it authenticated by `token`. */
+export function withBackendToken<T>(token: string, fn: () => T): T {
+  return backendToken.run(token, fn);
 }
 
 export async function api(
   path: string,
   options?: { method?: string; body?: unknown }
 ): Promise<unknown> {
+  const token = backendToken.getStore();
+  if (!token) throw new Error("No authenticated user for this request");
+
   const res = await fetch(`${API_BASE}${path}`, {
     method: options?.method ?? "GET",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${SERVICE_TOKEN}`,
+      Authorization: `Bearer ${token}`,
     },
     ...(options?.body !== undefined
       ? { body: JSON.stringify(options.body) }

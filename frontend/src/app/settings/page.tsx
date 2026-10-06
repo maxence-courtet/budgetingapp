@@ -4,6 +4,7 @@ import { Sun, Moon, Monitor, Check } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ACCENTS, ThemePref } from "@/lib/appearance";
+import { AiAssistantsSettings } from "@/components/AiAssistantsSettings";
 
 const THEME_OPTIONS: { id: ThemePref; label: string; hint: string; icon: typeof Sun }[] = [
   { id: "light", label: "Light", hint: "Always light", icon: Sun },
@@ -80,6 +81,7 @@ export default function SettingsPage() {
         </fieldset>
       </section>
 
+      <AiAssistantsSettings />
     </div>
   );
 }

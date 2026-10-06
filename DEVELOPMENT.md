@@ -31,7 +31,6 @@ docker-compose up -d
 # 2. Install dependencies
 cd frontend && npm install && cd ..
 cd backend && npm install && cd ..
-cd mcp-server && npm install && cd ..
 
 # 3. Apply the database schema
 cd backend && npm run db:push && cd ..
@@ -42,33 +41,24 @@ cp backend/.env.example backend/.env
 # The frontend needs DATABASE_URL, BETTER_AUTH_SECRET (any long random string), APP_BASE_URL and NEXT_PUBLIC_API_URL
 # in frontend/.env.local. Optional: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET to offer Google sign-in.
 
-cp mcp-server/.env.example mcp-server/.env
-# Edit mcp-server/.env — set LIFE_HUB_SERVICE_TOKEN (same value as SERVICE_TOKEN above)
-#                         LIFE_HUB_API_URL=http://localhost:3001/api
-
 # 5. Start services
 cd backend && npm run dev &
 cd frontend && npm run dev
 ```
 
-### MCP server setup (Claude Code)
+### MCP server (AI assistants)
 
-Add to your Claude Code MCP config (`~/.claude/claude_desktop_config.json` or equivalent):
+The MCP server is hosted by the frontend at `<APP_BASE_URL>/api/mcp`; nothing to install or clone. Each user
+connects it from **Settings → AI assistants** in one of two ways:
 
-```json
-{
-  "mcpServers": {
-    "life-hub": {
-      "command": "npx",
-      "args": ["tsx", "/path/to/budgetingapp/mcp-server/src/index.ts"],
-      "env": {
-        "LIFE_HUB_API_URL": "http://localhost:3001/api",
-        "LIFE_HUB_SERVICE_TOKEN": "<your-service-token>"
-      }
-    }
-  }
-}
-```
+- **Sign in with Hive (OAuth):** add the address as a custom connector / remote MCP server. The assistant
+  opens Hive's login and consent pages, then receives a token bound to that user. Discovery is served at
+  `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server/api/auth`.
+- **Personal token:** create one in Settings (`hive_...`) and send it as `Authorization: Bearer <token>`,
+  e.g. `claude mcp add --transport http hive <APP_BASE_URL>/api/mcp --header "Authorization: Bearer hive_..."`.
+
+Either way the MCP route signs the same short-lived backend JWT the web app uses, so tools act as that user.
+Tools live in `frontend/src/mcp/tools/`.
 
 ### Branch
 
@@ -102,7 +92,7 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
 - `/notes` — split list/editor view, tag filtering
 
 ### Phase 4 — MCP Server ✅
-- `mcp-server/` package with StdioServerTransport
+- `mcp-server/` package with StdioServerTransport (since replaced by the hosted `/api/mcp` endpoint)
 - Tools: `get_financial_summary`, `get_accounts`, `get_month_detail`, `search_transactions`, `create_month`, `get_portfolio`, `log_trade`, `log_habit`, `get_habits_summary`, `log_fitness`, `get_fitness_history`, `generate_fitness_plan`, `create_fitness_plan`, `get_fitness_plan`, `get_goals`, `update_goal_progress`, `add_note`, `get_notes`, `get_life_stats`, `get_market_price`
 - Service token auth bypass in backend middleware — MCP talks to backend without Auth0
 

@@ -19,7 +19,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } =
+    const { data, error } =
       mode === "signIn"
         ? await authClient.signIn.email({ email, password })
         : await authClient.signUp.email({ email, password, name: name || email.split("@")[0] });
@@ -28,6 +28,9 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
       setBusy(false);
       return;
     }
+    // When an AI assistant sent the user here to sign in, the response carries the next step of that
+    // flow and the auth client follows it; otherwise go to the app.
+    if (data && "redirect" in data && data.redirect) return;
     window.location.href = "/";
   }
 

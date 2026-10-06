@@ -4,8 +4,15 @@ import { getSessionCookie } from 'better-auth/cookies';
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Auth endpoints, the login page and the healthcheck are public
-  if (pathname.startsWith('/api/auth/') || pathname === '/login' || pathname === '/api/health') {
+  // Auth endpoints, the login page, the healthcheck, OAuth discovery and the MCP endpoint (which checks its
+  // own tokens) are public
+  if (
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/.well-known/') ||
+    pathname === '/api/mcp' ||
+    pathname === '/login' ||
+    pathname === '/api/health'
+  ) {
     return NextResponse.next();
   }
 

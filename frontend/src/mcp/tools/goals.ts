@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { api } from "../client.js";
+import { api } from "../client";
 
 export const goalTools = [
   {

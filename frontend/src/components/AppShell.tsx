@@ -5,10 +5,12 @@ import { Sidebar } from "@/components/Sidebar";
 import { CommandBar } from "@/components/CommandBar";
 import { QuickAddButton, QuickAddTransaction } from "@/components/QuickAddTransaction";
 
-// The login page renders on its own, without the app navigation.
+// The login and consent pages render on their own, without the app navigation.
+const STANDALONE_PAGES = ["/login", "/consent"];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  if (pathname === "/login") return <>{children}</>;
+  if (STANDALONE_PAGES.includes(pathname)) return <>{children}</>;
 
   return (
     <>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { api } from "../client.js";
+import { api } from "../client";
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
