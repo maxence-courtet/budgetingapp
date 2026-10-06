@@ -109,7 +109,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
     if (transactionCount > 0) {
       return res.status(409).json({
-        error: 'Cannot delete category with existing transactions',
+        error: 'Cannot delete a category that transactions use (including as a transfer destination)',
         transactionCount,
       });
     }

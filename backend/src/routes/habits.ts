@@ -42,7 +42,8 @@ router.put("/:id", async (req, res) => {
       ...(name !== undefined ? { name: text(name, "name", { max: 80 })! } : {}),
       ...(description !== undefined ? { description } : {}),
       ...(frequency !== undefined ? { frequency: oneOf(frequency, "frequency", ["DAILY", "WEEKLY"] as const)! } : {}),
-      ...(active !== undefined ? { active: Boolean(active) } : {}),
+      // pausedAt marks when tracking stopped, so pausing never rewrites past perfect days
+      ...(active !== undefined ? { active: Boolean(active), pausedAt: Boolean(active) ? null : habit.pausedAt ?? new Date() } : {}),
     },
   });
   res.json(updated);
@@ -119,6 +120,15 @@ router.post("/:id/logs", async (req, res) => {
   // Every write records who made it: AI (MCP) writes always wait for approval, even when the
   // day already had a manual log; a manual write (e.g. clicking a pending square) approves it.
   const provenance = { source: isMcp ? "MCP" : "MANUAL", validatedAt: isMcp ? null : new Date() };
+
+  // The AI can propose, never overwrite: a day the user already logged themselves stays theirs.
+  if (isMcp) {
+    const existing = await prisma.habitLog.findUnique({ where: { habitId_date: { habitId: req.params.id, date: logDate } } });
+    if (existing && existing.source === "MANUAL" && existing.validatedAt) {
+      if (existing.completed === (completed ?? true)) return res.status(200).json(existing);
+      return res.status(409).json({ error: "The user already logged this day; AI entries can't change it" });
+    }
+  }
 
   const log = await prisma.habitLog.upsert({
     where: { habitId_date: { habitId: req.params.id, date: logDate } },

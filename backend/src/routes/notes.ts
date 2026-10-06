@@ -3,6 +3,16 @@ import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
 import { date as parseDate, text } from "../services/validate";
 
+const locks = new Map<string, Promise<unknown>>();
+
+/** Run `fn` after any earlier call with the same key has finished (single backend process). */
+function oncePerKey<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const run = (locks.get(key) ?? Promise.resolve()).catch(() => undefined).then(fn);
+  locks.set(key, run);
+  run.finally(() => locks.get(key) === run && locks.delete(key)).catch(() => undefined);
+  return run;
+}
+
 /** Trimmed tags, without empties or case-insensitive duplicates (first spelling wins). */
 function cleanTags(tags: unknown): string[] {
   if (!Array.isArray(tags)) return [];
@@ -65,12 +75,17 @@ router.post("/", async (req, res) => {
   const entryDate = parseDate(req.body.entryDate, "entryDate", { optional: true });
 
   // One journal entry per day: writing to a day that has one updates it instead of adding a duplicate.
+  // Writes for the same user and day run one at a time, so simultaneous requests can't both create.
   if (noteType === "JOURNAL" && entryDate) {
-    const existing = await prisma.note.findFirst({ where: { userId, noteType: "JOURNAL", entryDate } });
-    if (existing) {
-      const updated = await prisma.note.update({ where: { id: existing.id }, data: { content } });
-      return res.status(200).json(updated);
-    }
+    const result = await oncePerKey(`${userId}:${entryDate.toISOString().slice(0, 10)}`, async () => {
+      const existing = await prisma.note.findFirst({ where: { userId, noteType: "JOURNAL", entryDate } });
+      if (existing) return { status: 200, note: await prisma.note.update({ where: { id: existing.id }, data: { content } }) };
+      const note = await prisma.note.create({
+        data: { userId, title, content, tags: cleanTags(tags), noteType: "JOURNAL", entryDate, source: source === "MCP" ? "MCP" : "MANUAL" },
+      });
+      return { status: 201, note };
+    });
+    return res.status(result.status).json(result.note);
   }
 
   const note = await prisma.note.create({

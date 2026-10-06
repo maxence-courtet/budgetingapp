@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
+import { endOfTodayUtc } from '../services/validate';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.get('/account-summary', async (req: Request, res: Response) => {
           where: {
             status: 'PAID',
             userId,
+            date: { lte: endOfTodayUtc() }, // same rule as account balances
             OR: [{ fromAccountId: account.id }, { toAccountId: account.id }],
           },
           include: { category: true },
@@ -45,7 +47,7 @@ router.get('/account-summary', async (req: Request, res: Response) => {
           }
         }
 
-        const categories = Array.from(categoryMap.values()).map((c) => ({
+        const categories = Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name)).map((c) => ({
           ...c,
           balance: c.in - c.out,
         }));
@@ -91,6 +93,7 @@ router.get('/category-detail', async (req: Request, res: Response) => {
       where: {
         status: 'PAID',
         userId,
+        date: { lte: endOfTodayUtc() },
         OR: [
           { fromAccountId: accountId as string, categoryId: categoryId as string },
           { toAccountId: accountId as string, categoryId: categoryId as string },
@@ -165,7 +168,7 @@ router.get('/monthly-summary/:monthId', async (req: Request, res: Response) => {
       categoryMap.set(t.categoryId, cat);
     }
 
-    const categoryBreakdown = Array.from(categoryMap.values()).map((c) => ({
+    const categoryBreakdown = Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name)).map((c) => ({
       ...c,
       net: c.income - c.spending,
     }));

@@ -71,6 +71,9 @@ router.put("/:id", async (req, res) => {
 
   const { description, unit, linkedType, linkedId } = req.body;
   const b = req.body;
+  // Turning a goal into "lower is better" starts its progress at the starting value.
+  const newStart = b.startValue !== undefined ? num(b.startValue, "startValue", { optional: true }) : undefined;
+  const startProgress = newStart != null && goal.startValue == null && !goal.currentValue ? { currentValue: newStart } : {};
   const updated = await prisma.goal.update({
     where: { id: req.params.id },
     data: {
@@ -78,7 +81,8 @@ router.put("/:id", async (req, res) => {
       ...(description !== undefined ? { description } : {}),
       ...(b.type !== undefined ? { type: oneOf(b.type, "type", GOAL_TYPES)! } : {}),
       ...(b.targetValue !== undefined ? { targetValue: num(b.targetValue, "targetValue", { optional: true }) } : {}),
-      ...(b.startValue !== undefined ? { startValue: num(b.startValue, "startValue", { optional: true }) } : {}),
+      ...(newStart !== undefined ? { startValue: newStart } : {}),
+      ...startProgress,
       ...(unit !== undefined ? { unit } : {}),
       ...(b.deadline !== undefined ? { deadline: parseDate(b.deadline, "deadline", { optional: true }) } : {}),
       ...(b.status !== undefined ? { status: oneOf(b.status, "status", GOAL_STATUSES)! } : {}),
@@ -97,7 +101,7 @@ router.patch("/:id/progress", async (req, res) => {
   if (!goal) return res.status(404).json({ error: "Goal not found" });
 
   // Rounded to 4 decimals so repeated +/- steps don't accumulate float noise (49.99999999999999).
-  const currentValue = Math.round(num(req.body.currentValue, "currentValue")! * 1e4) / 1e4;
+  const currentValue = Math.round(num(req.body.currentValue, "currentValue", { min: 0 })! * 1e4) / 1e4;
 
   const updated = await prisma.goal.update({
     where: { id: req.params.id },

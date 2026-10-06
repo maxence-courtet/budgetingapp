@@ -189,6 +189,7 @@ model Habit {
   description String?
   frequency   String   @default("DAILY") // "DAILY" | "WEEKLY"
   active      Boolean  @default(true)
+  pausedAt    DateTime? // set while paused (active = false)
   createdAt   DateTime @default(now())
 
   userId String
