@@ -48,6 +48,10 @@ export default function TransactionForm({
       const other = type === "TRANSFER" ? accounts.find((a) => a.id !== (fromAccountId || accounts[0].id)) : null;
       setToAccountId((other ?? accounts[0]).id);
     }
+    // Switching INCOME → TRANSFER keeps the income's "to" account, which can equal the new "from" one.
+    if (type === "TRANSFER" && fromAccountId && fromAccountId === toAccountId && accounts.length > 1) {
+      setToAccountId(accounts.find((a) => a.id !== fromAccountId)!.id);
+    }
     // No default category: the user picks one, so income doesn't silently land in "Dining Out".
   }, [accounts, type, fromAccountId, toAccountId]);
 

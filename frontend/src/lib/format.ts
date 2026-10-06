@@ -1,5 +1,5 @@
 export function fmt(n: number): string {
-  return "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+  return "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function formatAmount(n: number, type?: string): string {

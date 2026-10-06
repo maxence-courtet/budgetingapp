@@ -88,7 +88,10 @@ export function NetWorthChart() {
             <button
               key={r.months}
               type="button"
-              onClick={() => setRange(r.months)}
+              onClick={() => {
+                setHover(null); // the hovered index may not exist in the new range
+                setRange(r.months);
+              }}
               aria-pressed={range === r.months}
               className={`h-7 px-2.5 rounded-md font-mono text-xs transition-colors ${
                 range === r.months ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
@@ -200,6 +203,16 @@ function Plot({
   const line = data.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.total).toFixed(1)}`).join(" ");
   const area = `${line} L${x(data.length - 1).toFixed(1)},${PAD.top + innerH} L${x(0).toFixed(1)},${PAD.top + innerH} Z`;
   const labelEvery = Math.ceil(data.length / Math.max(2, Math.floor(innerW / 64)));
+  // Which months get an axis label: every n-th, plus the last; drop a regular one that would crowd the last.
+  const shown = data
+    .map((_, i) => i)
+    .filter((i) => i === data.length - 1 || (i % labelEvery === 0 && x(data.length - 1) - x(i) >= 64));
+  // On ranges longer than a year, the first label and every change of year carry the year.
+  const withYear = new Set(
+    data.length > 12 ? shown.filter((i, k) => k === 0 || data[i].month.slice(0, 4) !== data[shown[k - 1]].month.slice(0, 4)) : []
+  );
+  // Guard against an index from a previous, longer range.
+  if (hover !== null && hover >= data.length) hover = null;
 
   function onMove(e: React.PointerEvent<SVGRectElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -238,10 +251,10 @@ function Plot({
           </g>
         ))}
         {data.map((p, i) =>
-          (i % labelEvery === 0 && x(data.length - 1) - x(i) >= 44) || i === data.length - 1 ? (
+          shown.includes(i) ? (
             <text key={p.month} x={x(i)} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-[11px]">
               {monthLabel(p.month)}
-              {data.length > 12 && p.month.endsWith("-01") ? ` ’${p.month.slice(2, 4)}` : ""}
+              {withYear.has(i) ? ` ’${p.month.slice(2, 4)}` : ""}
             </text>
           ) : null
         )}
