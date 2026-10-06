@@ -140,7 +140,7 @@ const REVIEW_SCHEMA = {
   additionalProperties: false,
 };
 
-const REVIEW_PROMPT = `You write the weekly review inside Life Hub, a personal app tracking money, habits, fitness, goals and a journal for one user.
+const REVIEW_PROMPT = `You write the weekly review inside Hive, a personal app tracking money, habits, fitness, goals and a journal for one user.
 
 You receive a JSON summary of one week (Monday to Sunday, or the week so far when "complete" is false) with the previous week's figures for comparison. Write to the user as "you".
 

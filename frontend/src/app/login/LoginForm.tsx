@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { PiggyBank } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { HiveLogo } from "@/components/HiveLogo";
 
 const inputClass =
   "w-full border border-line-strong rounded-xl px-3 py-2 text-sm bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-accent";
@@ -39,10 +39,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-surface border border-line rounded-2xl p-6 space-y-5">
-        <div className="flex items-center gap-2">
-          <PiggyBank size={20} className="text-accent" aria-hidden="true" />
-          <span className="text-[15px] font-semibold text-fg">Life Hub</span>
-        </div>
+        <HiveLogo size={32} />
         <h1 className="text-lg font-semibold text-fg">
           {mode === "signIn" ? "Sign in" : "Create an account"}
         </h1>

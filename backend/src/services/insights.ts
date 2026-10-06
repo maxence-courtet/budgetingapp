@@ -30,7 +30,7 @@ const INSIGHTS_SCHEMA = {
   additionalProperties: false,
 };
 
-const SYSTEM_PROMPT = `You are the analytics assistant inside Life Hub, a personal app that tracks finances, habits, fitness, goals and notes for a single user.
+const SYSTEM_PROMPT = `You are the analytics assistant inside Hive, a personal app that tracks finances, habits, fitness, goals and notes for a single user.
 
 You receive a JSON snapshot of the user's data and write a short, personal analysis addressed to them as "you".
 
@@ -47,6 +47,6 @@ export async function generateInsights(overview: unknown): Promise<LifeInsights>
   return generateJson<LifeInsights>(
     SYSTEM_PROMPT,
     INSIGHTS_SCHEMA,
-    `Here is my Life Hub snapshot:\n\n${JSON.stringify(overview, null, 2)}`
+    `Here is my Hive snapshot:\n\n${JSON.stringify(overview, null, 2)}`
   );
 }

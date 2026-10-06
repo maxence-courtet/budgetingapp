@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Settings, ChevronRight, PiggyBank, Menu, X } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { HiveLogo } from "@/components/HiveLogo";
 import { homeItem, moneyItems, lifeItems, NavItem } from "@/lib/nav";
 
 const OPEN_KEY = "lh-nav-open";
@@ -103,10 +104,7 @@ export function Sidebar() {
       >
         <Menu size={20} aria-hidden="true" />
       </button>
-      <div className="w-7 h-7 rounded-lg bg-accent text-accent-ink flex items-center justify-center">
-        <span className="text-sm font-bold">L</span>
-      </div>
-      <span className="font-semibold tracking-tight text-fg">Life Hub</span>
+      <HiveLogo size={24} />
     </div>
     {mobileOpen && (
       <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} aria-hidden="true" />
@@ -129,10 +127,7 @@ export function Sidebar() {
         <X size={18} aria-hidden="true" />
       </button>
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
-        <div className="w-7 h-7 rounded-lg bg-accent text-accent-ink flex items-center justify-center shrink-0">
-          <span className="text-sm font-bold">L</span>
-        </div>
-        <span className="font-semibold tracking-tight text-fg">Life Hub</span>
+        <HiveLogo size={26} />
       </div>
 
       <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-2 space-y-1">

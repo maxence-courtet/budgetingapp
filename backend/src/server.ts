@@ -58,5 +58,5 @@ app.use(errorHandler);
 runDataFixes();
 
 app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`Life Hub API running on http://0.0.0.0:${PORT}`);
+  console.log(`Hive API running on http://0.0.0.0:${PORT}`);
 });

@@ -1,7 +1,7 @@
 {
   "name": "life-hub-mcp",
   "version": "1.0.0",
-  "description": "MCP server for Life Hub — query and write personal finance, habits, fitness, goals, and notes via Claude",
+  "description": "MCP server for Hive — query and write personal finance, habits, fitness, goals, and notes via Claude",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

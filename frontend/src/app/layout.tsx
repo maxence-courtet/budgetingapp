@@ -9,8 +9,8 @@ const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
-  title: "Life Hub",
-  description: "Personal finance, habits, fitness, and goals — all in one place",
+  title: "Hive",
+  description: "Three cells of a honeycomb: the parts of your life, side by side.",
 };
 
 export default function RootLayout({
