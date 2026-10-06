@@ -7,14 +7,80 @@ import { api } from "../client";
 const TX_TYPES = ["INCOME", "SPENDING", "TRANSFER"] as const;
 const TX_STATUSES = ["PLANNED", "PAID", "PENDING", "SKIPPED"] as const;
 
+type Named = { id: string; name: string };
+
+/**
+ * Lets tools take account and category names as well as IDs: `category`, `toCategory`, `fromAccount` and
+ * `toAccount` (names, case-insensitive) fill in `categoryId`, `toCategoryId`, `fromAccountId` and `toAccountId`.
+ */
+async function nameResolver() {
+  const [accounts, categories] = (await Promise.all([api("/accounts"), api("/categories")])) as [Named[], Named[]];
+  const index = (xs: Named[]) => new Map(xs.flatMap((x) => [[x.id, x.id], [x.name.trim().toLowerCase(), x.id]]));
+  const accountIds = index(accounts);
+  const categoryIds = index(categories);
+  const unknown = new Set<string>();
+  const pick = (map: Map<string, string>, kind: string, value: unknown) => {
+    if (value === undefined || value === null || value === "") return undefined;
+    const id = map.get(String(value).trim().toLowerCase()) ?? map.get(String(value));
+    if (!id) unknown.add(`${kind} "${value}"`);
+    return id;
+  };
+  return {
+    resolve(row: Record<string, any>) {
+      const { category, toCategory, fromAccount, toAccount, ...rest } = row;
+      return {
+        ...rest,
+        categoryId: pick(categoryIds, "category", rest.categoryId ?? category),
+        toCategoryId: pick(categoryIds, "category", rest.toCategoryId ?? toCategory),
+        fromAccountId: pick(accountIds, "account", rest.fromAccountId ?? fromAccount),
+        toAccountId: pick(accountIds, "account", rest.toAccountId ?? toAccount),
+      };
+    },
+    check() {
+      if (unknown.size) throw new Error(`Not found (create them first): ${[...unknown].join(", ")}`);
+    },
+  };
+}
+
+/** Minimal RFC 4180 CSV: header row, comma-separated, double quotes for fields containing commas/quotes/newlines. */
+function parseCsv(text: string): Record<string, string>[] {
+  const rows: string[][] = [];
+  let row: string[] = [], field = "", quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field); field = "";
+      if (row.some((f) => f !== "")) rows.push(row);
+      row = [];
+    } else field += c;
+  }
+  row.push(field);
+  if (row.some((f) => f !== "")) rows.push(row);
+  const [header, ...body] = rows;
+  if (!header) return [];
+  const keys = header.map((h) => h.trim());
+  return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? "").trim()]).filter(([, v]) => v !== "")));
+}
+
 const moneyFlow = {
-  type: z.enum(TX_TYPES).describe("SPENDING needs fromAccountId, INCOME needs toAccountId, TRANSFER needs both"),
+  type: z.enum(TX_TYPES).describe("SPENDING needs a from account, INCOME a to account, TRANSFER both"),
   amount: z.number().positive(),
   description: z.string().optional(),
-  categoryId: z.string().describe("Category ID (use get_categories)"),
+  categoryId: z.string().optional().describe("Category ID, or give `category` (name) instead"),
+  category: z.string().optional().describe("Category name"),
   fromAccountId: z.string().optional().describe("Account the money leaves (SPENDING, TRANSFER)"),
+  fromAccount: z.string().optional().describe("...or its name"),
   toAccountId: z.string().optional().describe("Account the money arrives in (INCOME, TRANSFER)"),
+  toAccount: z.string().optional().describe("...or its name"),
   toCategoryId: z.string().optional().describe("TRANSFER only: category on the receiving side"),
+  toCategory: z.string().optional().describe("...or its name"),
 };
 
 const transaction = z.object({
@@ -83,6 +149,9 @@ export const setupTools = [
       lines: z.array(z.object(moneyFlow)).min(1).max(100),
     }),
     handler: async ({ budgetTemplateId, lines }: { budgetTemplateId: string; lines: Record<string, unknown>[] }) => {
+      const names = await nameResolver();
+      lines = lines.map((l) => names.resolve(l));
+      names.check();
       const created = [];
       for (const [i, line] of lines.entries()) {
         try {
@@ -98,7 +167,10 @@ export const setupTools = [
     name: "create_transaction",
     description: "Record one transaction (income, spending or transfer between accounts).",
     inputSchema: transaction,
-    handler: async ({ monthId, ...t }: z.infer<typeof transaction>) => {
+    handler: async ({ monthId, ...input }: z.infer<typeof transaction>) => {
+      const names = await nameResolver();
+      const t = names.resolve(input);
+      names.check();
       if (monthId) return api("/transactions", { method: "POST", body: { ...t, monthId } });
       // Without a month, the import endpoint finds or creates the month the date falls in.
       return api("/transactions/import", { method: "POST", body: { transactions: [t] } });
@@ -107,10 +179,24 @@ export const setupTools = [
   {
     name: "import_transactions",
     description:
-      "Bulk-create up to 500 transactions in one call (all or nothing), e.g. to bring in history from another app. " +
-      "Months are matched or created from each date unless monthId is given. Create accounts and categories first.",
-    inputSchema: z.object({ transactions: z.array(transaction).min(1).max(500) }),
-    handler: async ({ transactions }: { transactions: z.infer<typeof transaction>[] }) =>
-      api("/transactions/import", { method: "POST", body: { transactions } }),
+      "Bulk-create up to 500 transactions in one call (all or nothing), e.g. to bring in history from a bank export or " +
+      "another app. Pass either `transactions` (objects) or `csv` text with a header row using the same field names: " +
+      "date,type,amount,status,category,fromAccount,toAccount,toCategory,description (IDs also accepted). Accounts and " +
+      "categories are matched by name or ID and must exist first. Months are matched or created from each date.",
+    inputSchema: z.object({
+      transactions: z.array(transaction).max(500).optional(),
+      csv: z.string().optional().describe("CSV text with a header row; at most 500 data rows"),
+    }),
+    handler: async ({ transactions, csv }: { transactions?: Record<string, any>[]; csv?: string }) => {
+      const rows: Record<string, any>[] = csv
+        ? parseCsv(csv).map((r) => ({ ...r, amount: Number(r.amount) }))
+        : transactions ?? [];
+      if (rows.length === 0) throw new Error("Nothing to import: pass `transactions` or `csv`");
+      if (rows.length > 500) throw new Error(`At most 500 transactions per call (got ${rows.length})`);
+      const names = await nameResolver();
+      const resolved = rows.map((r) => names.resolve(r));
+      names.check();
+      return api("/transactions/import", { method: "POST", body: { transactions: resolved } });
+    },
   },
 ];
