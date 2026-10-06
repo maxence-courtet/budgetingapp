@@ -51,6 +51,7 @@ export function Journal() {
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "removed">("idle");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const saveTimer = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const entriesRef = useRef<Entry[]>([]);
   const creating = useRef(new Map<string, Promise<Entry>>());
   entriesRef.current = entries;
@@ -81,6 +82,11 @@ export function Journal() {
     setConfirmDelete(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, loading]);
+
+  // Put the cursor in the editor once it's enabled (autoFocus can't focus a disabled field).
+  useEffect(() => {
+    if (!loading) textareaRef.current?.focus();
+  }, [loading]);
 
   const streak = useMemo(() => {
     let n = 0;
@@ -156,8 +162,12 @@ export function Journal() {
   async function remove() {
     if (!current) return;
     try {
-      await deleteNote(current.id);
-      setEntries((es) => es.filter((e) => e.id !== current.id));
+      // Remove every entry stored for the day (older data can hold duplicates).
+      const sameDay = entriesRef.current.filter((e) => dayOf(e) === selected);
+      await Promise.all(sameDay.map((e) => deleteNote(e.id)));
+      const ids = new Set(sameDay.map((e) => e.id));
+      entriesRef.current = entriesRef.current.filter((e) => !ids.has(e.id));
+      setEntries((es) => es.filter((e) => !ids.has(e.id)));
       setDraft("");
       setConfirmDelete(false);
     } catch (e: any) {
@@ -263,7 +273,7 @@ export function Journal() {
               }
             }}
             disabled={loading}
-            autoFocus
+            ref={textareaRef}
             placeholder={"How did the day go?\n\nWhat went well, what got in the way, and what's the one thing for tomorrow?"}
             className="flex-1 min-h-[22rem] w-full resize-y bg-transparent border-0 outline-none text-[15px] leading-relaxed text-fg"
           />

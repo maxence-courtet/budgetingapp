@@ -15,6 +15,8 @@ interface BudgetTemplate {
   createdAt: string;
   definitions: any[];
   months: any[];
+  definitionCount?: number;
+  monthsUsedCount?: number;
 }
 
 export default function BudgetsPage() {
@@ -126,12 +128,12 @@ export default function BudgetsPage() {
                 </Link>
                 <div className="mt-2 flex gap-4 text-sm text-muted">
                   <span>
-                    {b.definitions?.length ?? 0}{" "}
-                    {b.definitions?.length === 1 ? "definition" : "definitions"}
+                    {b.definitionCount ?? b.definitions?.length ?? 0}{" "}
+                    {(b.definitionCount ?? b.definitions?.length) === 1 ? "definition" : "definitions"}
                   </span>
                   <span>
-                    {b.months?.length ?? 0}{" "}
-                    {b.months?.length === 1 ? "month" : "months"}
+                    {b.monthsUsedCount ?? b.months?.length ?? 0}{" "}
+                    {(b.monthsUsedCount ?? b.months?.length) === 1 ? "month" : "months"}
                   </span>
                 </div>
               </div>

@@ -229,7 +229,11 @@ export default function HabitsPage() {
     setMenuId(null);
     try {
       await updateHabit(habit.id, { active: !habit.active });
-      setHabits((hs) => hs.map((h) => (h.id === habit.id ? { ...h, active: !h.active } : h)));
+      setHabits((hs) =>
+        hs.map((h) =>
+          h.id === habit.id ? { ...h, active: !h.active, pausedAt: h.active ? new Date().toISOString() : null } : h
+        )
+      );
     } catch (e: any) {
       setError(e.message);
     }
@@ -389,6 +393,25 @@ export default function HabitsPage() {
               {Math.round(s.rate30 * 100)}%
             </span>
 
+            {!habit.active ? (
+              <span role="cell" className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleToggleActive(habit)}
+                  className="h-7 px-2 rounded-lg text-xs font-medium text-accent hover:bg-accent-soft"
+                >
+                  Resume
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(habit.id)}
+                  aria-label={`Delete ${habit.name}`}
+                  className="h-7 px-2 rounded-lg text-xs font-medium text-neg hover:bg-surface-2"
+                >
+                  Delete
+                </button>
+              </span>
+            ) : (
             <span role="cell" className="relative flex justify-end" data-habit-menu>
               <button
                 type="button"
@@ -438,6 +461,7 @@ export default function HabitsPage() {
                 </div>
               )}
             </span>
+            )}
           </>
         )}
       </li>
@@ -661,7 +685,7 @@ export default function HabitsPage() {
       ) : (
         <section aria-labelledby="habits-grid-heading" className="bg-surface border border-line rounded-2xl">
           <h2 id="habits-grid-heading" className="sr-only">Your habits</h2>
-          <div ref={gridScrollRef} className="overflow-x-auto">
+          <div ref={gridScrollRef} className="relative overflow-x-auto">
             <div role="table" aria-label="Habits, last 14 days" className="min-w-[39rem]">
               <div
                 role="row"
@@ -710,7 +734,7 @@ export default function HabitsPage() {
                 Paused ({paused.length})
               </button>
               {showPaused && (
-                <div className="overflow-x-auto opacity-70">
+                <div className="relative overflow-x-auto opacity-70">
                   <div role="table" aria-label="Paused habits" className="min-w-[39rem]">
                     <ul role="rowgroup">{paused.map(renderRow)}</ul>
                   </div>

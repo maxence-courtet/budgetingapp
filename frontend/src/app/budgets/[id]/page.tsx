@@ -214,7 +214,9 @@ export default function BudgetDetailPage({
   if (!budget) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted">Budget template not found.</p>
+        <p className="text-muted">
+          Budget template not found. <Link href="/budgets" className="text-accent font-medium">Back to budgets</Link>
+        </p>
       </div>
     );
   }
@@ -461,7 +463,7 @@ export default function BudgetDetailPage({
                     </td>
                     <td className="px-4 py-3">
                       {d.category?.name ?? catName(d.categoryId)}
-                      {d.toCategoryId && (
+                      {d.toCategoryId && d.toCategoryId !== d.categoryId && (
                         <span className="text-faint">
                           {" "}
                           / {catName(d.toCategoryId)}

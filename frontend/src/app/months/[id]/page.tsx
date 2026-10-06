@@ -50,7 +50,11 @@ function TransactionTable({
   setConfirmDeleteTxId,
   categories,
   accounts,
+  monthMin,
+  monthMax,
 }: {
+  monthMin?: string;
+  monthMax?: string;
   txList: Transaction[];
   editingTxId: string | null;
   editTxForm: typeof emptyTxForm;
@@ -88,6 +92,8 @@ function TransactionTable({
                   <td className="px-4 py-2">
                     <input
                       type="date"
+                      min={monthMin}
+                      max={monthMax}
                       value={editTxForm.date}
                       onChange={(e) => setEditTxForm({ ...editTxForm, date: e.target.value })}
                       className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
@@ -258,7 +264,7 @@ function TransactionTable({
                 </td>
                 <td className="px-4 py-3 text-muted">
                   {tx.category?.name ?? "-"}
-                  {tx.toCategoryId && (
+                  {tx.toCategoryId && tx.toCategoryId !== tx.categoryId && (
                     <span className="text-faint">
                       {" "}
                       /{" "}
@@ -497,10 +503,18 @@ export default function MonthDetailPage({
     return <LoadingState message="Loading month..." />;
   }
 
+  // Date pickers stay inside the month (the API refuses dates outside it).
+  const monthMin = month ? `${month.year}-${String(month.month).padStart(2, "0")}-01` : undefined;
+  const monthMax = month
+    ? `${month.year}-${String(month.month).padStart(2, "0")}-${String(new Date(Date.UTC(month.year, month.month, 0)).getUTCDate()).padStart(2, "0")}`
+    : undefined;
+
   if (!month) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted">Month not found.</p>
+        <p className="text-muted">
+          Month not found. <Link href="/months" className="text-accent font-medium">Back to months</Link>
+        </p>
       </div>
     );
   }
@@ -634,6 +648,8 @@ export default function MonthDetailPage({
                 </label>
                 <input
                   type="date"
+                  min={monthMin}
+                  max={monthMax}
                   value={txForm.date}
                   onChange={(e) =>
                     setTxForm({ ...txForm, date: e.target.value })
@@ -806,6 +822,8 @@ export default function MonthDetailPage({
         {templateTx.length > 0 ? (
           <TransactionTable
             txList={templateTx}
+            monthMin={monthMin}
+            monthMax={monthMax}
             editingTxId={editingTxId}
             editTxForm={editTxForm}
             setEditTxForm={setEditTxForm}
@@ -837,6 +855,8 @@ export default function MonthDetailPage({
         {manualTx.length > 0 ? (
           <TransactionTable
             txList={manualTx}
+            monthMin={monthMin}
+            monthMax={monthMax}
             editingTxId={editingTxId}
             editTxForm={editTxForm}
             setEditTxForm={setEditTxForm}

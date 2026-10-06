@@ -46,6 +46,9 @@ export interface Month {
 export interface BudgetTemplate {
   id: string;
   name: string;
+  /** From GET /budgets */
+  definitionCount?: number;
+  monthsUsedCount?: number;
 }
 
 export interface BudgetDefinition {

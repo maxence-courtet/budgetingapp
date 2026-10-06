@@ -9,6 +9,7 @@ export interface HabitLite {
   frequency: string; // "DAILY" | "WEEKLY"
   active: boolean;
   createdAt?: string;
+  pausedAt?: string | null;
 }
 
 export interface LogLite {
@@ -118,7 +119,13 @@ export function perfectDays(habits: HabitLite[], done: Map<string, Set<string>>)
     .map((h) => {
       const days = done.get(h.id) ?? new Set<string>();
       const sorted = [...days].sort();
-      return { h, days, start: effectiveStart(h, days), end: h.active ? "9999-12-31" : sorted[sorted.length - 1] ?? "" };
+      // A paused habit counts up to the day before it was paused (older data without pausedAt: its last completion).
+      const end = h.active
+        ? "9999-12-31"
+        : h.pausedAt
+        ? addDays(h.pausedAt.slice(0, 10), -1)
+        : sorted[sorted.length - 1] ?? "";
+      return { h, days, start: effectiveStart(h, days), end };
     });
   const candidates = new Set<string>();
   daily.forEach((d) => d.days.forEach((x) => candidates.add(x)));

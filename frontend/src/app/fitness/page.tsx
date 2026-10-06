@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   getFitnessEntries,
   createFitnessEntry,
+  updateFitnessEntry,
   deleteFitnessEntry,
   getPendingFitnessEntries,
   validateFitnessEntry,
@@ -66,6 +67,7 @@ export default function FitnessPage() {
   const [formValue, setFormValue] = useState("");
   const [formUnit, setFormUnit] = useState("kg");
   const [rejectConfirm, setRejectConfirm] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; value: string; unit: string; date: string; note: string } | null>(null);
   const [formDate, setFormDate] = useState(todayISO());
   const [formNote, setFormNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -94,6 +96,7 @@ export default function FitnessPage() {
   }, [loadData]);
 
   const resetForm = () => {
+    setError("");
     setFormType("WEIGHT");
     setFormValue("");
     setFormUnit("kg");
@@ -128,6 +131,29 @@ export default function FitnessPage() {
       setError(e.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const patchEdit = (patch: Partial<{ value: string; unit: string; date: string; note: string }>) =>
+    setEditing((cur) => (cur ? { ...cur, ...patch } : cur));
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    const value = parseFloat(editing.value);
+    if (Number.isNaN(value) || value < 0) return setError("Enter a value of 0 or more.");
+    if (!editing.date) return setError("Pick a date.");
+    try {
+      await updateFitnessEntry(editing.id, {
+        value,
+        unit: editing.unit.trim() || undefined,
+        date: editing.date,
+        note: editing.note.trim() || null,
+      });
+      setEditing(null);
+      setError("");
+      await loadData();
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -293,9 +319,12 @@ export default function FitnessPage() {
                 value={formType}
                 onChange={(e) => {
                   setFormType(e.target.value);
-                  // Suggest the matching unit for built-in metrics (kg, %, steps, min).
+                  // Built-in metrics suggest their unit (kg, %, steps, min) unless you typed your own;
+                  // switching to a custom metric clears a suggested unit.
+                  const suggested = Object.values(DEFAULT_UNITS);
                   const unit = DEFAULT_UNITS[e.target.value.trim().toUpperCase()];
-                  if (unit) setFormUnit(unit);
+                  const untouched = !formUnit.trim() || suggested.includes(formUnit.trim());
+                  if (untouched) setFormUnit(unit ?? "");
                 }}
                 placeholder="e.g. WEIGHT"
                 className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
@@ -420,6 +449,28 @@ export default function FitnessPage() {
                   .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
                   .map((entry: any) => (
                     <tr key={entry.id} className="border-b border-line last:border-0 hover:bg-surface-2">
+                      {editing?.id === entry.id ? (
+                        <>
+                          <td className="px-4 py-2">
+                            <label className="sr-only" htmlFor={`edit-date-${entry.id}`}>Date</label>
+                            <input id={`edit-date-${entry.id}`} type="date" value={editing!.date} onChange={(e) => patchEdit({ date: e.target.value })} className="w-36 border border-line-strong rounded-lg px-2 py-1 text-sm" />
+                          </td>
+                          {activeTab === "OTHER" && <td className="px-4 py-2 text-fg-2">{entry.type}</td>}
+                          <td className="px-4 py-2">
+                            <span className="flex gap-1">
+                              <label className="sr-only" htmlFor={`edit-value-${entry.id}`}>Value</label>
+                              <input id={`edit-value-${entry.id}`} type="number" step="any" min="0" value={editing!.value} onChange={(e) => patchEdit({ value: e.target.value })} className="w-24 border border-line-strong rounded-lg px-2 py-1 text-sm" />
+                              <label className="sr-only" htmlFor={`edit-unit-${entry.id}`}>Unit</label>
+                              <input id={`edit-unit-${entry.id}`} type="text" value={editing!.unit} onChange={(e) => patchEdit({ unit: e.target.value })} className="w-16 border border-line-strong rounded-lg px-2 py-1 text-sm" />
+                            </span>
+                          </td>
+                          <td className="px-4 py-2">
+                            <label className="sr-only" htmlFor={`edit-note-${entry.id}`}>Note</label>
+                            <input id={`edit-note-${entry.id}`} type="text" value={editing!.note} onChange={(e) => patchEdit({ note: e.target.value })} className="w-full border border-line-strong rounded-lg px-2 py-1 text-sm" />
+                          </td>
+                        </>
+                      ) : (
+                        <>
                       <td className="px-4 py-3 text-fg-2">{formatDate(entry.date)}</td>
                       {activeTab === "OTHER" && <td className="px-4 py-3 text-fg-2">{entry.type}</td>}
                       <td className="px-4 py-3 font-medium text-fg">
@@ -428,6 +479,8 @@ export default function FitnessPage() {
                       <td className="px-4 py-3 text-muted max-w-[200px] truncate">
                         {entry.note ?? "—"}
                       </td>
+                        </>
+                      )}
                       <td className="px-4 py-3">
                         {entry.source === "MCP" && !entry.validatedAt ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
@@ -448,13 +501,28 @@ export default function FitnessPage() {
                             onCancel={() => setDeleteConfirm(null)}
                             label="Delete entry?"
                           />
+                        ) : editing?.id === entry.id ? (
+                          <span className="flex justify-end gap-2">
+                            <button onClick={handleSaveEdit} className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover">Save</button>
+                            <button onClick={() => setEditing(null)} className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2">Cancel</button>
+                          </span>
                         ) : (
-                          <button
-                            onClick={() => setDeleteConfirm(entry.id)}
-                            className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
-                          >
-                            Delete
-                          </button>
+                          <span className="flex justify-end gap-2">
+                            <button
+                              onClick={() =>
+                                setEditing({ id: entry.id, value: String(entry.value), unit: entry.unit ?? "", date: entry.date?.slice(0, 10) ?? "", note: entry.note ?? "" })
+                              }
+                              className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(entry.id)}
+                              className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </span>
                         )}
                       </td>
                     </tr>
