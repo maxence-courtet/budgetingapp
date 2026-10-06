@@ -14,12 +14,12 @@
 cd backend && npm install && cd ..
 cd frontend && npm install && cd ..
 cd dev && npm install && npm start
-# then open http://localhost:3002/dev-login
+# then open http://localhost:3000 and sign in as demo@hive.local / hive-demo-password
 ```
 
-- Starts Postgres on 5433 (data in `dev/.data`), syncs the Prisma schema, the backend on 3001, an auth proxy on 3002 and the frontend on 3000. Ctrl+C stops everything.
+- Starts Postgres on 5433 (data in `dev/.data`), syncs the Prisma schema, the backend on 3001 and the frontend on 3000, then creates the demo account. Ctrl+C stops everything.
 - Sample data is seeded on the first launch only. `npm run reset` deletes the database so the next start re-seeds it.
-- Sign-in is bypassed: the proxy adds the backend's `SERVICE_TOKEN` to every API call, and `/dev-login` sets the session cookie the frontend middleware checks. All data belongs to the `service|mcp` user.
+- Sign in as `demo@hive.local` / `hive-demo-password`; the sample data belongs to that account. You can also create more accounts at `/login`.
 - Settings are passed to each process directly, so your `.env` files are not used, except for `ANTHROPIC_API_KEY` (from your shell or `backend/.env`) to enable AI Insights.
 
 ### First-time setup (full stack with Docker + Better Auth)
@@ -37,7 +37,7 @@ cd backend && npm run db:push && cd ..
 
 # 4. Configure environment variables
 cp backend/.env.example backend/.env
-# Edit backend/.env — set DATABASE_URL, BETTER_AUTH_URL (the frontend URL), SERVICE_TOKEN, ANTHROPIC_API_KEY (optional, for AI Insights)
+# Edit backend/.env — set DATABASE_URL, BETTER_AUTH_URL (the frontend URL), ANTHROPIC_API_KEY (optional, for AI Insights)
 # The frontend needs DATABASE_URL, BETTER_AUTH_SECRET (any long random string), APP_BASE_URL and NEXT_PUBLIC_API_URL
 # in frontend/.env.local. Optional: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET to offer Google sign-in.
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
 import { date as parseDate, normalizeMoneyFlow, oneOf, sendError, BadRequest, TRANSACTION_STATUSES } from '../services/validate';
+import { assertOwnRefs } from '../services/ownership';
 
 const router = Router();
 
@@ -115,6 +116,7 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'categoryId and monthId are required' });
     }
     const flow = normalizeMoneyFlow({ type, amount, fromAccountId, toAccountId, categoryId, toCategoryId });
+    await assertOwnRefs(userId, { ...flow, categoryId });
     const when = parseDate(date, 'date')!;
     const txStatus = oneOf(status, 'status', TRANSACTION_STATUSES, { optional: true }) ?? 'PLANNED';
     await assertDateInMonth(userId, monthId, when);
@@ -175,6 +177,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       toCategoryId: toCategoryId !== undefined ? toCategoryId : existing.toCategoryId,
     };
     const flow = normalizeMoneyFlow(merged);
+    await assertOwnRefs(userId, { ...flow, categoryId: merged.categoryId });
     const when = date !== undefined ? parseDate(date, 'date')! : existing.date;
     const targetMonth = monthId ?? existing.monthId;
     if (date !== undefined || monthId !== undefined) await assertDateInMonth(userId, targetMonth, when);

@@ -49,35 +49,10 @@ async function findOrCreateUser(payload: AuthPayload) {
   });
 }
 
-async function attachServiceUser(req: Request, res: Response, next: NextFunction) {
-  try {
-    // MCP service token: look up or create a designated service user
-    const serviceUser = await prisma.user.upsert({
-      where: { authId: 'service|mcp' },
-      update: {},
-      create: {
-        authId: 'service|mcp',
-        email: 'mcp@life-hub.internal',
-        name: 'MCP Service',
-      },
-    });
-    req.userId = serviceUser.id;
-    next();
-  } catch (error) {
-    console.error('Error attaching service user:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-}
-
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Every request acts as one signed-in user: the web app and the hosted MCP server both send a short-lived
+  // JWT signed by the frontend. There is no shared or service token.
   const authHeader = req.headers.authorization;
-  const serviceToken = process.env.SERVICE_TOKEN;
-
-  // Allow service token to bypass user JWT validation
-  if (serviceToken && authHeader === `Bearer ${serviceToken}`) {
-    return attachServiceUser(req, res, next);
-  }
-
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });

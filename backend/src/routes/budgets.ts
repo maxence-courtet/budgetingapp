@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
 import { normalizeMoneyFlow, sendError } from '../services/validate';
+import { assertOwnRefs } from '../services/ownership';
 
 const router = Router();
 
@@ -158,6 +159,7 @@ router.post('/:id/definitions', async (req: Request, res: Response) => {
     }
 
     const flow = normalizeMoneyFlow({ type, amount, fromAccountId, toAccountId, categoryId, toCategoryId });
+    await assertOwnRefs(userId, { ...flow, categoryId });
 
     const definition = await prisma.budgetTransactionDefinition.create({
       data: {
@@ -204,6 +206,7 @@ router.put('/:id/definitions/:defId', async (req: Request, res: Response) => {
       toCategoryId: toCategoryId !== undefined ? toCategoryId : existing.toCategoryId,
     };
     const data: any = { ...normalizeMoneyFlow(merged), categoryId: merged.categoryId };
+    await assertOwnRefs(userId, data);
     if (description !== undefined) data.description = description;
 
     const definition = await prisma.budgetTransactionDefinition.update({

@@ -1,7 +1,23 @@
-// Seeds the local dev database with sample data through the API (run by start.mjs on first launch).
-// Usage: cd dev && npm run seed   (backend must be running)
+// Creates the demo account and fills it with sample data through the real sign-up and API
+// (run by start.mjs on first launch). Usage: cd dev && npm run seed   (frontend and backend must be running)
+const APP = "http://localhost:3000";
 const API = "http://localhost:3001/api";
-const H = { "Content-Type": "application/json", Authorization: "Bearer local-dev-service-token" };
+const DEMO = { email: "demo@hive.local", password: "hive-demo-password", name: "Demo" };
+
+// Sign up (or in, if the account already exists) and exchange the session for an API token, like the web app does.
+async function demoToken() {
+  const headers = { "Content-Type": "application/json", Origin: APP };
+  let r = await fetch(`${APP}/api/auth/sign-up/email`, { method: "POST", headers, body: JSON.stringify(DEMO) });
+  if (!r.ok) r = await fetch(`${APP}/api/auth/sign-in/email`, { method: "POST", headers, body: JSON.stringify(DEMO) });
+  if (!r.ok) throw new Error(`Could not sign in the demo account: ${r.status} ${await r.text()}`);
+  const cookie = r.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
+  const t = await fetch(`${APP}/api/auth/token`, { headers: { Cookie: cookie } });
+  const { accessToken } = await t.json();
+  if (!accessToken) throw new Error("Could not get an API token for the demo account");
+  return accessToken;
+}
+
+const H = { "Content-Type": "application/json", Authorization: `Bearer ${await demoToken()}` };
 async function post(path, body) {
   const r = await fetch(API + path, { method: "POST", headers: H, body: JSON.stringify(body) });
   const j = await r.json().catch(() => null);

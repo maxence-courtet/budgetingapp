@@ -1,9 +1,8 @@
-// Local dev environment: embedded Postgres + auth-bypass proxy + backend + frontend.
+// Local dev environment: embedded Postgres + backend + frontend, seeded with a demo account.
 // Usage: cd dev && npm install && npm start   (requires Node >= 20.9)
 import EmbeddedPostgres from "embedded-postgres";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import http from "node:http";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -23,7 +22,6 @@ for (const pkg of ["backend", "frontend"]) {
 }
 
 const PG_PORT = 5433;
-const SERVICE_TOKEN = "local-dev-service-token";
 const DATABASE_URL = `postgresql://dev:dev@localhost:${PG_PORT}/budget_app`;
 const dataDir = path.join(here, ".data");
 const children = [];
@@ -82,46 +80,26 @@ process.on("SIGTERM", shutdown);
 try {
   await runToCompletion("prisma", "npx", ["prisma", "db", "push"], path.join(root, "backend"), { DATABASE_URL });
 
-  // 2. Proxy: injects the backend service token so the frontend works without signing in.
-  //    /dev-login sets the session cookie the frontend middleware checks (cookies are shared across localhost ports).
-  http
-    .createServer((req, res) => {
-      if (req.url === "/dev-login") {
-        res.writeHead(302, { "Set-Cookie": "better-auth.session_token=dev; Path=/; SameSite=Lax", Location: "http://localhost:3000/" });
-        return res.end();
-      }
-      const headers = { ...req.headers, authorization: `Bearer ${SERVICE_TOKEN}`, host: "localhost:3001" };
-      const upstream = http.request({ host: "localhost", port: 3001, path: req.url, method: req.method, headers }, (r) => {
-        res.writeHead(r.statusCode, r.headers);
-        r.pipe(res);
-      });
-      upstream.on("error", (e) => {
-        res.writeHead(502);
-        res.end(String(e));
-      });
-      req.pipe(upstream);
-    })
-    .listen(3002, () => console.log("[proxy]    Auth proxy ready on 3002"));
-
-  // 3. Backend
+  // 2. Backend
   run("backend", "npx", ["tsx", "watch", "src/server.ts"], path.join(root, "backend"), {
     DATABASE_URL,
-    SERVICE_TOKEN,
     PORT: "3001",
     BETTER_AUTH_URL: "http://localhost:3000",
   });
   await waitFor("http://localhost:3001/api/health");
-  if (fresh) await runToCompletion("seed", "node", ["seed.mjs"], here);
 
-  // 4. Frontend (login is bypassed via /dev-login; real sign-up at /login also works locally)
+  // 3. Frontend (Better Auth stores its users in the same database)
   run("frontend", "npx", ["next", "dev"], path.join(root, "frontend"), {
-    NEXT_PUBLIC_API_URL: "http://localhost:3002/api",
+    NEXT_PUBLIC_API_URL: "http://localhost:3001/api",
     DATABASE_URL,
     BETTER_AUTH_SECRET: "dev-secret-0123456789abcdef0123456789abcdef",
     APP_BASE_URL: "http://localhost:3000",
   });
-  await waitFor("http://localhost:3000/favicon.ico", 120_000);
-  console.log("\n  Life Hub is running. Open http://localhost:3002/dev-login to sign in.\n");
+  await waitFor("http://localhost:3000/api/health", 120_000);
+
+  // 4. Demo account with sample data, created through the real sign-up and API on first launch
+  if (fresh) await runToCompletion("seed", "node", ["seed.mjs"], here);
+  console.log("\n  Hive is running at http://localhost:3000 - sign in as demo@hive.local / hive-demo-password\n");
 } catch (err) {
   console.error(err.message);
   await shutdown();
