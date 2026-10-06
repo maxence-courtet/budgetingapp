@@ -139,10 +139,14 @@ export default function InvestmentsPage() {
           <div className="flex items-end gap-6">
             <div className="space-y-1">
               <p className="text-xs text-muted">Total gain/loss</p>
-              <p className={`font-mono text-xl ${gainLossColor(summary.totalGainLoss)}`}>
-                {signedMoney(summary.totalGainLoss)}{" "}
-                <span className="text-sm">({formatPct(summary.totalGainLossPct)})</span>
-              </p>
+              {summary.unpricedCount === summary.holdingsCount ? (
+                <p className="font-mono text-xl text-muted" title="No live prices right now">—</p>
+              ) : (
+                <p className={`font-mono text-xl ${gainLossColor(summary.totalGainLoss)}`}>
+                  {signedMoney(summary.totalGainLoss)}{" "}
+                  <span className="text-sm">({formatPct(summary.totalGainLossPct)})</span>
+                </p>
+              )}
             </div>
             <button
               onClick={() => loadPortfolio(true)}

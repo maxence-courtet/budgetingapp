@@ -87,6 +87,8 @@ function assetBadge(type: string) {
 
 export default function TradesPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [filterTicker, setFilterTicker] = useState("");
+  const [filterAccount, setFilterAccount] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -218,9 +220,16 @@ export default function TradesPage() {
       setDeleteConfirm(null);
       await loadData();
     } catch (e: any) {
+      setDeleteConfirm(null);
       setError(e.message);
     }
   };
+
+  const visibleTrades = trades.filter(
+    (t) =>
+      (!filterTicker.trim() || t.ticker.includes(filterTicker.trim().toUpperCase())) &&
+      (!filterAccount || t.account?.id === filterAccount)
+  );
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -447,6 +456,35 @@ export default function TradesPage() {
           }}
         />
       ) : (
+        <>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-xs text-muted">
+            Ticker
+            <input
+              type="search"
+              value={filterTicker}
+              onChange={(e) => setFilterTicker(e.target.value)}
+              placeholder="e.g. AAPL"
+              className="mt-1 block w-36 border border-line-strong rounded-xl px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </label>
+          <label className="text-xs text-muted">
+            Account
+            <select
+              value={filterAccount}
+              onChange={(e) => setFilterAccount(e.target.value)}
+              className="mt-1 block w-48 border border-line-strong rounded-xl px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option value="">All accounts</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </label>
+          <span className="text-xs text-muted pb-2">
+            {visibleTrades.length} of {trades.length} trades
+          </span>
+        </div>
         <div className="bg-surface border border-line rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" aria-label="Trade log">
@@ -466,7 +504,7 @@ export default function TradesPage() {
                 </tr>
               </thead>
               <tbody>
-                {trades.map((trade) =>
+                {visibleTrades.map((trade) =>
                   editingId === trade.id ? (
                     /* ── Inline edit row ─────────────────────────────── */
                     <tr key={trade.id} className="border-b border-line bg-surface-2">
@@ -667,6 +705,7 @@ export default function TradesPage() {
             </table>
           </div>
         </div>
+        </>
       )}
     </div>
   );
