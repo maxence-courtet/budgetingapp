@@ -1,4 +1,3 @@
-import yahooFinance from "yahoo-finance2";
 
 interface QuoteResult {
   price: number;
@@ -25,20 +24,37 @@ export async function getQuote(ticker: string): Promise<QuoteResult> {
     return cached.data;
   }
 
-  const quote = await yahooFinance.quote(upperTicker);
-  if (!quote?.regularMarketPrice) throw new Error(`No price available for ${upperTicker}`);
-
-  const data: QuoteResult = {
-    price: quote.regularMarketPrice ?? 0,
-    currency: quote.currency ?? "USD",
-    name: quote.longName ?? quote.shortName ?? upperTicker,
-    change: quote.regularMarketChange ?? 0,
-    changePercent: quote.regularMarketChangePercent ?? 0,
-    marketCap: quote.marketCap,
-  };
+  const data = await fetchChartQuote(upperTicker);
 
   cache.set(upperTicker, { data, fetchedAt: Date.now() });
   return data;
+}
+
+/**
+ * Price from Yahoo's public chart endpoint. The yahoo-finance2 v2 quote() call needs a
+ * cookie/crumb handshake that Yahoo now answers with "Too Many Requests"; this endpoint doesn't.
+ */
+async function fetchChartQuote(ticker: string): Promise<QuoteResult> {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1d&interval=1d`;
+  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (LifeHub)" } });
+  if (!res.ok) throw new Error(`Yahoo returned ${res.status} for ${ticker}`);
+  const body = (await res.json()) as {
+    chart?: { result?: { meta?: Record<string, any> }[]; error?: { description?: string } | null };
+  };
+  const meta = body.chart?.result?.[0]?.meta;
+  if (!meta?.regularMarketPrice) {
+    throw new Error(body.chart?.error?.description ?? `No price available for ${ticker}`);
+  }
+  const price: number = meta.regularMarketPrice;
+  const previous: number | undefined = meta.chartPreviousClose ?? meta.previousClose;
+  const change = previous ? price - previous : 0;
+  return {
+    price,
+    currency: meta.currency ?? "USD",
+    name: meta.longName ?? meta.shortName ?? ticker,
+    change,
+    changePercent: previous ? (change / previous) * 100 : 0,
+  };
 }
 
 export async function getQuotes(tickers: string[]): Promise<Map<string, QuoteResult>> {
