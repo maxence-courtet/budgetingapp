@@ -2,6 +2,7 @@ export const THEME_PREFS = ["light", "dark", "system"] as const;
 export type ThemePref = (typeof THEME_PREFS)[number];
 
 export const ACCENTS = [
+  { id: "honey", label: "Honey", light: "#F5B31F", dark: "#F5B31F" },
   { id: "lime", label: "Lime", light: "#4d7c0f", dark: "#c6f432" },
   { id: "ion", label: "Ion blue", light: "#3d5bf5", dark: "#6e8bff" },
   { id: "ember", label: "Ember", light: "#c2410c", dark: "#ff6a2b" },
@@ -11,7 +12,7 @@ export const ACCENTS = [
 export type AccentId = (typeof ACCENTS)[number]["id"];
 
 export const DEFAULT_THEME: ThemePref = "system";
-export const DEFAULT_ACCENT: AccentId = "violet";
+export const DEFAULT_ACCENT: AccentId = "honey";
 export const THEME_KEY = "lh-theme";
 export const ACCENT_KEY = "lh-accent";
 

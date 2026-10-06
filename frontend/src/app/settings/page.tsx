@@ -53,7 +53,7 @@ export default function SettingsPage() {
 
         <fieldset className="space-y-3">
           <legend className="font-mono text-[11px] text-muted uppercase tracking-[0.08em] mb-3">Accent color</legend>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
             {ACCENTS.map((a) => {
               const selected = accent === a.id;
               return (

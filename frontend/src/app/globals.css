@@ -2,7 +2,7 @@
 
 /*
  * Theme tokens. <html> carries data-theme (light | dark) and data-accent
- * (lime | ion | ember | violet | mono); both are set before first paint by the
+ * (honey | lime | ion | ember | violet | mono); both are set before first paint by the
  * script in layout.tsx and kept in sync by AppearanceProvider.
  */
 :root {
@@ -42,6 +42,8 @@
 
 /* Accent presets: light-mode values keep 4.5:1 with white text, dark-mode values with near-black text. */
 :root[data-accent="lime"] { --accent: #4d7c0f; }
+/* Honey (Hive brand gold) is too light for white text, so it pairs with near-black ink in both themes. */
+:root[data-accent="honey"] { --accent: #f5b31f; --accent-ink: #1c1810; }
 :root[data-accent="ion"] { --accent: #3d5bf5; }
 :root[data-accent="ember"] { --accent: #c2410c; }
 :root[data-accent="violet"] { --accent: #6d4ae8; }
@@ -58,6 +60,25 @@
   /* accent as text on the soft tint (badges): a darker step in light mode keeps 4.5:1 for every preset */
   --accent-strong: color-mix(in oklab, var(--accent) 72%, #000);
   --pos: var(--accent);
+}
+
+/*
+ * Honey in light mode: the brand gold is 1.85:1 on white, fine for fills (buttons, badges, toggles) but
+ * not for text, icons or focus rings. Those use a deeper honey (5.9:1 on white) instead. Unlayered, so it
+ * wins over the Tailwind utilities.
+ */
+:root[data-theme="light"][data-accent="honey"] {
+  --accent-text: #8a5a00;
+  --accent-strong: var(--accent-text);
+  --pos: var(--accent-text);
+}
+:root[data-theme="light"][data-accent="honey"] :is(.text-accent, .hover\:text-accent:hover, .group:hover .group-hover\:text-accent) {
+  color: var(--accent-text);
+}
+:root[data-theme="light"][data-accent="honey"] .fill-accent { fill: var(--accent-text); }
+:root[data-theme="light"][data-accent="honey"] .stroke-accent { stroke: var(--accent-text); }
+:root[data-theme="light"][data-accent="honey"] :is(.ring-accent, .hover\:ring-accent:hover, .focus\:ring-accent:focus) {
+  --tw-ring-color: var(--accent-text);
 }
 
 @theme inline {
