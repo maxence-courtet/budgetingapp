@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
-import { date as parseDate, normalizeMoneyFlow, oneOf, sendError, BadRequest, TRANSACTION_STATUSES } from '../services/validate';
-import { assertOwnRefs } from '../services/ownership';
+import { date as parseDate, normalizeMoneyFlow, oneOf, sendError, text, BadRequest, TRANSACTION_STATUSES } from '../services/validate';
+import { assertOwnIds, assertOwnRefs } from '../services/ownership';
 
 const router = Router();
 
@@ -142,6 +142,80 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(201).json(transaction);
   } catch (error) {
     sendError(res, error, 'Failed to create transaction');
+  }
+});
+
+// POST /import - create up to 500 transactions in one request, all or nothing (used to bring in existing data,
+// e.g. by an AI assistant through MCP). Same rules as POST /: accounts, categories and months must be the user's
+// and each date must fall in its month. Without a monthId, the month containing the date is used (created if needed).
+const IMPORT_MAX = 500;
+router.post('/import', async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const items = req.body?.transactions;
+    if (!Array.isArray(items) || items.length === 0) throw new BadRequest('transactions must be a non-empty array');
+    if (items.length > IMPORT_MAX) throw new BadRequest(`At most ${IMPORT_MAX} transactions per import`);
+
+    const rows = items.map((t: any, i: number) => {
+      try {
+        if (!t || typeof t !== 'object') throw new BadRequest('must be an object');
+        if (!t.categoryId) throw new BadRequest('categoryId is required');
+        const flow = normalizeMoneyFlow(t);
+        return {
+          ...flow,
+          categoryId: String(t.categoryId),
+          date: parseDate(t.date, 'date')!,
+          description: text(t.description, 'description', { optional: true, max: 500 }),
+          status: oneOf(t.status, 'status', TRANSACTION_STATUSES, { optional: true }) ?? 'PLANNED',
+          monthId: t.monthId ? String(t.monthId) : null,
+        };
+      } catch (error) {
+        if (error instanceof BadRequest) throw new BadRequest(`Transaction ${i + 1}: ${error.message}`);
+        throw error;
+      }
+    });
+
+    await assertOwnIds(
+      userId,
+      rows.flatMap((r) => [r.fromAccountId, r.toAccountId]),
+      rows.flatMap((r) => [r.categoryId, r.toCategoryId])
+    );
+
+    const created = await prisma.$transaction(async (tx) => {
+      // Months named explicitly must be the user's and contain the date.
+      const givenIds = [...new Set(rows.map((r) => r.monthId).filter((x): x is string => !!x))];
+      const given = new Map((await tx.month.findMany({ where: { id: { in: givenIds }, userId } })).map((m) => [m.id, m]));
+      // Otherwise use (or create) the month the date falls in.
+      const byKey = new Map<string, string>();
+      const key = (year: number, month: number) => `${year}-${month}`;
+      for (const m of await tx.month.findMany({ where: { userId } })) byKey.set(key(m.year, m.month), m.id);
+
+      const data = [];
+      for (const [i, r] of rows.entries()) {
+        const year = r.date.getUTCFullYear();
+        const month = r.date.getUTCMonth() + 1;
+        let monthId = r.monthId;
+        if (monthId) {
+          const m = given.get(monthId);
+          if (!m) throw new BadRequest(`Transaction ${i + 1}: Month not found`);
+          if (m.year !== year || m.month !== month) {
+            throw new BadRequest(`Transaction ${i + 1}: the date must be in ${MONTH_NAMES[m.month - 1]} ${m.year}`);
+          }
+        } else {
+          monthId = byKey.get(key(year, month)) ?? null;
+          if (!monthId) {
+            monthId = (await tx.month.create({ data: { month, year, userId } })).id;
+            byKey.set(key(year, month), monthId);
+          }
+        }
+        data.push({ ...r, monthId, userId });
+      }
+      return tx.transaction.createMany({ data });
+    }, { timeout: 30_000 });
+
+    res.status(201).json({ created: created.count });
+  } catch (error) {
+    sendError(res, error, 'Failed to import transactions');
   }
 });
 

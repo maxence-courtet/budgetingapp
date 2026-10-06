@@ -5,9 +5,11 @@ import { fitnessTools } from "./tools/fitness";
 import { goalTools } from "./tools/goals";
 import { noteTools } from "./tools/notes";
 import { investmentTools } from "./tools/investments";
+import { setupTools } from "./tools/setup";
 
 const allTools = [
   ...financeTools,
+  ...setupTools,
   ...investmentTools,
   ...habitTools,
   ...fitnessTools,
