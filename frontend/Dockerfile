@@ -1,4 +1,5 @@
-FROM node:20-slim
+# ── Build ─────────────────────────────────────────────────────────────────────
+FROM node:20-slim AS build
 
 WORKDIR /app
 
@@ -16,9 +17,22 @@ ARG APP_BASE_URL
 ARG AUTH0_AUDIENCE
 ARG NEXT_PUBLIC_API_URL
 
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-ENV PORT=3000
-EXPOSE 3000
+# ── Run: only the standalone server, static assets and public files ──────────
+FROM node:20-slim
 
-CMD ["npm", "start"]
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000
+
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
+
+EXPOSE 3000
+# Railway injects PORT; the standalone server reads PORT and HOSTNAME.
+CMD ["node", "server.js"]

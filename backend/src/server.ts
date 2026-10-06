@@ -1,6 +1,7 @@
 import { errorHandler } from './middleware/asyncErrors'; // first: patches routers before routes load
 import express from 'express';
 import cors from 'cors';
+import { rateLimit } from './middleware/rateLimit';
 import { authMiddleware } from './middleware/auth';
 import { accountRoutes } from './routes/accounts';
 import { categoryRoutes } from './routes/categories';
@@ -20,8 +21,15 @@ import { runDataFixes } from './services/dataFixes';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+// Behind Railway's proxy: req.ip is the client, not the proxy.
+app.set('trust proxy', 1);
+
+// CORS_ORIGIN: comma-separated allowed origins (e.g. https://lifehub.example.com). Unset = allow all (local dev).
+const allowedOrigins = (process.env.CORS_ORIGIN ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : undefined));
+app.use(express.json({ limit: '1mb' }));
+// RATE_LIMIT_PER_MINUTE requests per client IP (default 300; the dashboard makes ~10 per load).
+app.use('/api', rateLimit({ windowMs: 60_000, max: Number(process.env.RATE_LIMIT_PER_MINUTE) || 300 }));
 
 // Public routes
 app.get('/api/health', (_req, res) => {

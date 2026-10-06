@@ -9,8 +9,8 @@ export async function middleware(req: NextRequest) {
     return auth0.middleware(req);
   }
 
-  // Allow token endpoint through
-  if (pathname === '/api/auth/token') {
+  // Allow the token endpoint and the healthcheck through
+  if (pathname === '/api/auth/token' || pathname === '/api/health') {
     return NextResponse.next();
   }
 

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import prisma from "./prisma";
 
 export class AiError extends Error {
   constructor(message: string, public status: number) {
@@ -7,6 +8,40 @@ export class AiError extends Error {
 }
 
 let client: Anthropic | null = null;
+
+/** Model for AI features; AI_MODEL can point at a cheaper one (e.g. claude-sonnet-5-5) to cut costs. */
+const MODEL = process.env.AI_MODEL || "claude-opus-5-5";
+
+const DAILY_LIMITS: Record<string, number> = {
+  insights: Number(process.env.AI_INSIGHTS_DAILY_LIMIT) || 5,
+  "weekly-review": Number(process.env.AI_REVIEW_DAILY_LIMIT) || 3,
+};
+
+function todayUtcDate() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+}
+
+/**
+ * Run a paid AI call only if the user is under today's limit for that feature, and count it
+ * once it succeeds (failed calls don't use up the allowance).
+ */
+export async function withAiQuota<T>(userId: string, feature: "insights" | "weekly-review", call: () => Promise<T>): Promise<T> {
+  const limit = DAILY_LIMITS[feature];
+  const day = todayUtcDate();
+  const key = { userId_day_feature: { userId, day, feature } };
+  const used = (await prisma.aiUsage.findUnique({ where: key }))?.count ?? 0;
+  if (used >= limit) {
+    throw new AiError(`You've used today's ${limit} AI ${feature === "insights" ? "analyses" : "reviews"}. Try again tomorrow.`, 429);
+  }
+  const result = await call();
+  await prisma.aiUsage.upsert({
+    where: key,
+    create: { userId, day, feature, count: 1 },
+    update: { count: { increment: 1 } },
+  });
+  return result;
+}
 
 /** One Claude call that must answer with JSON matching `schema`. Errors carry an HTTP status. */
 export async function generateJson<T>(system: string, schema: { [key: string]: unknown }, userContent: string): Promise<T> {
@@ -18,7 +53,7 @@ export async function generateJson<T>(system: string, schema: { [key: string]: u
   try {
     client ??= new Anthropic();
     response = await client.beta.messages.create({
-      model: "claude-opus-5-5",
+      model: MODEL,
       max_tokens: 16000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",

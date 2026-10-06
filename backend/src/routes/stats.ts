@@ -3,6 +3,7 @@ import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
 import { generateInsights } from "../services/insights";
 import { netWorthHistory } from "../services/netWorth";
+import { withAiQuota } from "../services/ai";
 import { findPatterns } from "../services/patterns";
 import { compileWeek, runWeeklyReview } from "../services/weeklyReview";
 
@@ -169,7 +170,7 @@ router.get("/weekly-summary", async (req, res) => {
 router.post("/weekly-review", async (req, res) => {
   try {
     const source = req.body?.source === "MCP" ? "MCP" : "MANUAL";
-    res.json(await runWeeklyReview(req.userId!, weekParam(req.body?.week), source));
+    res.json(await withAiQuota(req.userId!, "weekly-review", () => runWeeklyReview(req.userId!, weekParam(req.body?.week), source)));
   } catch (err: any) {
     res.status(err.status ?? 502).json({ error: err.message });
   }
@@ -178,7 +179,8 @@ router.post("/weekly-review", async (req, res) => {
 router.post("/insights", async (req, res) => {
   try {
     const overview = await buildLifeOverview(req.userId!);
-    res.json({ generatedAt: overview.generatedAt, ...(await generateInsights(overview)) });
+    const insights = await withAiQuota(req.userId!, "insights", () => generateInsights(overview));
+    res.json({ generatedAt: overview.generatedAt, ...insights });
   } catch (err: any) {
     res.status(err.status ?? 502).json({ error: err.message });
   }

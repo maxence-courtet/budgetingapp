@@ -15,23 +15,19 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { name: 'asc' },
     });
 
-    // Calculate balances for all accounts
-    const result = await Promise.all(
-      accounts.map(async (account) => {
-        // Balance as of today: PAID transactions dated in the future don't count yet.
-        const asOfToday = { lte: endOfTodayUtc() };
-        const incoming = await prisma.transaction.aggregate({
-          where: { toAccountId: account.id, status: 'PAID', userId, date: asOfToday },
-          _sum: { amount: true },
-        });
-        const outgoing = await prisma.transaction.aggregate({
-          where: { fromAccountId: account.id, status: 'PAID', userId, date: asOfToday },
-          _sum: { amount: true },
-        });
-        const balance = (incoming._sum.amount || 0) - (outgoing._sum.amount || 0);
-        return { ...account, balance };
-      })
-    );
+    // Balances as of today in two grouped queries (not two per account):
+    // PAID transactions dated in the future don't count yet.
+    const asOfToday = { userId, status: 'PAID', date: { lte: endOfTodayUtc() } };
+    const [incoming, outgoing] = await Promise.all([
+      prisma.transaction.groupBy({ by: ['toAccountId'], where: { ...asOfToday, toAccountId: { not: null } }, _sum: { amount: true } }),
+      prisma.transaction.groupBy({ by: ['fromAccountId'], where: { ...asOfToday, fromAccountId: { not: null } }, _sum: { amount: true } }),
+    ]);
+    const inBy = new Map(incoming.map((g) => [g.toAccountId, g._sum.amount ?? 0]));
+    const outBy = new Map(outgoing.map((g) => [g.fromAccountId, g._sum.amount ?? 0]));
+    const result = accounts.map((account) => ({
+      ...account,
+      balance: (inBy.get(account.id) ?? 0) - (outBy.get(account.id) ?? 0),
+    }));
 
     res.json(result.sort(byName));
   } catch (error) {

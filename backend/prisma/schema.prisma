@@ -30,6 +30,7 @@ model User {
   notes             Note[]
   goalMilestones    GoalMilestone[]
   netWorthSnapshots NetWorthSnapshot[]
+  aiUsage           AiUsage[]
 }
 
 model Account {
@@ -96,6 +97,10 @@ model Transaction {
   modifiedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([userId, status, date])
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@index([monthId])
 }
 
 model BudgetTemplate {
@@ -217,6 +222,7 @@ model HabitLog {
 
   @@unique([habitId, date])
   @@index([userId])
+  @@index([userId, date])
 }
 
 // ─── Fitness ─────────────────────────────────────────────────────────────────
@@ -236,6 +242,7 @@ model FitnessEntry {
 
   @@index([userId])
   @@index([type, userId])
+  @@index([userId, type, date])
 }
 
 // ─── Goals ───────────────────────────────────────────────────────────────────
@@ -366,4 +373,19 @@ model NetWorthSnapshot {
   user   User   @relation(fields: [userId], references: [id])
 
   @@unique([userId, month])
+}
+
+// ─── AI usage ────────────────────────────────────────────────────────────────
+
+// Paid AI calls per user per day, so one user can't run up the Anthropic bill.
+model AiUsage {
+  id      String   @id @default(uuid())
+  day     DateTime @db.Date
+  feature String // "insights" | "weekly-review"
+  count   Int      @default(0)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, day, feature])
 }
