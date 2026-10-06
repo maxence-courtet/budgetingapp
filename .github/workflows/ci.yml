@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend · typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma validate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      - run: npm run build
+
+  frontend:
+    name: Frontend · typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      # Placeholders so the build doesn't depend on real secrets.
+      AUTH0_DOMAIN: ci.example.auth0.com
+      AUTH0_CLIENT_ID: ci
+      AUTH0_CLIENT_SECRET: ci
+      AUTH0_SECRET: ci-0000000000000000000000000000000000000000000000000000000000000000
+      APP_BASE_URL: http://localhost:3000
+      AUTH0_AUDIENCE: https://ci.example.com
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
