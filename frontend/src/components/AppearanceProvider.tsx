@@ -67,8 +67,14 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     root.classList.add("theme-switching");
     root.dataset.theme = resolvedTheme;
     root.dataset.accent = accent;
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switching")));
-    return () => cancelAnimationFrame(id);
+    const done = () => root.classList.remove("theme-switching");
+    const id = requestAnimationFrame(() => requestAnimationFrame(done));
+    const fallback = window.setTimeout(done, 100); // background tabs may not run animation frames
+    return () => {
+      cancelAnimationFrame(id);
+      window.clearTimeout(fallback);
+      done();
+    };
   }, [loaded, resolvedTheme, accent]);
 
   const setTheme = useCallback((t: ThemePref) => {

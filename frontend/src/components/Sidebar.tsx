@@ -113,6 +113,7 @@ export function Sidebar() {
     <aside
       ref={asideRef}
       id="sidebar"
+      {...(mobileOpen ? { role: "dialog", "aria-modal": true, "aria-label": "Menu" } : {})}
       className={`fixed inset-y-0 left-0 w-64 bg-side border-r border-line flex flex-col z-50 transition-transform duration-200 lg:translate-x-0 lg:visible ${
         mobileOpen ? "translate-x-0" : "-translate-x-full invisible"
       }`}

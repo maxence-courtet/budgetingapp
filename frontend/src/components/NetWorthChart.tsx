@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getNetWorthHistory } from "@/lib/api";
 import { fmt } from "@/lib/format";
 import { TRANSACTIONS_CHANGED } from "@/components/QuickAddTransaction";
@@ -55,7 +55,8 @@ export function NetWorthChart() {
   const [hover, setHover] = useState<number | null>(null);
   const [asTable, setAsTable] = useState(false);
   const [width, setWidth] = useState(640);
-  const boxRef = useRef<HTMLElement>(null);
+  // Callback ref: the observer attaches whenever the card's element appears (a ref + [] effect could miss it).
+  const [box, setBox] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,11 +73,12 @@ export function NetWorthChart() {
   }, [range]);
 
   useEffect(() => {
-    if (!boxRef.current) return;
+    if (!box) return;
+    setWidth(box.getBoundingClientRect().width - 40); // card padding (p-5) until the first observation
     const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
-    ro.observe(boxRef.current);
+    ro.observe(box);
     return () => ro.disconnect();
-  }, []);
+  }, [box]);
 
   const header = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -115,7 +117,7 @@ export function NetWorthChart() {
 
   if (error) {
     return (
-      <section ref={boxRef} aria-labelledby="networth-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-3">
+      <section ref={setBox} aria-labelledby="networth-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-3">
         {header}
         <p className="text-sm text-neg">{error}</p>
       </section>
@@ -125,7 +127,7 @@ export function NetWorthChart() {
   const usesCost = data?.some((p) => p.investmentsSource === "cost" && p.investments > 0);
 
   return (
-    <section ref={boxRef} aria-labelledby="networth-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-3">
+    <section ref={setBox} aria-labelledby="networth-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-3">
       {header}
       {!data ? (
         <div className="h-[180px] rounded-xl bg-surface-2 animate-pulse" aria-hidden="true" />
