@@ -108,7 +108,11 @@ export function normalizeMoneyFlow(t: {
   const toAccountId = type === "SPENDING" ? null : t.toAccountId || null;
   if (type !== "INCOME" && !fromAccountId) throw new BadRequest(`A ${type.toLowerCase()} needs a "from" account`);
   if (type !== "SPENDING" && !toAccountId) throw new BadRequest(`${type === "INCOME" ? "Income" : "A transfer"} needs a "to" account`);
-  if (type === "TRANSFER" && fromAccountId === toAccountId) throw new BadRequest("A transfer needs two different accounts");
   const toCategoryId = type === "TRANSFER" ? t.toCategoryId || t.categoryId || null : null;
+  // A transfer within one account moves money between two of its categories (e.g. savings set aside for taxes
+  // re-assigned to a new car); with the same account and the same category it would move nothing.
+  if (type === "TRANSFER" && fromAccountId === toAccountId && toCategoryId === (t.categoryId || null)) {
+    throw new BadRequest("A transfer within one account must move money to a different category");
+  }
   return { type, amount, fromAccountId, toAccountId, toCategoryId };
 }

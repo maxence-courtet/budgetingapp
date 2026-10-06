@@ -109,13 +109,18 @@ router.get('/category-detail', async (req: Request, res: Response) => {
       orderBy: { date: 'desc' },
     });
 
+    // A side counts when both its account and its category match: money arrives under toCategoryId (or
+    // categoryId for income) and leaves under categoryId. A transfer between two categories of the same account
+    // is "out" for one category and "in" for the other.
     let totalIn = 0;
     let totalOut = 0;
-    const result = transactions.map((t) => {
-      const isIncoming = t.toAccountId === (accountId as string);
+    const result = transactions.flatMap((t) => {
+      const isIncoming = t.toAccountId === accountId && (t.toCategoryId ?? t.categoryId) === categoryId;
+      const isOutgoing = t.fromAccountId === accountId && t.categoryId === categoryId;
+      if (!isIncoming && !isOutgoing) return [];
       if (isIncoming) totalIn += t.amount;
-      else totalOut += t.amount;
-      return { ...t, direction: isIncoming ? 'in' as const : 'out' as const };
+      if (isOutgoing) totalOut += t.amount;
+      return [{ ...t, direction: isIncoming ? 'in' as const : 'out' as const }];
     });
 
     res.json({

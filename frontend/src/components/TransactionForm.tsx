@@ -48,10 +48,6 @@ export default function TransactionForm({
       const other = type === "TRANSFER" ? accounts.find((a) => a.id !== (fromAccountId || accounts[0].id)) : null;
       setToAccountId((other ?? accounts[0]).id);
     }
-    // Switching INCOME → TRANSFER keeps the income's "to" account, which can equal the new "from" one.
-    if (type === "TRANSFER" && fromAccountId && fromAccountId === toAccountId && accounts.length > 1) {
-      setToAccountId(accounts.find((a) => a.id !== fromAccountId)!.id);
-    }
     // No default category: the user picks one, so income doesn't silently land in "Dining Out".
   }, [accounts, type, fromAccountId, toAccountId]);
 
@@ -68,8 +64,9 @@ export default function TransactionForm({
       setError("Please select a category.");
       return;
     }
-    if (type === "TRANSFER" && fromAccountId && fromAccountId === toAccountId) {
-      setError("A transfer needs two different accounts.");
+    // Within one account, a transfer moves money between two categories.
+    if (type === "TRANSFER" && fromAccountId && fromAccountId === toAccountId && (toCategoryId || categoryId) === categoryId) {
+      setError("A transfer within one account must move money to a different category.");
       return;
     }
 
