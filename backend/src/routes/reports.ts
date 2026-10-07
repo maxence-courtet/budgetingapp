@@ -146,7 +146,7 @@ router.get('/monthly-summary/:monthId', async (req: Request, res: Response) => {
     const month = await prisma.month.findFirst({
       where: { id: monthId, userId },
       include: {
-        transactions: { include: { category: true } },
+        transactions: { include: { category: true, toAccount: { select: { name: true } } } },
       },
     });
 
@@ -178,6 +178,18 @@ router.get('/monthly-summary/:monthId', async (req: Request, res: Response) => {
       net: c.income - c.spending,
     }));
 
+    // Money moved to another account (savings, investments), per category and destination. A transfer
+    // between categories inside one account moves no money, so it isn't counted.
+    const transferMap = new Map<string, { id: string; name: string; toAccount: string | null; amount: number }>();
+    for (const t of paid) {
+      if (t.type !== 'TRANSFER' || !t.fromAccountId || !t.toAccountId || t.fromAccountId === t.toAccountId) continue;
+      const key = `${t.categoryId}:${t.toAccountId}`;
+      const entry = transferMap.get(key) || { id: key, name: t.category.name, toAccount: t.toAccount?.name ?? null, amount: 0 };
+      entry.amount += t.amount;
+      transferMap.set(key, entry);
+    }
+    const transferBreakdown = Array.from(transferMap.values()).sort((a, b) => b.amount - a.amount);
+
     res.json({
       monthId,
       month: month.month,
@@ -187,6 +199,7 @@ router.get('/monthly-summary/:monthId', async (req: Request, res: Response) => {
       planned: summarize(planned),
       all: summarize(month.transactions),
       categoryBreakdown,
+      transferBreakdown,
     });
   } catch (error) {
     console.error('Error getting monthly summary:', error);

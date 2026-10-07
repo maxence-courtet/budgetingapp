@@ -449,12 +449,22 @@ function MonthlyReport({ data }: { data: any }) {
           Where it went
         </h2>
         <SpendingRing
-          items={breakdown.map((c) => ({
-            id: c.id,
-            name: c.name,
-            value: c.spending,
-          }))}
-          emptyText="No paid spending this month yet."
+          items={[
+            ...breakdown.map((c) => ({
+              id: c.id,
+              name: c.name,
+              value: c.spending,
+            })),
+            ...(data.transferBreakdown ?? []).map((t: any) => ({
+              id: `t:${t.id}`,
+              name: t.name,
+              value: t.amount,
+              kind: "transfer" as const,
+              detail: t.toAccount ? `to ${t.toAccount}` : undefined,
+            })),
+          ]}
+          totalLabel="Out"
+          emptyText="No paid spending or transfers this month yet."
         />
       </section>
 

@@ -403,6 +403,24 @@ export default function BudgetDetailPage({
       }, new Map<string, { id: string; name: string; value: number }>())
       .values()
   );
+  // Planned moves to another account (saving, investing); category moves inside one account move no money.
+  const plannedTransfers = Array.from(
+    budget.definitions
+      .filter((d) => d.type === "TRANSFER" && d.fromAccountId && d.toAccountId && d.fromAccountId !== d.toAccountId)
+      .reduce((m, d) => {
+        const key = `t:${d.categoryId}:${d.toAccountId}`;
+        const entry = m.get(key) ?? {
+          id: key,
+          name: d.category?.name ?? catName(d.categoryId),
+          value: 0,
+          kind: "transfer" as const,
+          detail: d.toAccount ? `to ${d.toAccount.name}` : undefined,
+        };
+        entry.value += d.amount;
+        return m.set(key, entry);
+      }, new Map<string, { id: string; name: string; value: number; kind: "transfer"; detail?: string }>())
+      .values()
+  );
 
   // Account impact: what each account gains or loses per month under this plan.
   const accountMap = new Map<
@@ -553,12 +571,12 @@ export default function BudgetDetailPage({
       {/* Where the planned spending goes */}
       <section aria-labelledby="plan-ring-heading" className="bg-surface rounded-2xl border border-line p-4 sm:p-5">
         <h2 id="plan-ring-heading" className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted mb-4">
-          Planned spending by category
+          Where the plan sends your money
         </h2>
         <SpendingRing
-          items={plannedByCategory}
-          totalLabel="Planned"
-          emptyText="Add spending lines to see where this plan sends your money."
+          items={[...plannedByCategory, ...plannedTransfers]}
+          totalLabel="Planned out"
+          emptyText="Add spending or transfer lines to see where this plan sends your money."
         />
       </section>
 
