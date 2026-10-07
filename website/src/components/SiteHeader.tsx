@@ -32,9 +32,14 @@ export function SiteHeader() {
   }, [open]);
 
   return (
+    <>
     <header
       className={`sticky top-0 z-40 transition-colors ${
-        scrolled || open ? "bg-canvas/85 backdrop-blur-md border-b border-line" : "border-b border-transparent"
+        open
+          ? "bg-canvas border-b border-line"
+          : scrolled
+          ? "bg-canvas/85 backdrop-blur-md border-b border-line"
+          : "border-b border-transparent"
       }`}
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center gap-6">
@@ -71,8 +76,10 @@ export function SiteHeader() {
         </button>
       </div>
 
+    </header>
+    {/* Outside the header: its backdrop blur would make this fixed panel size itself to the header, not the screen. */}
       {open && (
-        <div id="mobile-menu" className="md:hidden fixed inset-x-0 top-16 bottom-0 bg-canvas border-t border-line px-4 pt-4 pb-8 flex flex-col">
+        <div id="mobile-menu" className="md:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-canvas border-t border-line px-4 pt-4 pb-8 flex flex-col overflow-y-auto">
           <nav aria-label="Main" className="flex flex-col">
             {NAV.map((n) => (
               <Link
@@ -95,6 +102,6 @@ export function SiteHeader() {
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }
