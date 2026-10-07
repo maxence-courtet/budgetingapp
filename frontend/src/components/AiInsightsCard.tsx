@@ -50,6 +50,7 @@ export function AiInsightsCard() {
         </span>
         <button
           onClick={analyse}
+          data-tour="ai"
           disabled={loading}
           className="ml-auto flex items-center gap-2 h-9 px-3.5 text-sm font-medium rounded-lg border border-line-strong text-fg hover:border-accent hover:text-accent disabled:opacity-60 transition-colors"
         >

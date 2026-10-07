@@ -4,22 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowLeftRight,
-  BarChart2,
-  Check,
   Lock,
   PiggyBank,
-  Plus,
-  Sparkles,
-  Plug,
-  CalendarCheck,
-  LucideIcon,
 } from "lucide-react";
 import { HiveMark } from "@/components/HiveLogo";
 import { usePreferences } from "@/components/PreferencesProvider";
-import { ALL_MODULES, ModuleId, lifeItems, moduleItems } from "@/lib/nav";
+import { ALL_MODULES, ModuleId, moduleItems } from "@/lib/nav";
 
-const STEPS = ["welcome", "money", "life", "ai", "choose"] as const;
+const STEPS = ["welcome", "choose"] as const;
 
 const PRESETS: { id: string; label: string; hint: string; modules: ModuleId[] }[] = [
   { id: "money", label: "Just money", hint: "Accounts, transactions and reports", modules: [] },
@@ -32,7 +24,7 @@ const PRESETS: { id: string; label: string; hint: string; modules: ModuleId[] }[
  * Opens once per account (the choice is stored on the backend) and again from Settings.
  */
 export function Welcome() {
-  const { welcomeOpen, closeWelcome, modules: saved, onboarded, name, save } = usePreferences();
+  const { welcomeOpen, closeWelcome, modules: saved, onboarded, name, save, startTour } = usePreferences();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState(0);
   const [modules, setModules] = useState<ModuleId[]>(saved);
@@ -54,12 +46,14 @@ export function Welcome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [welcomeOpen]);
 
-  async function finish(choice: ModuleId[] | null) {
+  async function finish(choice: ModuleId[] | null, tour = false) {
     setSaving(true);
     setError("");
     try {
       await save(choice ? { modules: choice, onboarded: true } : { onboarded: true });
       closeWelcome();
+      // The tour points at the real menu, so it starts once the chosen modules are showing.
+      if (tour) startTour();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save your choice");
     } finally {
@@ -119,64 +113,10 @@ export function Welcome() {
                   Welcome to Hive{name && name !== "User" ? `, ${name.split(" ")[0]}` : ""}
                 </h2>
                 <p className="mt-3 text-[15px] text-muted max-w-sm">
-                  Your money and the rest of your life, side by side. Here&apos;s a quick tour, then you choose what
-                  Hive shows you.
+                  Your money and the rest of your life, side by side. Choose what Hive shows you, then we&apos;ll
+                  point out where everything is.
                 </p>
               </div>
-            )}
-
-            {current === "money" && (
-              <Slide
-                icon={PiggyBank}
-                eyebrow="Money"
-                title="Know where your money goes"
-                lead="Two places cover the everyday: your transactions, month by month, and reports over time."
-              >
-                <Feature icon={Plus} title="Add from anywhere" text="The + button files a transaction into the right month, and creates the month if needed." />
-                <Feature icon={ArrowLeftRight} title="Transactions" text="Each month's spending against its budget, with search across everything." />
-                <Feature icon={BarChart2} title="Reports" text="Where money goes by category, and how your net worth moves." />
-                <p className="text-sm text-muted pt-1">
-                  Accounts, categories and budget templates are set up once. They live in Settings, out of the way.
-                </p>
-              </Slide>
-            )}
-
-            {current === "life" && (
-              <Slide
-                icon={CalendarCheck}
-                eyebrow="Life"
-                title="The rest of the honeycomb"
-                lead="Optional modules for the habits and goals that money touches."
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {lifeItems.map(({ href, label, icon: Icon, description }) => (
-                    <div key={href} className="flex items-start gap-3 p-3.5 rounded-xl border border-line bg-canvas">
-                      <Icon size={18} className="text-accent mt-0.5 shrink-0" aria-hidden="true" />
-                      <div>
-                        <p className="text-sm font-semibold">{label}</p>
-                        <p className="text-xs text-muted mt-0.5">{description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Slide>
-            )}
-
-            {current === "ai" && (
-              <Slide
-                icon={Sparkles}
-                eyebrow="AI"
-                title="An assistant that knows your numbers"
-                lead="Only when you ask, and only with your own data."
-              >
-                <Feature icon={Sparkles} title="Next moves" text="On Home, AI ranks the three things most worth doing now." />
-                <Feature icon={CalendarCheck} title="Weekly review" text="A short recap of your week across money and habits." />
-                <Feature
-                  icon={Plug}
-                  title="Bring your own assistant"
-                  text="Connect Claude, ChatGPT or any MCP assistant from Settings → AI assistants, so it can read and add to your Hive."
-                />
-              </Slide>
             )}
 
             {current === "choose" && (
@@ -259,20 +199,30 @@ export function Welcome() {
                 <ArrowLeft size={18} aria-hidden="true" />
               </button>
             )}
+            {last && (
+              <button
+                type="button"
+                onClick={() => finish(modules)}
+                disabled={saving}
+                className="h-12 px-3 shrink-0 rounded-xl text-sm font-medium text-muted hover:text-fg"
+              >
+                Skip tour
+              </button>
+            )}
             <button
               type="button"
               autoFocus
               disabled={saving}
-              onClick={() => (last ? finish(modules) : setStep((s) => s + 1))}
+              onClick={() => (last ? finish(modules, true) : setStep((s) => s + 1))}
               className="flex-1 h-12 rounded-xl bg-accent text-accent-ink text-[15px] font-semibold hover:bg-accent-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {last ? (
                 <>
-                  <Check size={18} aria-hidden="true" /> {saving ? "Saving…" : "Start using Hive"}
+                  {saving ? "Saving…" : "Show me around"} <ArrowRight size={18} aria-hidden="true" />
                 </>
               ) : (
                 <>
-                  {step === 0 ? "Show me around" : "Next"} <ArrowRight size={18} aria-hidden="true" />
+                  {step === 0 ? "Get started" : "Next"} <ArrowRight size={18} aria-hidden="true" />
                 </>
               )}
             </button>
@@ -280,48 +230,6 @@ export function Welcome() {
         </div>
       )}
     </dialog>
-  );
-}
-
-function Slide({
-  icon: Icon,
-  eyebrow,
-  title,
-  lead,
-  children,
-}: {
-  icon: LucideIcon;
-  eyebrow: string;
-  title: string;
-  lead: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="w-14 h-14 rounded-2xl bg-accent-soft flex items-center justify-center mb-5">
-        <Icon size={26} className="text-accent" aria-hidden="true" />
-      </div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted">{eyebrow}</p>
-      <h2 id="welcome-title" className="mt-1.5 text-[24px] sm:text-[26px] leading-tight font-semibold tracking-tight">
-        {title}
-      </h2>
-      <p className="mt-2 text-[15px] text-muted">{lead}</p>
-      <div className="mt-6 space-y-4">{children}</div>
-    </div>
-  );
-}
-
-function Feature({ icon: Icon, title, text }: { icon: LucideIcon; title: string; text: string }) {
-  return (
-    <div className="flex items-start gap-3.5">
-      <span className="w-9 h-9 shrink-0 rounded-xl border border-line bg-canvas flex items-center justify-center">
-        <Icon size={17} className="text-fg" aria-hidden="true" />
-      </span>
-      <div>
-        <p className="text-sm font-semibold">{title}</p>
-        <p className="text-sm text-muted mt-0.5">{text}</p>
-      </div>
-    </div>
   );
 }
 

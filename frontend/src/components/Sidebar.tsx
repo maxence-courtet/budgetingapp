@@ -86,6 +86,7 @@ export function Sidebar() {
         type="button"
         onClick={openCommandBar}
         aria-label="Search"
+        data-tour="search"
         className="w-10 h-10 -mr-2 rounded-lg flex items-center justify-center text-fg hover:bg-surface-2"
       >
         <Search size={20} aria-hidden="true" />
@@ -127,6 +128,7 @@ export function Sidebar() {
         {user?.email && <p className="px-3 mb-1 text-xs text-muted truncate">{user.email}</p>}
         <Link
           href="/settings"
+          data-tour="settings"
           aria-current={pathname.startsWith("/settings") ? "page" : undefined}
           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             pathname.startsWith("/settings")
@@ -151,6 +153,9 @@ export function Sidebar() {
   );
 }
 
+// Places the welcome tour points at (see SpotlightTour).
+const TOUR_IDS: Record<string, string> = { "/months": "money", "/reports": "reports" };
+
 function NavGroup({ label, items, pathname }: { label: string; items: NavItem[]; pathname: string }) {
   const id = `nav-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
@@ -159,15 +164,15 @@ function NavGroup({ label, items, pathname }: { label: string; items: NavItem[];
         {label}
       </h2>
       <ul role="list" aria-labelledby={id} className="space-y-0.5">
-        {items.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} />
+        {items.map((item, i) => (
+          <NavLink key={item.href} item={item} pathname={pathname} tour={TOUR_IDS[item.href] ?? (label === "Life" && i === 0 ? "life" : undefined)} />
         ))}
       </ul>
     </div>
   );
 }
 
-function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function NavLink({ item, pathname, tour }: { item: NavItem; pathname: string; tour?: string }) {
   const { href, label, icon: Icon } = item;
   const active = matchesPath(item, pathname);
   return (
@@ -175,6 +180,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
+        data-tour={tour}
         className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-surface-2 text-fg" : "text-muted hover:text-fg hover:bg-surface-2"}`}
       >
         <Icon size={16} aria-hidden="true" className={active ? "text-accent" : "text-faint group-hover:text-fg"} />

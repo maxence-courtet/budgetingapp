@@ -15,6 +15,10 @@ interface Preferences {
   replayWelcome: () => void;
   welcomeOpen: boolean;
   closeWelcome: () => void;
+  /** The on-screen tour that points at the real buttons, run after the welcome dialog. */
+  tourOpen: boolean;
+  startTour: () => void;
+  endTour: () => void;
 }
 
 const PreferencesContext = createContext<Preferences | null>(null);
@@ -25,6 +29,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [onboarded, setOnboarded] = useState(true);
   const [name, setName] = useState("");
   const [replaying, setReplaying] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     getMe()
@@ -57,6 +62,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         replayWelcome: () => setReplaying(true),
         welcomeOpen: (loaded && !onboarded) || replaying,
         closeWelcome: () => setReplaying(false),
+        tourOpen,
+        startTour: () => setTourOpen(true),
+        endTour: () => setTourOpen(false),
       }}
     >
       {children}

@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { SectionTabs } from "@/components/SectionTabs";
 import { CommandBar } from "@/components/CommandBar";
 import { Welcome } from "@/components/Welcome";
+import { SpotlightTour } from "@/components/SpotlightTour";
 import { PreferencesProvider } from "@/components/PreferencesProvider";
 import { QuickAddButton, QuickAddTransaction } from "@/components/QuickAddTransaction";
 
@@ -31,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* On phones the search lives behind the header's button and "+" in the bottom bar. */}
             <div className="flex items-center gap-3 lg:mb-8">
               <CommandBar />
-              <div className="hidden lg:block">
+              <div className="hidden lg:block" data-tour="add">
                 <QuickAddButton />
               </div>
             </div>
@@ -43,6 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <BottomNav />
       <QuickAddTransaction />
       <Welcome />
+      <SpotlightTour />
     </PreferencesProvider>
   );
 }

@@ -136,6 +136,7 @@ export function CommandBar() {
       <div className="flex items-center gap-2">
       <label
         htmlFor="command-input"
+        data-tour="search"
         className="flex-1 min-w-0 flex items-center gap-3 h-12 px-4 rounded-xl border border-line-strong bg-surface focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30 transition-colors cursor-text"
       >
         <Search size={18} className="text-muted shrink-0" aria-hidden="true" />

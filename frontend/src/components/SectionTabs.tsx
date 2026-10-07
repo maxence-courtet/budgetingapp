@@ -32,6 +32,7 @@ export function SectionTabs() {
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
+                  data-tour={item.href === "/reports" ? "reports" : undefined}
                   className={`flex items-center gap-2 h-9 px-3.5 rounded-full text-sm font-medium border transition-colors ${
                     active
                       ? "bg-fg text-canvas border-fg"

@@ -336,3 +336,14 @@ textarea:focus-visible {
   --viz-5: #d55181;
   --viz-other: #66655f;
 }
+
+/* Welcome tour: the pointing hand taps, the spotlight ring breathes. */
+@keyframes tour-tap {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  45% { transform: translate(-3px, -7px) scale(0.92); }
+  60% { transform: translate(-3px, -7px) scale(0.92); }
+}
+@keyframes tour-pulse {
+  0% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.12); }
+}

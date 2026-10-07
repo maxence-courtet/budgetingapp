@@ -27,19 +27,20 @@ export function BottomNav() {
     >
       <ul role="list" className="grid grid-cols-5 h-16 max-w-md mx-auto">
         <Tab href="/" label="Home" icon={Home} active={matchesPath(homeItem, pathname)} />
-        <Tab href="/months" label="Money" icon={PiggyBank} active={inMoney} />
+        <Tab href="/months" label="Money" icon={PiggyBank} active={inMoney} tour="money" />
         <li className="flex items-center justify-center">
           <button
             type="button"
             onClick={() => openQuickAdd()}
             aria-label="New transaction"
+            data-tour="add"
             className="w-12 h-12 -mt-5 rounded-2xl bg-accent text-accent-ink shadow-lg shadow-black/15 ring-4 ring-canvas flex items-center justify-center active:scale-95 transition-transform"
           >
             <Plus size={22} strokeWidth={2.4} aria-hidden="true" />
           </button>
         </li>
         {lifeHref ? (
-          <Tab href={lifeHref} label="Life" icon={Sprout} active={inLife} />
+          <Tab href={lifeHref} label="Life" icon={Sprout} active={inLife} tour="life" />
         ) : (
           // Money only: Reports gets the slot Life would have had.
           <Tab href="/reports" label="Reports" icon={BarChart2} active={pathname.startsWith("/reports")} />
@@ -48,6 +49,7 @@ export function BottomNav() {
           <button
             type="button"
             onClick={openMenu}
+            data-tour="settings"
             className="w-full h-full flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted"
           >
             <Menu size={20} aria-hidden="true" />
@@ -59,12 +61,13 @@ export function BottomNav() {
   );
 }
 
-function Tab({ href, label, icon: Icon, active }: { href: string; label: string; icon: LucideIcon; active: boolean }) {
+function Tab({ href, label, icon: Icon, active, tour }: { href: string; label: string; icon: LucideIcon; active: boolean; tour?: string }) {
   return (
     <li>
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
+        data-tour={tour}
         className={`w-full h-full flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors ${
           active ? "text-fg" : "text-muted"
         }`}
