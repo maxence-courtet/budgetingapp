@@ -113,7 +113,7 @@ export function GoalMilestones({ goal, goalId, unit, milestones, onChange, onErr
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="flex items-center gap-1 h-7 px-2 rounded-lg text-xs font-medium text-accent hover:bg-accent-soft"
+            className="flex items-center gap-1 h-8 -mr-2 px-2 rounded-lg text-xs font-medium text-accent hover:bg-accent-soft"
           >
             <Plus size={13} aria-hidden="true" />
             Add
@@ -155,7 +155,7 @@ export function GoalMilestones({ goal, goalId, unit, milestones, onChange, onErr
                     type="button"
                     onClick={() => remove(m)}
                     aria-label={`Delete milestone ${m.title}`}
-                    className="w-6 h-6 rounded-md flex items-center justify-center text-faint opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-neg hover:bg-surface-2"
+                    className="-my-1 w-8 h-8 shrink-0 rounded-md flex items-center justify-center text-faint sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 hover:text-neg hover:bg-surface-2"
                   >
                     <X size={13} aria-hidden="true" />
                   </button>
@@ -167,7 +167,7 @@ export function GoalMilestones({ goal, goalId, unit, milestones, onChange, onErr
       )}
 
       {sorted.length === 0 && !adding && (
-        <p className="text-xs text-faint">Break this goal into steps you can tick off.</p>
+        <p className="hidden sm:block text-xs text-faint">Break this goal into steps you can tick off.</p>
       )}
 
       {adding && (

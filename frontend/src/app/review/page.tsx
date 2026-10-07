@@ -56,7 +56,7 @@ function Delta({ now, before, invert = false, asPoints = false, partial = false 
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-surface border border-line rounded-2xl p-5 space-y-3">
+    <section className="bg-surface border border-line rounded-2xl p-4 sm:p-5 space-y-3">
       <h2 className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">{title}</h2>
       {children}
     </section>
@@ -103,11 +103,11 @@ export default function ReviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Weekly review"
         action={
-          <div role="group" aria-label="Week" className="flex p-1 rounded-xl bg-surface-2">
+          <div role="group" aria-label="Week" className="grid grid-cols-2 sm:flex p-1 rounded-xl bg-surface-2">
             {([
               { id: "previous", label: "Last week" },
               { id: "current", label: "This week so far" },
@@ -143,10 +143,10 @@ export default function ReviewPage() {
           </p>
 
           {/* AI review */}
-          <section aria-labelledby="ai-review-heading" className={`rounded-2xl p-6 ${review ? "bg-surface border border-line" : "border border-dashed border-line-strong"}`}>
+          <section aria-labelledby="ai-review-heading" className={`rounded-2xl p-4 sm:p-6 ${review ? "bg-surface border border-line" : "border border-dashed border-line-strong"}`}>
             {!review ? (
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex-1 min-w-[16rem]">
+                <div className="flex-1 sm:min-w-[16rem]">
                   <h2 id="ai-review-heading" className="text-[15px] font-semibold text-fg">Your review</h2>
                   <p className="text-sm text-muted mt-1">
                     Turn this week into a short write-up with wins, watch-outs and three things to do next. It&apos;s saved to your reviews below.
@@ -156,7 +156,7 @@ export default function ReviewPage() {
                   type="button"
                   onClick={generate}
                   disabled={generating}
-                  className="flex items-center gap-2 h-11 px-5 rounded-xl bg-accent text-accent-ink text-sm font-semibold hover:bg-accent-hover disabled:opacity-60"
+                  className="w-full sm:w-auto justify-center flex items-center gap-2 h-11 px-5 rounded-xl bg-accent text-accent-ink text-sm font-semibold hover:bg-accent-hover disabled:opacity-60"
                 >
                   <Sparkles size={16} className={generating ? "animate-pulse" : ""} aria-hidden="true" />
                   {generating ? "Writing your review…" : "Write my review"}
@@ -166,7 +166,7 @@ export default function ReviewPage() {
               <div className="space-y-5" aria-live="polite">
                 <div>
                   <p className="font-mono text-[11px] text-accent uppercase tracking-[0.08em]">Your review</p>
-                  <h2 id="ai-review-heading" className="text-2xl font-semibold tracking-tight text-fg mt-1">{review.headline}</h2>
+                  <h2 id="ai-review-heading" className="text-xl sm:text-2xl font-semibold tracking-tight text-fg mt-1">{review.headline}</h2>
                   <p className="text-fg-2 leading-relaxed mt-2 max-w-3xl">{review.summary}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -194,7 +194,7 @@ export default function ReviewPage() {
                       {review.actionItems.map((a, i) => (
                         <li key={i} className="flex gap-3 rounded-xl bg-surface-2 p-3 text-sm text-fg">
                           <span className="font-mono text-accent">{i + 1}</span>
-                          <span className="flex-1">{a.title}</span>
+                          <span className="flex-1 min-w-0">{a.title}</span>
                           <span className="font-mono text-[10px] text-muted uppercase">{a.area}</span>
                         </li>
                       ))}
@@ -206,7 +206,7 @@ export default function ReviewPage() {
           </section>
 
           {/* Week at a glance */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             <Card title="Money">
               <div>
                 <p className="font-mono text-2xl text-fg">{summary.money.spending ? `−${fmt(summary.money.spending)}` : "Nothing spent"}</p>
@@ -309,7 +309,7 @@ export default function ReviewPage() {
         {patterns === null ? (
           <div className="h-24 rounded-2xl bg-surface-2 animate-pulse" aria-hidden="true" />
         ) : patterns.length === 0 ? (
-          <p className="text-sm text-muted bg-surface border border-dashed border-line-strong rounded-2xl p-5">
+          <p className="text-sm text-muted bg-surface border border-dashed border-line-strong rounded-2xl p-4 sm:p-5">
             No clear patterns yet. They appear once there are a few weeks of habits and spending to compare.
           </p>
         ) : (
@@ -317,11 +317,11 @@ export default function ReviewPage() {
             {patterns.map((p) => {
               const Icon = PATTERN_ICON[p.kind] ?? Link2;
               return (
-                <li key={p.id} className="flex gap-3 bg-surface border border-line rounded-2xl p-4">
+                <li key={p.id} className="flex gap-3 bg-surface border border-line rounded-2xl p-4 min-w-0">
                   <span className="w-9 h-9 shrink-0 rounded-xl bg-accent-soft text-accent-strong flex items-center justify-center">
                     <Icon size={17} aria-hidden="true" />
                   </span>
-                  <span>
+                  <span className="min-w-0">
                     <span className="block text-sm font-medium text-fg leading-snug">{p.title}</span>
                     <span className="block font-mono text-xs text-muted mt-1">{p.detail}</span>
                   </span>
@@ -343,14 +343,14 @@ export default function ReviewPage() {
                   type="button"
                   onClick={() => setOpenPast(openPast === n.id ? null : n.id)}
                   aria-expanded={openPast === n.id}
-                  className="w-full flex items-center gap-2 px-4 h-11 text-sm text-left text-fg hover:bg-surface-2/60"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 min-h-11 text-sm text-left text-fg hover:bg-surface-2/60"
                 >
                   <ChevronRight size={14} className={`text-faint transition-transform ${openPast === n.id ? "rotate-90" : ""}`} aria-hidden="true" />
                   <span className="flex-1">{n.title}</span>
-                  {n.source === "MCP" && <span className="font-mono text-[10px] text-muted uppercase">via Claude</span>}
+                  {n.source === "MCP" && <span className="font-mono text-[10px] text-muted uppercase">via assistant</span>}
                 </button>
                 {openPast === n.id && (
-                  <div className="px-10 pb-4 text-sm text-fg-2 whitespace-pre-wrap leading-relaxed">{n.content}</div>
+                  <div className="px-4 sm:px-10 pb-4 text-sm break-words text-fg-2 whitespace-pre-wrap leading-relaxed">{n.content}</div>
                 )}
               </li>
             ))}

@@ -192,11 +192,11 @@ export function Journal() {
         <aside className="space-y-3">
           <section aria-label="Calendar" className="bg-surface border border-line rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <button type="button" onClick={() => shiftMonth(-1)} aria-label="Previous month" className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2">
+              <button type="button" onClick={() => shiftMonth(-1)} aria-label="Previous month" className="w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2">
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
               <h2 className="text-sm font-semibold text-fg">{monthLabel}</h2>
-              <button type="button" onClick={() => shiftMonth(1)} aria-label="Next month" disabled={monthPrefix >= today.slice(0, 7)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2 disabled:opacity-30 disabled:pointer-events-none">
+              <button type="button" onClick={() => shiftMonth(1)} aria-label="Next month" disabled={monthPrefix >= today.slice(0, 7)} className="w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2 disabled:opacity-30 disabled:pointer-events-none">
                 <ChevronRight size={16} aria-hidden="true" />
               </button>
             </div>
@@ -237,23 +237,23 @@ export function Journal() {
           </section>
 
           <section aria-label="Journal stats" className="grid grid-cols-2 gap-3">
-            <div className="bg-surface border border-line rounded-2xl p-4">
+            <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4">
               <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Streak</p>
-              <p className={`flex items-center gap-1 font-mono text-2xl ${streak >= 7 ? "text-accent" : "text-fg"}`}>
+              <p className={`flex items-center gap-1 font-mono text-xl sm:text-2xl ${streak >= 7 ? "text-accent" : "text-fg"}`}>
                 <Flame size={18} aria-hidden="true" className={streak >= 7 ? "fill-current" : ""} />
                 {streak}<span className="text-sm text-faint">d</span>
               </p>
             </div>
-            <div className="bg-surface border border-line rounded-2xl p-4">
+            <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4">
               <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">This month</p>
-              <p className="font-mono text-2xl text-fg">{monthCount}<span className="text-sm text-faint"> entries</span></p>
+              <p className="font-mono text-xl sm:text-2xl text-fg">{monthCount}<span className="text-sm text-faint"> entries</span></p>
             </div>
           </section>
         </aside>
 
-        <section aria-labelledby="entry-heading" className="bg-surface border border-line rounded-2xl p-5 flex flex-col gap-3 min-h-[28rem]">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 id="entry-heading" className="text-lg font-semibold tracking-tight text-fg">
+        <section aria-labelledby="entry-heading" className="order-first lg:order-none bg-surface border border-line rounded-2xl p-4 sm:p-5 flex flex-col gap-3 sm:min-h-[28rem]">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h2 id="entry-heading" className="text-base sm:text-lg font-semibold tracking-tight text-fg">
               {selected === today ? "Today · " : ""}{longDate(selected)}
             </h2>
             <span className="font-mono text-xs text-muted" role="status">
@@ -274,19 +274,20 @@ export function Journal() {
             }}
             disabled={loading}
             ref={textareaRef}
+            data-bare
             placeholder={"How did the day go?\n\nWhat went well, what got in the way, and what's the one thing for tomorrow?"}
-            className="flex-1 min-h-[22rem] w-full resize-y bg-transparent border-0 outline-none text-[15px] leading-relaxed text-fg"
+            className="flex-1 min-h-[14rem] sm:min-h-[22rem] w-full resize-y bg-transparent border-0 outline-none text-[15px] leading-relaxed text-fg"
           />
           {current && (
             <div className="flex justify-end pt-2 border-t border-line">
               {confirmDelete ? (
                 <span className="flex items-center gap-2 text-xs text-muted">
                   Delete this entry?
-                  <button type="button" onClick={remove} className="h-7 px-3 rounded-lg bg-red-600 text-accent-ink font-medium">Delete</button>
-                  <button type="button" onClick={() => setConfirmDelete(false)} className="h-7 px-3 rounded-lg border border-line-strong text-fg-2">Cancel</button>
+                  <button type="button" onClick={remove} className="h-9 sm:h-7 px-3 rounded-lg bg-red-600 text-white font-medium">Delete</button>
+                  <button type="button" onClick={() => setConfirmDelete(false)} className="h-9 sm:h-7 px-3 rounded-lg border border-line-strong text-fg-2">Cancel</button>
                 </span>
               ) : (
-                <button type="button" onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 h-7 px-2 rounded-lg text-xs text-muted hover:text-neg">
+                <button type="button" onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 h-9 sm:h-7 px-2 rounded-lg text-xs text-muted hover:text-neg">
                   <Trash2 size={13} aria-hidden="true" />
                   Delete entry
                 </button>

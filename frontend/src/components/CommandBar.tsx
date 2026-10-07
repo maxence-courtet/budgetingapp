@@ -143,6 +143,7 @@ export function CommandBar() {
         <input
           ref={inputRef}
           id="command-input"
+          data-bare
           type="text"
           role="combobox"
           aria-expanded={showList}
@@ -159,7 +160,7 @@ export function CommandBar() {
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => !sheet && setOpen(false), 120)}
           onKeyDown={onKeyDown}
-          className="flex-1 min-w-0 bg-transparent outline-none focus-visible:outline-none text-base lg:text-[15px] text-fg"
+          className="flex-1 min-w-0 bg-transparent outline-none text-base lg:text-[15px] text-fg"
         />
         <kbd className="hidden sm:inline font-mono text-xs text-muted border border-line-strong rounded-md px-1.5 py-0.5">
           ⌘K

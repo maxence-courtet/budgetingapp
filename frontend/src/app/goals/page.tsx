@@ -17,10 +17,19 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { GoalMilestones } from "@/components/GoalMilestones";
 import { goalProgress, fraction, milestoneReached, isDecreasing, fmtNum } from "@/lib/goals";
 import { plural } from "@/lib/date";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 
 type StatusFilter = "ALL" | "ACTIVE" | "COMPLETED" | "ABANDONED";
 
-const STATUS_FILTERS: StatusFilter[] = ["ALL", "ACTIVE", "COMPLETED", "ABANDONED"];
+const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
+  { id: "ALL", label: "All" },
+  { id: "ACTIVE", label: "Active" },
+  { id: "COMPLETED", label: "Done" },
+  { id: "ABANDONED", label: "Dropped" },
+];
+
+const INPUT = "w-full h-10 border border-line-strong rounded-xl px-3 text-sm text-fg bg-surface focus:outline-none focus:ring-2 focus:ring-accent";
+const LABEL = "block text-xs font-medium text-muted mb-1";
 
 const TYPE_BADGE_STYLES: Record<string, string> = {
   FINANCIAL: "bg-accent-soft text-accent-strong",
@@ -198,17 +207,34 @@ export default function GoalsPage() {
 
   if (loading) return <LoadingState message="Loading goals..." />;
 
+  const openCreate = () => {
+    resetForm();
+    setShowCreate(true);
+  };
+
+  const startEdit = (goal: any) => {
+    setEditingId(goal.id);
+    setDeleteConfirm(null);
+    setEditTitle(goal.title);
+    setEditStatus(goal.status ?? "ACTIVE");
+    setEditTarget(goal.targetValue != null ? String(goal.targetValue) : "");
+    setEditStart(goal.startValue != null ? String(goal.startValue) : "");
+    setEditUnit(goal.unit ?? "");
+    setEditDeadline(goal.deadline ? goal.deadline.slice(0, 10) : "");
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Goals"
         action={
           !showCreate ? (
             <button
-              onClick={() => { resetForm(); setShowCreate(true); }}
-              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+              onClick={openCreate}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
-              + New Goal
+              <Plus size={16} aria-hidden="true" />
+              New goal
             </button>
           ) : undefined
         }
@@ -217,30 +243,34 @@ export default function GoalsPage() {
       {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
       {/* Status filter */}
-      <div className="flex gap-2 flex-wrap">
-        {STATUS_FILTERS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-4 py-1.5 text-sm font-medium rounded-full border transition-colors ${
-              statusFilter === s
-                ? "bg-accent text-accent-ink border-accent"
-                : "bg-surface text-muted border-line-strong hover:border-accent hover:text-accent"
-            }`}
-          >
-            {s.charAt(0) + s.slice(1).toLowerCase()}
-          </button>
-        ))}
+      <div role="group" aria-label="Filter by status" className="grid grid-cols-4 sm:inline-grid p-1 rounded-xl bg-surface-2">
+        {STATUS_FILTERS.map((f) => {
+          const count = f.id === "ALL" ? goals.length : goals.filter((g) => g.status === f.id).length;
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setStatusFilter(f.id)}
+              aria-pressed={statusFilter === f.id}
+              className={`h-9 px-3 rounded-lg text-sm font-medium transition-colors ${
+                statusFilter === f.id ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
+              }`}
+            >
+              {f.label}
+              {count > 0 && <span className="ml-1 font-mono text-xs text-faint">{count}</span>}
+            </button>
+          );
+        })}
       </div>
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-surface border border-line rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-fg mb-4">New Goal</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-surface border border-line rounded-2xl p-4 sm:p-6">
+          <h2 className="text-base font-semibold text-fg mb-4">New goal</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="sm:col-span-2">
-              <label htmlFor="goal-title" className="block text-sm font-medium text-muted mb-1">
-                Title <span className="text-red-500">*</span>
+              <label htmlFor="goal-title" className={LABEL}>
+                Title <span className="text-neg">*</span>
               </label>
               <input
                 id="goal-title"
@@ -248,19 +278,12 @@ export default function GoalsPage() {
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="e.g. Run a 5K"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={INPUT}
               />
             </div>
             <div>
-              <label htmlFor="goal-type" className="block text-sm font-medium text-muted mb-1">
-                Type
-              </label>
-              <select
-                id="goal-type"
-                value={formType}
-                onChange={(e) => setFormType(e.target.value)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              >
+              <label htmlFor="goal-type" className={LABEL}>Type</label>
+              <select id="goal-type" value={formType} onChange={(e) => setFormType(e.target.value)} className={INPUT}>
                 <option value="PERSONAL">Personal</option>
                 <option value="FINANCIAL">Financial</option>
                 <option value="HABIT">Habit</option>
@@ -268,46 +291,41 @@ export default function GoalsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="goal-deadline" className="block text-sm font-medium text-muted mb-1">
-                Deadline
-              </label>
+              <label htmlFor="goal-deadline" className={LABEL}>Deadline</label>
               <input
                 id="goal-deadline"
                 type="date"
                 value={formDeadline}
                 onChange={(e) => setFormDeadline(e.target.value)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={INPUT}
               />
             </div>
             <div>
-              <label htmlFor="goal-target" className="block text-sm font-medium text-muted mb-1">
-                Target Value
-              </label>
+              <label htmlFor="goal-target" className={LABEL}>Target value</label>
               <input
                 id="goal-target"
                 type="number"
+                inputMode="decimal"
                 value={formTarget}
                 onChange={(e) => setFormTarget(e.target.value)}
                 placeholder="Optional"
                 step="any"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={INPUT}
               />
             </div>
             <div>
-              <label htmlFor="goal-unit" className="block text-sm font-medium text-muted mb-1">
-                Unit
-              </label>
+              <label htmlFor="goal-unit" className={LABEL}>Unit</label>
               <input
                 id="goal-unit"
                 type="text"
                 value={formUnit}
                 onChange={(e) => setFormUnit(e.target.value)}
                 placeholder='e.g. "$", "kg", "days"'
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={INPUT}
               />
             </div>
-            <div className="sm:col-span-2 flex flex-wrap items-end gap-4">
-              <label className="flex items-center gap-2 text-sm text-fg-2 h-10">
+            <div className="sm:col-span-2 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
+              <label className="flex items-center gap-2 text-sm text-fg-2 min-h-10">
                 <input
                   type="checkbox"
                   checked={formLowerBetter}
@@ -317,47 +335,44 @@ export default function GoalsPage() {
                 Lower is better (e.g. weight, debt)
               </label>
               {formLowerBetter && (
-                <div className="flex-1 min-w-[10rem]">
-                  <label htmlFor="goal-start" className="block text-sm font-medium text-muted mb-1">
-                    Starting value
-                  </label>
+                <div className="flex-1 sm:min-w-[10rem]">
+                  <label htmlFor="goal-start" className={LABEL}>Starting value</label>
                   <input
                     id="goal-start"
                     type="number"
+                    inputMode="decimal"
                     step="any"
                     value={formStart}
                     onChange={(e) => setFormStart(e.target.value)}
                     placeholder="e.g. 79.4"
-                    className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                    className={INPUT}
                   />
                 </div>
               )}
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="goal-description" className="block text-sm font-medium text-muted mb-1">
-                Description
-              </label>
+              <label htmlFor="goal-description" className={LABEL}>Description</label>
               <textarea
                 id="goal-description"
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
                 rows={2}
-                placeholder="Optional description"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                placeholder="Optional"
+                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm text-fg bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-2 mt-4">
             <button
               onClick={handleCreate}
               disabled={saving || !formTitle.trim()}
-              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
+              className="flex-1 sm:flex-none h-10 px-4 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
-              {saving ? "Creating..." : "Create Goal"}
+              {saving ? "Creating..." : "Create goal"}
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
+              className="flex-1 sm:flex-none h-10 px-4 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
@@ -369,16 +384,17 @@ export default function GoalsPage() {
       {filteredGoals.length === 0 ? (
         <EmptyState
           message={statusFilter === "ALL" ? "No goals yet." : `No ${statusFilter.toLowerCase()} goals.`}
-          cta={statusFilter === "ALL" ? { label: "Create your first goal", onClick: () => { resetForm(); setShowCreate(true); } } : undefined}
+          cta={statusFilter === "ALL" ? { label: "Create your first goal", onClick: openCreate } : undefined}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
           {filteredGoals.map((goal: any) => {
             const hasTarget = goal.targetValue != null && (goal.targetValue > 0 || isDecreasing(goal));
             const current = goal.currentValue ?? 0;
             const target = goal.targetValue ?? 0;
             const { pct, decreasing } = goalProgress(goal);
             const finished = goal.status !== "ACTIVE";
+            const unitSuffix = goal.unit ? ` ${goal.unit}` : "";
 
             const deadlineDays = goal.deadline ? daysUntil(goal.deadline) : null;
             const deadlineColor =
@@ -394,207 +410,206 @@ export default function GoalsPage() {
             const statusBadge = STATUS_BADGE_STYLES[goal.status] ?? "bg-surface-2 text-muted";
 
             return (
-              <div key={goal.id} className="bg-surface border border-line rounded-2xl p-5 flex flex-col gap-3">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    {editingId === goal.id ? (
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          className="w-full border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                          autoFocus
-                        />
-                        <select
-                          value={editStatus}
-                          onChange={(e) => setEditStatus(e.target.value)}
-                          className="w-full border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              <article key={goal.id} aria-label={goal.title} className="bg-surface border border-line rounded-2xl p-4 sm:p-5 flex flex-col gap-3">
+                {editingId === goal.id ? (
+                  <form
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleUpdate(goal.id);
+                    }}
+                  >
+                    <h3 className="sm:col-span-2 text-sm font-semibold text-fg">Edit goal</h3>
+                    <label className="sm:col-span-2 text-xs font-medium text-muted">
+                      Title
+                      <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={`mt-1 ${INPUT}`} autoFocus />
+                    </label>
+                    <label className="sm:col-span-2 text-xs font-medium text-muted">
+                      Status
+                      <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className={`mt-1 ${INPUT}`}>
+                        {!["ACTIVE", "COMPLETED", "ABANDONED"].includes(editStatus) && <option value={editStatus}>{editStatus}</option>}
+                        <option value="ACTIVE">Active</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="ABANDONED">Abandoned</option>
+                      </select>
+                    </label>
+                    <label className="text-xs font-medium text-muted">
+                      Target
+                      <input type="number" inputMode="decimal" step="any" value={editTarget} onChange={(e) => setEditTarget(e.target.value)} className={`mt-1 ${INPUT}`} />
+                    </label>
+                    <label className="text-xs font-medium text-muted">
+                      Unit
+                      <input type="text" value={editUnit} onChange={(e) => setEditUnit(e.target.value)} className={`mt-1 ${INPUT}`} />
+                    </label>
+                    <label className="text-xs font-medium text-muted">
+                      Start (lower is better if above target)
+                      <input type="number" inputMode="decimal" step="any" value={editStart} onChange={(e) => setEditStart(e.target.value)} className={`mt-1 ${INPUT}`} />
+                    </label>
+                    <label className="text-xs font-medium text-muted">
+                      Deadline
+                      <input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className={`mt-1 ${INPUT}`} />
+                    </label>
+                    <div className="sm:col-span-2 flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={saving || !editTitle.trim()}
+                        className="flex-1 sm:flex-none h-10 px-4 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="flex-1 sm:flex-none h-10 px-4 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    {/* Header */}
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-semibold text-fg leading-snug">{goal.title}</h3>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] uppercase tracking-[0.04em] ${typeBadge}`}>
+                            {goal.type}
+                          </span>
+                          {finished && (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium ${statusBadge}`}>
+                              {goal.status?.charAt(0) + goal.status?.slice(1).toLowerCase()}
+                            </span>
+                          )}
+                          {goal.deadline && (
+                            <span className={`text-xs font-medium ${finished ? "text-muted" : deadlineColor}`}>
+                              {finished || deadlineDays === null
+                                ? `Deadline ${formatDate(goal.deadline)}`
+                                : deadlineDays < 0
+                                ? `${plural(Math.abs(deadlineDays), "day")} overdue`
+                                : deadlineDays === 0
+                                ? "Due today"
+                                : `${plural(deadlineDays, "day")} left`}
+                              {!finished && <span className="text-muted font-normal">{" · "}{formatDate(goal.deadline)}</span>}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 -mr-1.5 -mt-1">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(goal)}
+                          aria-label={`Edit ${goal.title}`}
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-faint hover:text-fg hover:bg-surface-2"
                         >
-                          {!["ACTIVE", "COMPLETED", "ABANDONED"].includes(editStatus) && <option value={editStatus}>{editStatus}</option>}
-                          <option value="ACTIVE">Active</option>
-                          <option value="COMPLETED">Completed</option>
-                          <option value="ABANDONED">Abandoned</option>
-                        </select>
-                        <div className="grid grid-cols-2 gap-2">
-                          <label className="text-xs text-muted">
-                            Target
-                            <input type="number" step="any" value={editTarget} onChange={(e) => setEditTarget(e.target.value)} className="mt-0.5 w-full border border-line-strong rounded-xl px-2 py-1.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
-                          </label>
-                          <label className="text-xs text-muted">
-                            Unit
-                            <input type="text" value={editUnit} onChange={(e) => setEditUnit(e.target.value)} className="mt-0.5 w-full border border-line-strong rounded-xl px-2 py-1.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
-                          </label>
-                          <label className="text-xs text-muted">
-                            Start (lower is better if above target)
-                            <input type="number" step="any" value={editStart} onChange={(e) => setEditStart(e.target.value)} className="mt-0.5 w-full border border-line-strong rounded-xl px-2 py-1.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
-                          </label>
-                          <label className="text-xs text-muted">
-                            Deadline
-                            <input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} className="mt-0.5 w-full border border-line-strong rounded-xl px-2 py-1.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent" />
-                          </label>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleUpdate(goal.id)}
-                            disabled={saving || !editTitle.trim()}
-                            className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                          <Pencil size={15} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirm(deleteConfirm === goal.id ? null : goal.id)}
+                          aria-label={`Delete ${goal.title}`}
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-faint hover:text-neg hover:bg-surface-2"
+                        >
+                          <Trash2 size={15} aria-hidden="true" />
+                        </button>
                       </div>
-                    ) : (
-                      <h3 className="text-base font-semibold text-fg leading-snug">{goal.title}</h3>
+                    </div>
+
+                    {deleteConfirm === goal.id && (
+                      <ConfirmDelete
+                        onConfirm={() => handleDelete(goal.id)}
+                        onCancel={() => setDeleteConfirm(null)}
+                        label="Delete this goal?"
+                      />
                     )}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${typeBadge}`}>
-                      {goal.type}
-                    </span>
-                  </div>
-                </div>
 
-                {goal.description && (
-                  <p className="text-sm text-muted leading-relaxed">{goal.description}</p>
-                )}
+                    {goal.description && (
+                      <p className="text-sm text-muted leading-relaxed">{goal.description}</p>
+                    )}
 
-                {/* Progress bar */}
-                {hasTarget && (
-                  <div>
-                    <div className="flex justify-between items-center text-xs text-muted mb-1">
-                      <span>Progress</span>
-                      <span className="font-medium text-fg-2">
-                        {decreasing
-                          ? `${fmtNum(current)} → ${fmtNum(target)}${goal.unit ? ` ${goal.unit}` : ""} (from ${fmtNum(goal.startValue)})`
-                          : `${fmtNum(current)} / ${fmtNum(target)}${goal.unit ? ` ${goal.unit}` : ""}`}
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-accent rounded-full transition-all duration-300"
-                          style={{ width: `${pct}%` }}
-                        />
+                    {/* Progress bar */}
+                    {hasTarget && (
+                      <div>
+                        <div className="flex justify-between items-baseline gap-2 mb-1.5">
+                          <span className="font-mono text-sm text-fg">
+                            {decreasing
+                              ? `${fmtNum(current)} → ${fmtNum(target)}${unitSuffix}`
+                              : `${fmtNum(current)} / ${fmtNum(target)}${unitSuffix}`}
+                            {decreasing && <span className="text-xs text-muted"> from {fmtNum(goal.startValue)}</span>}
+                          </span>
+                          <span className="font-mono text-sm font-medium text-fg-2">{pct}%</span>
+                        </div>
+                        <div className="relative">
+                          <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-accent rounded-full transition-all duration-300"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          {(goal.milestones ?? [])
+                            .filter((m: any) => m.targetValue != null && fraction(goal, m.targetValue) > 0 && fraction(goal, m.targetValue) < 1)
+                            .map((m: any) => (
+                              <span
+                                key={m.id}
+                                title={`${m.title} · ${fmtNum(m.targetValue)}${unitSuffix}`}
+                                className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-surface ${
+                                  m.completedAt || milestoneReached(goal, m.targetValue) ? "bg-accent" : "bg-line-strong"
+                                }`}
+                                style={{ left: `${fraction(goal, m.targetValue) * 100}%` }}
+                              />
+                            ))}
+                        </div>
                       </div>
-                      {(goal.milestones ?? [])
-                        .filter((m: any) => m.targetValue != null && fraction(goal, m.targetValue) > 0 && fraction(goal, m.targetValue) < 1)
-                        .map((m: any) => (
-                          <span
-                            key={m.id}
-                            title={`${m.title} · ${fmtNum(m.targetValue)}${goal.unit ? ` ${goal.unit}` : ""}`}
-                            className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-surface ${
-                              m.completedAt || milestoneReached(goal, m.targetValue) ? "bg-accent" : "bg-line-strong"
-                            }`}
-                            style={{ left: `${fraction(goal, m.targetValue) * 100}%` }}
-                          />
-                        ))}
-                    </div>
-                    <p className="text-xs text-faint mt-1 text-right">{pct}%</p>
-                  </div>
-                )}
+                    )}
 
-                {/* Deadline */}
-                {goal.deadline && (
-                  <p className={`text-xs font-medium ${finished ? "text-muted" : deadlineColor}`}>
-                    {finished || deadlineDays === null
-                      ? `Deadline ${formatDate(goal.deadline)}`
-                      : deadlineDays < 0
-                      ? `${plural(Math.abs(deadlineDays), "day")} overdue`
-                      : deadlineDays === 0
-                      ? "Due today"
-                      : `${plural(deadlineDays, "day")} remaining`}
-                    {!finished && <>{" · "}{formatDate(goal.deadline)}</>}
-                  </p>
-                )}
-
-                {/* Milestones */}
-                <div className="pt-2 border-t border-line">
-                  <GoalMilestones
-                    goal={goal}
-                    goalId={goal.id}
-                    unit={goal.unit ?? null}
-                    currentValue={current}
-                    milestones={goal.milestones ?? []}
-                    onChange={(ms) =>
-                      setGoals((gs) => gs.map((g) => (g.id === goal.id ? { ...g, milestones: ms } : g)))
-                    }
-                    onError={setError}
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusBadge}`}>
-                    {goal.status?.charAt(0) + goal.status?.slice(1).toLowerCase()}
-                  </span>
-                </div>
-
-                {/* Quick progress update */}
-                {hasTarget && goal.status === "ACTIVE" && (
-                  <div className="flex items-center gap-2 pt-1 border-t border-line">
-                    <input
-                      type="number"
-                      step="any"
-                      value={progressInputs[goal.id] ?? ""}
-                      onChange={(e) =>
-                        setProgressInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))
-                      }
-                      placeholder={decreasing ? "New value" : "+/- value"}
-                      aria-label={decreasing ? `New value for ${goal.title}` : `Change progress of ${goal.title} by`}
-                      className="flex-1 min-w-0 w-0 border border-line-strong rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                    />
-                    <button
-                      onClick={() => handleProgressUpdate(goal)}
-                      disabled={updatingProgress === goal.id || !progressInputs[goal.id]}
-                      className="px-3 py-1.5 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
-                    >
-                      {updatingProgress === goal.id ? "..." : "Update"}
-                    </button>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="pt-1 border-t border-line">
-                  {deleteConfirm === goal.id ? (
-                    <ConfirmDelete
-                      onConfirm={() => handleDelete(goal.id)}
-                      onCancel={() => setDeleteConfirm(null)}
-                      label="Delete goal?"
-                    />
-                  ) : (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingId(goal.id);
-                          setEditTitle(goal.title);
-                          setEditStatus(goal.status ?? "ACTIVE");
-                          setEditTarget(goal.targetValue != null ? String(goal.targetValue) : "");
-                          setEditStart(goal.startValue != null ? String(goal.startValue) : "");
-                          setEditUnit(goal.unit ?? "");
-                          setEditDeadline(goal.deadline ? goal.deadline.slice(0, 10) : "");
+                    {/* Quick progress update */}
+                    {hasTarget && goal.status === "ACTIVE" && (
+                      <form
+                        className="flex items-center gap-2"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleProgressUpdate(goal);
                         }}
-                        className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                       >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(goal.id)}
-                        className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
-                      >
-                        Delete
-                      </button>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="any"
+                          value={progressInputs[goal.id] ?? ""}
+                          onChange={(e) =>
+                            setProgressInputs((prev) => ({ ...prev, [goal.id]: e.target.value }))
+                          }
+                          placeholder={decreasing ? "New value" : "Add or subtract"}
+                          aria-label={decreasing ? `New value for ${goal.title}` : `Change progress of ${goal.title} by`}
+                          className="flex-1 min-w-0 w-0 h-9 border border-line-strong rounded-xl px-3 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-accent"
+                        />
+                        <button
+                          type="submit"
+                          disabled={updatingProgress === goal.id || !progressInputs[goal.id]}
+                          className="h-9 px-3 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
+                        >
+                          {updatingProgress === goal.id ? "..." : decreasing ? "Set" : "Update"}
+                        </button>
+                      </form>
+                    )}
+
+                    {/* Milestones */}
+                    <div className="pt-3 border-t border-line">
+                      <GoalMilestones
+                        goal={goal}
+                        goalId={goal.id}
+                        unit={goal.unit ?? null}
+                        currentValue={current}
+                        milestones={goal.milestones ?? []}
+                        onChange={(ms) =>
+                          setGoals((gs) => gs.map((g) => (g.id === goal.id ? { ...g, milestones: ms } : g)))
+                        }
+                        onError={setError}
+                      />
                     </div>
-                  )}
-                </div>
-              </div>
+                  </>
+                )}
+              </article>
             );
           })}
         </div>

@@ -32,7 +32,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Check, Flame, MoreHorizontal, Trophy, Lock, ChevronRight, Sparkles } from "lucide-react";
+import { Check, Flame, MoreHorizontal, Trophy, Lock, ChevronRight, Sparkles, Plus, Trash2 } from "lucide-react";
 
 interface Habit extends HabitLite {
   description?: string | null;
@@ -271,6 +271,205 @@ export default function HabitsPage() {
 
   const gridCols = `2.25rem minmax(7rem, 1fr) 3.75rem repeat(${GRID_DAYS}, 1.375rem) 2.5rem 1.75rem`;
 
+  const startRename = (habit: Habit) => {
+    setEditingId(habit.id);
+    setEditName(habit.name);
+    setMenuId(null);
+  };
+
+  // Paused habits get direct Resume/Delete buttons; active ones hide them behind a menu.
+  const renderActions = (habit: Habit, menuUp: boolean, size: "sm" | "lg" = "sm") => {
+    const box = size === "lg" ? "w-9 h-9" : "w-7 h-7";
+    if (!habit.active) {
+      return (
+        <span className="flex items-center">
+          <button
+            type="button"
+            onClick={() => handleToggleActive(habit)}
+            className={`${size === "lg" ? "h-9" : "h-7"} px-2 rounded-lg text-xs font-medium text-accent hover:bg-accent-soft`}
+          >
+            Resume
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteConfirm(habit.id)}
+            aria-label={`Delete ${habit.name}`}
+            className={`${box} rounded-lg flex items-center justify-center text-faint hover:text-neg hover:bg-surface-2`}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+          </button>
+        </span>
+      );
+    }
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setMenuId(menuId === habit.id ? null : habit.id)}
+          aria-label={`Options for ${habit.name}`}
+          aria-expanded={menuId === habit.id}
+          className={`${box} rounded-lg flex items-center justify-center text-faint hover:text-fg hover:bg-surface-2`}
+        >
+          <MoreHorizontal size={16} aria-hidden="true" />
+        </button>
+        {menuId === habit.id && (
+          <div
+            role="menu"
+            className={`absolute right-0 ${menuUp ? "bottom-full mb-1" : "top-full mt-1"} z-20 w-40 p-1 rounded-xl border border-line-strong bg-surface shadow-xl shadow-black/20`}
+          >
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => startRename(habit)}
+              className="w-full text-left px-3 h-9 rounded-lg text-sm text-fg hover:bg-surface-2"
+            >
+              Rename
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => handleToggleActive(habit)}
+              className="w-full text-left px-3 h-9 rounded-lg text-sm text-fg hover:bg-surface-2"
+            >
+              Pause
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => {
+                setDeleteConfirm(habit.id);
+                setMenuId(null);
+              }}
+              className="w-full text-left px-3 h-9 rounded-lg text-sm text-neg hover:bg-surface-2"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  const renderRename = (habit: Habit, tall = false) => (
+    <form
+      className="flex items-center gap-1 w-full"
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleRename(habit.id);
+      }}
+    >
+      <label htmlFor={`rename-${habit.id}${tall ? "-m" : ""}`} className="sr-only">Habit name</label>
+      <input
+        id={`rename-${habit.id}${tall ? "-m" : ""}`}
+        value={editName}
+        onChange={(e) => setEditName(e.target.value)}
+        onKeyDown={(e) => e.key === "Escape" && setEditingId(null)}
+        autoFocus
+        className={`flex-1 min-w-0 ${tall ? "h-9" : "h-7"} border border-line-strong rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent`}
+      />
+      <button type="submit" className={`${tall ? "h-9 px-3" : "h-7 px-2"} text-xs font-medium bg-accent text-accent-ink rounded-lg`}>Save</button>
+    </form>
+  );
+
+  const checkLabel = (habit: Habit, s: { doneToday: boolean; doneForPeriod: boolean }) =>
+    s.doneToday
+      ? `Undo ${habit.name} for today`
+      : s.doneForPeriod
+      ? `${habit.name} is done this week; check in again today`
+      : `Check in ${habit.name} for today`;
+
+  const checkTone = (s: { doneToday: boolean; doneForPeriod: boolean }) =>
+    s.doneToday
+      ? "bg-accent text-accent-ink"
+      : s.doneForPeriod
+      ? "bg-accent-soft text-accent-strong"
+      : "border-[1.5px] border-line-strong text-transparent hover:border-accent hover:text-accent";
+
+  // Phones: one card-like row per habit with a big check-in button and the last 7 days as tap targets.
+  const renderMobileRow = (habit: Habit) => {
+    const s = stats.get(habit.id)!;
+    const habitDone = done.get(habit.id) ?? new Set<string>();
+    const pending = pendingByHabit.get(habit.id);
+    const unit = s.unit === "week" ? "w" : "d";
+    return (
+      <li key={habit.id} className="px-4 py-3 space-y-3">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => handleToggleDay(habit, today)}
+            disabled={!habit.active}
+            aria-pressed={s.doneToday}
+            aria-label={checkLabel(habit, s)}
+            className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 ${checkTone(s)}`}
+          >
+            <Check size={20} strokeWidth={3} aria-hidden="true" />
+          </button>
+          <div className="flex-1 min-w-0">
+            {editingId === habit.id ? (
+              renderRename(habit, true)
+            ) : (
+              <>
+                <p className="flex items-center gap-2 min-w-0">
+                  <span className="truncate text-[15px] font-medium text-fg">{habit.name}</span>
+                  {habit.frequency === "WEEKLY" && (
+                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.04em] px-1 rounded bg-surface-2 text-muted">weekly</span>
+                  )}
+                </p>
+                <p className="flex items-center gap-2 font-mono text-xs text-muted">
+                  <span className={`flex items-center gap-0.5 ${streakTone(s.current)}`}>
+                    <Flame size={12} aria-hidden="true" className={s.current >= 7 ? "fill-current" : ""} />
+                    {s.current}{unit}
+                    <span className="sr-only">streak, best {s.best}</span>
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{Math.round(s.rate30 * 100)}% 30d</span>
+                </p>
+              </>
+            )}
+          </div>
+          <span className="relative shrink-0" data-habit-menu>
+            {renderActions(habit, false, "lg")}
+          </span>
+        </div>
+        {deleteConfirm === habit.id ? (
+          <ConfirmDelete
+            label={`Delete “${habit.name}” and its history?`}
+            onConfirm={() => handleDelete(habit.id)}
+            onCancel={() => setDeleteConfirm(null)}
+          />
+        ) : (
+          <div className="grid grid-cols-7 gap-1.5" role="group" aria-label={`${habit.name}, last 7 days`}>
+            {gridDays.slice(-7).map((day) => {
+              const isDone = habitDone.has(day);
+              const isPending = pending?.has(day);
+              const d = new Date(day + "T00:00:00Z");
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => handleToggleDay(habit, day)}
+                  disabled={!habit.active}
+                  aria-pressed={isDone}
+                  aria-label={`${habit.name}, ${formatLogDate(day)}: ${isDone ? "done" : isPending ? "pending review" : "not done"}`}
+                  className={`h-10 rounded-lg flex flex-col items-center justify-center font-mono leading-none transition-colors disabled:cursor-default ${
+                    isDone
+                      ? "bg-accent text-accent-ink"
+                      : isPending
+                      ? "border border-dashed border-accent text-muted"
+                      : "bg-surface-2 text-muted"
+                  } ${day === today ? "ring-1 ring-offset-1 ring-offset-surface ring-accent/60" : ""}`}
+                >
+                  <span className="text-[10px]" aria-hidden="true">{WEEKDAY[d.getUTCDay()]}</span>
+                  <span className="text-xs mt-0.5" aria-hidden="true">{d.getUTCDate()}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </li>
+    );
+  };
+
   const renderRow = (habit: Habit, index: number, rows: Habit[]) => {
     const menuUp = rows.length > 3 && index >= rows.length - 2;
     const s = stats.get(habit.id)!;
@@ -291,20 +490,8 @@ export default function HabitsPage() {
             onClick={() => handleToggleDay(habit, today)}
             disabled={!habit.active}
             aria-pressed={s.doneToday}
-            aria-label={
-              s.doneToday
-                ? `Undo ${habit.name} for today`
-                : s.doneForPeriod
-                ? `${habit.name} is done this week; check in again today`
-                : `Check in ${habit.name} for today`
-            }
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 ${
-              s.doneToday
-                ? "bg-accent text-accent-ink"
-                : s.doneForPeriod
-                ? "bg-accent-soft text-accent-strong"
-                : "border-[1.5px] border-line-strong text-transparent hover:border-accent hover:text-accent"
-            }`}
+            aria-label={checkLabel(habit, s)}
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 ${checkTone(s)}`}
           >
             <Check size={14} strokeWidth={3} aria-hidden="true" />
           </button>
@@ -312,24 +499,7 @@ export default function HabitsPage() {
 
         <span role="cell" className="min-w-0 flex items-center gap-2 pr-2">
           {editingId === habit.id ? (
-            <form
-              className="flex items-center gap-1 w-full"
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleRename(habit.id);
-              }}
-            >
-              <label htmlFor={`rename-${habit.id}`} className="sr-only">Habit name</label>
-              <input
-                id={`rename-${habit.id}`}
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                onKeyDown={(e) => e.key === "Escape" && setEditingId(null)}
-                autoFocus
-                className="flex-1 min-w-0 h-7 border border-line-strong rounded-lg px-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-              <button type="submit" className="h-7 px-2 text-xs font-medium bg-accent text-accent-ink rounded-lg">Save</button>
-            </form>
+            renderRename(habit)
           ) : (
             <>
               <span className="truncate text-sm font-medium text-fg" title={habit.description ? `${habit.name} — ${habit.description}` : habit.name}>
@@ -393,362 +563,320 @@ export default function HabitsPage() {
               {Math.round(s.rate30 * 100)}%
             </span>
 
-            {!habit.active ? (
-              <span role="cell" className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => handleToggleActive(habit)}
-                  className="h-7 px-2 rounded-lg text-xs font-medium text-accent hover:bg-accent-soft"
-                >
-                  Resume
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirm(habit.id)}
-                  aria-label={`Delete ${habit.name}`}
-                  className="h-7 px-2 rounded-lg text-xs font-medium text-neg hover:bg-surface-2"
-                >
-                  Delete
-                </button>
-              </span>
-            ) : (
             <span role="cell" className="relative flex justify-end" data-habit-menu>
-              <button
-                type="button"
-                onClick={() => setMenuId(menuId === habit.id ? null : habit.id)}
-                aria-label={`Options for ${habit.name}`}
-                aria-expanded={menuId === habit.id}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-faint hover:text-fg hover:bg-surface-2"
-              >
-                <MoreHorizontal size={16} aria-hidden="true" />
-              </button>
-              {menuId === habit.id && (
-                <div
-                  role="menu"
-                  className={`absolute right-0 ${menuUp ? "bottom-8" : "top-8"} z-20 w-40 p-1 rounded-xl border border-line-strong bg-surface shadow-xl shadow-black/20`}
-                >
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      setEditingId(habit.id);
-                      setEditName(habit.name);
-                      setMenuId(null);
-                    }}
-                    className="w-full text-left px-3 h-8 rounded-lg text-sm text-fg hover:bg-surface-2"
-                  >
-                    Rename
-                  </button>
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => handleToggleActive(habit)}
-                    className="w-full text-left px-3 h-8 rounded-lg text-sm text-fg hover:bg-surface-2"
-                  >
-                    {habit.active ? "Pause" : "Resume"}
-                  </button>
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      setDeleteConfirm(habit.id);
-                      setMenuId(null);
-                    }}
-                    className="w-full text-left px-3 h-8 rounded-lg text-sm text-neg hover:bg-surface-2"
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
+              {renderActions(habit, menuUp)}
             </span>
-            )}
           </>
         )}
       </li>
     );
   };
 
+  const openCreate = () => {
+    resetForm();
+    setShowCreate(true);
+  };
+
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
         title="Habits"
         action={
           !showCreate ? (
             <button
-              onClick={() => {
-                resetForm();
-                setShowCreate(true);
-              }}
-              className="h-10 px-4 text-sm font-semibold bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+              onClick={openCreate}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
-              + New habit
+              <Plus size={16} aria-hidden="true" />
+              New habit
             </button>
           ) : undefined
         }
       />
 
-      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+      {/* On phones the check-in list comes right after today's progress; level and badges move below it. */}
+      <div className="flex flex-col gap-4 sm:gap-6">
+        {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
-      {celebration && (
-        <div role="status" className="flex items-center gap-3 rounded-2xl bg-accent text-accent-ink px-5 py-3 font-semibold">
-          <Sparkles size={18} aria-hidden="true" />
-          {celebration}
-        </div>
-      )}
-
-      {/* Progress strip */}
-      <section aria-label="Progress" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-surface border border-line rounded-2xl p-4 space-y-3">
-          <div className="flex items-baseline justify-between">
-            <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Level {level.level}</p>
-            <p className="font-mono text-xs text-muted">{xp.toLocaleString("en-US")} XP</p>
+        {celebration && (
+          <div role="status" className="flex items-center gap-3 rounded-2xl bg-accent text-accent-ink px-5 py-3 font-semibold">
+            <Sparkles size={18} aria-hidden="true" />
+            {celebration}
           </div>
-          <p className="text-xl font-semibold tracking-tight text-fg">{level.title}</p>
-          <div
-            className="h-1.5 rounded-full bg-surface-2 overflow-hidden"
-            role="progressbar"
-            aria-label="Progress to next level"
-            aria-valuemin={0}
-            aria-valuemax={level.levelSize}
-            aria-valuenow={level.intoLevel}
-          >
-            <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${(level.intoLevel / level.levelSize) * 100}%` }} />
-          </div>
-          <p className="text-xs text-muted">{level.toNext} XP to level {level.level + 1}</p>
-        </div>
+        )}
 
-        <div className="bg-surface border border-line rounded-2xl p-4 flex items-center gap-4">
-          <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" className="shrink-0 -rotate-90">
-            <circle cx="28" cy="28" r="23" fill="none" strokeWidth="6" className="stroke-surface-2" />
-            <circle
-              cx="28"
-              cy="28"
-              r="23"
-              fill="none"
-              strokeWidth="6"
-              strokeLinecap="round"
-              className="stroke-accent transition-all"
-              strokeDasharray={`${active.length ? (doneTodayCount / active.length) * 144.5 : 0} 144.5`}
-              opacity={doneTodayCount ? 1 : 0}
-            />
-          </svg>
-          <div>
-            <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Today</p>
-            <p className="font-mono text-2xl text-fg">
-              {doneTodayCount}<span className="text-faint">/{active.length}</span>
-            </p>
-            <p className="text-xs text-muted">
-              {perfect.has(today)
-                ? "Perfect day — bonus earned"
-                : dailyActive.length
-                ? `Finish all daily habits for +${PERFECT_DAY_XP} XP`
-                : "Add a daily habit to start"}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-surface border border-line rounded-2xl p-4 space-y-1">
-          <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Longest active streak</p>
-          <p className={`flex items-center gap-1.5 font-mono text-2xl ${streakTone(bestCurrent?.s.current ?? 0)}`}>
-            <Flame size={20} aria-hidden="true" className={(bestCurrent?.s.current ?? 0) >= 7 ? "fill-current" : ""} />
-            {bestCurrent?.s.current ?? 0}
-            <span className="text-sm text-faint">{bestCurrent?.s.unit === "week" ? "weeks" : "days"}</span>
-          </p>
-          <p className="text-xs text-muted truncate">{bestCurrent && bestCurrent.s.current > 0 ? bestCurrent.h.name : "Check in today to start one"}</p>
-        </div>
-
-        <div className="bg-surface border border-line rounded-2xl p-4 space-y-2">
-          <div className="flex items-baseline justify-between">
-            <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Badges</p>
-            <p className="font-mono text-xs text-muted">
-              {badgeList.filter((b) => b.earned).length}/{badgeList.length}
-            </p>
-          </div>
-          <ul className="flex flex-wrap gap-1.5" aria-label="Badges">
-            {badgeList.map((b) => (
-              <li
-                key={b.id}
-                title={`${b.label} — ${b.description}${b.earned ? "" : " (locked)"}`}
-                className={`flex items-center gap-1 h-6 px-2 rounded-md text-[11px] font-medium ${
-                  b.earned ? "bg-accent-soft text-accent-strong" : "bg-surface-2 text-faint"
-                }`}
-              >
-                {b.earned ? <Trophy size={11} aria-hidden="true" /> : <Lock size={11} aria-hidden="true" />}
-                {b.label}
-                <span className="sr-only">{b.earned ? "earned" : "locked"}: {b.description}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* Pending MCP banner */}
-      {pendingLogs.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
-          <p className="text-sm font-medium text-yellow-800 mb-3">
-            {pendingLogs.length} habit {pendingLogs.length === 1 ? "entry" : "entries"} added by AI — approve to count {pendingLogs.length === 1 ? "it" : "them"} toward streaks
-          </p>
-          <ul className="space-y-1.5">
-            {pendingLogs.map((log: any) => (
-              <li key={log.id} className="flex items-center justify-between gap-4 bg-surface rounded-xl px-3 py-2">
-                <span className="flex-1 min-w-0 text-sm truncate">
-                  <span className="font-medium text-fg">{log.habit?.name ?? log.habitId}</span>
-                  <span className="mx-2 text-faint">·</span>
-                  <span className="text-muted">{formatLogDate(log.date)}</span>
-                  <span className="mx-2 text-faint">·</span>
-                  <span className={log.completed ? "text-pos" : "text-muted"}>{log.completed ? "Completed" : "Not completed"}</span>
-                  {log.note && <span className="ml-2 text-xs text-muted italic">“{log.note}”</span>}
-                </span>
-                <span className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => handleApproveLog(log.id)}
-                    className="h-7 px-3 text-xs font-medium bg-accent text-accent-ink rounded-lg hover:bg-accent-hover transition-colors"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleRejectLog(log.id)}
-                    className="h-7 px-3 text-xs font-medium border border-line-strong text-fg-2 rounded-lg hover:bg-surface-2 transition-colors"
-                  >
-                    Reject
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Create form */}
-      {showCreate && (
-        <form onSubmit={handleCreate} className="bg-surface border border-line rounded-2xl p-4 flex flex-wrap items-end gap-3">
-          <div className="flex-[2_1_14rem]">
-            <label htmlFor="habit-name" className="block text-xs font-medium text-muted mb-1">Name</label>
-            <input
-              id="habit-name"
-              type="text"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder="e.g. Morning run"
-              autoFocus
-              required
-              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          </div>
-          <div className="flex-[1_1_8rem]">
-            <label htmlFor="habit-frequency" className="block text-xs font-medium text-muted mb-1">Frequency</label>
-            <select
-              id="habit-frequency"
-              value={formFrequency}
-              onChange={(e) => setFormFrequency(e.target.value)}
-              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+        {/* Progress strip */}
+        <section aria-label="Progress" className="max-sm:contents grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="max-sm:order-1 bg-surface border border-line rounded-2xl p-4 space-y-2 sm:space-y-3">
+            <div className="flex items-baseline justify-between">
+              <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Level {level.level}</p>
+              <p className="font-mono text-xs text-muted">{xp.toLocaleString("en-US")} XP</p>
+            </div>
+            <p className="text-lg sm:text-xl font-semibold tracking-tight text-fg">{level.title}</p>
+            <div
+              className="h-1.5 rounded-full bg-surface-2 overflow-hidden"
+              role="progressbar"
+              aria-label="Progress to next level"
+              aria-valuemin={0}
+              aria-valuemax={level.levelSize}
+              aria-valuenow={level.intoLevel}
             >
-              <option value="DAILY">Daily</option>
-              <option value="WEEKLY">Weekly</option>
-            </select>
+              <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${(level.intoLevel / level.levelSize) * 100}%` }} />
+            </div>
+            <p className="text-xs text-muted">{level.toNext} XP to level {level.level + 1}</p>
           </div>
-          <div className="flex-[3_1_14rem]">
-            <label htmlFor="habit-description" className="block text-xs font-medium text-muted mb-1">Description (optional)</label>
-            <input
-              id="habit-description"
-              type="text"
-              value={formDescription}
-              onChange={(e) => setFormDescription(e.target.value)}
-              className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="h-10 px-4 text-sm font-semibold bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
-            >
-              {saving ? "Adding…" : "Add habit"}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="h-10 px-4 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
 
-      {/* Habit grid */}
-      {habits.length === 0 ? (
-        <EmptyState
-          message="No habits yet."
-          cta={{ label: "Create your first habit", onClick: () => { resetForm(); setShowCreate(true); } }}
-        />
-      ) : (
-        <section aria-labelledby="habits-grid-heading" className="bg-surface border border-line rounded-2xl">
-          <h2 id="habits-grid-heading" className="sr-only">Your habits</h2>
-          <div ref={gridScrollRef} className="relative overflow-x-auto">
-            <div role="table" aria-label="Habits, last 14 days" className="min-w-[39rem]">
-              <div
-                role="row"
-                className="grid items-end gap-x-0.5 px-3 pt-3 pb-2 border-b border-line"
-                style={{ gridTemplateColumns: gridCols }}
-              >
-                <span role="columnheader"><span className="sr-only">Today</span></span>
-                <span role="columnheader" className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">
-                  {active.length} active
-                </span>
-                <span role="columnheader" className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Streak</span>
-                {gridDays.map((day) => {
-                  const d = new Date(day + "T00:00:00Z");
-                  const isToday = day === today;
-                  return (
-                    <span
-                      role="columnheader"
-                      key={day}
-                      className={`flex flex-col items-center font-mono text-[10px] leading-tight ${isToday ? "text-accent font-semibold" : "text-faint"}`}
-                      aria-label={formatLogDate(day)}
-                    >
-                      <span>{WEEKDAY[d.getUTCDay()]}</span>
-                      <span>{d.getUTCDate()}</span>
-                    </span>
-                  );
-                })}
-                <span role="columnheader" className="font-mono text-[11px] text-muted text-right">30d</span>
-                <span role="columnheader"><span className="sr-only">Options</span></span>
+          <div className="grid grid-cols-2 gap-3 sm:contents">
+            <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
+              <svg viewBox="0 0 56 56" aria-hidden="true" className="shrink-0 w-10 h-10 sm:w-14 sm:h-14 -rotate-90">
+                <circle cx="28" cy="28" r="23" fill="none" strokeWidth="6" className="stroke-surface-2" />
+                <circle
+                  cx="28"
+                  cy="28"
+                  r="23"
+                  fill="none"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  className="stroke-accent transition-all"
+                  strokeDasharray={`${active.length ? (doneTodayCount / active.length) * 144.5 : 0} 144.5`}
+                  opacity={doneTodayCount ? 1 : 0}
+                />
+              </svg>
+              <div className="min-w-0">
+                <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Today</p>
+                <p className="font-mono text-xl sm:text-2xl text-fg">
+                  {doneTodayCount}<span className="text-faint">/{active.length}</span>
+                </p>
+                <p className="hidden sm:block text-xs text-muted">
+                  {perfect.has(today)
+                    ? "Perfect day — bonus earned"
+                    : dailyActive.length
+                    ? `Finish all daily habits for +${PERFECT_DAY_XP} XP`
+                    : "Add a daily habit to start"}
+                </p>
               </div>
-              <ul role="rowgroup">{active.map(renderRow)}</ul>
-              {active.length === 0 && (
-                <p className="px-4 py-6 text-sm text-muted text-center">All habits are paused.</p>
-              )}
+            </div>
+
+            <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 space-y-0.5 sm:space-y-1 min-w-0">
+              <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">
+                <span className="sm:hidden">Best streak</span>
+                <span className="hidden sm:inline">Longest active streak</span>
+              </p>
+              <p className={`flex items-center gap-1.5 font-mono text-xl sm:text-2xl ${streakTone(bestCurrent?.s.current ?? 0)}`}>
+                <Flame size={18} aria-hidden="true" className={(bestCurrent?.s.current ?? 0) >= 7 ? "fill-current" : ""} />
+                {bestCurrent?.s.current ?? 0}
+                <span className="text-sm text-faint">{bestCurrent?.s.unit === "week" ? "weeks" : "days"}</span>
+              </p>
+              <p className="text-xs text-muted truncate">{bestCurrent && bestCurrent.s.current > 0 ? bestCurrent.h.name : "Check in today to start one"}</p>
             </div>
           </div>
 
-          {paused.length > 0 && (
-            <div className="border-t border-line">
+          <div className="max-sm:order-1 bg-surface border border-line rounded-2xl p-4 space-y-2">
+            <div className="flex items-baseline justify-between">
+              <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Badges</p>
+              <p className="font-mono text-xs text-muted">
+                {badgeList.filter((b) => b.earned).length}/{badgeList.length}
+              </p>
+            </div>
+            <ul className="flex flex-wrap gap-1.5" aria-label="Badges">
+              {badgeList.map((b) => (
+                <li
+                  key={b.id}
+                  title={`${b.label} — ${b.description}${b.earned ? "" : " (locked)"}`}
+                  className={`flex items-center gap-1 h-6 px-2 rounded-md text-[11px] font-medium ${
+                    b.earned ? "bg-accent-soft text-accent-strong" : "bg-surface-2 text-faint"
+                  }`}
+                >
+                  {b.earned ? <Trophy size={11} aria-hidden="true" /> : <Lock size={11} aria-hidden="true" />}
+                  {b.label}
+                  <span className="sr-only">{b.earned ? "earned" : "locked"}: {b.description}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Pending MCP banner */}
+        {pendingLogs.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
+            <p className="text-sm font-medium text-yellow-800 mb-3">
+              {pendingLogs.length} habit {pendingLogs.length === 1 ? "entry" : "entries"} added by AI — approve to count {pendingLogs.length === 1 ? "it" : "them"} toward streaks
+            </p>
+            <ul className="space-y-1.5">
+              {pendingLogs.map((log: any) => (
+                <li key={log.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 bg-surface rounded-xl px-3 py-2">
+                  <span className="flex-1 min-w-0 text-sm sm:truncate">
+                    <span className="font-medium text-fg">{log.habit?.name ?? log.habitId}</span>
+                    <span className="mx-2 text-faint">·</span>
+                    <span className="text-muted">{formatLogDate(log.date)}</span>
+                    <span className="mx-2 text-faint">·</span>
+                    <span className={log.completed ? "text-pos" : "text-muted"}>{log.completed ? "Completed" : "Not completed"}</span>
+                    {log.note && <span className="ml-2 text-xs text-muted italic">“{log.note}”</span>}
+                  </span>
+                  <span className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => handleApproveLog(log.id)}
+                      className="h-9 sm:h-7 px-3 text-xs font-medium bg-accent text-accent-ink rounded-lg hover:bg-accent-hover transition-colors"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleRejectLog(log.id)}
+                      className="h-9 sm:h-7 px-3 text-xs font-medium border border-line-strong text-fg-2 rounded-lg hover:bg-surface-2 transition-colors"
+                    >
+                      Reject
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Create form */}
+        {showCreate && (
+          <form
+            onSubmit={handleCreate}
+            className="bg-surface border border-line rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_3fr_auto] items-end gap-3"
+          >
+            <div>
+              <label htmlFor="habit-name" className="block text-xs font-medium text-muted mb-1">Name</label>
+              <input
+                id="habit-name"
+                type="text"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="e.g. Morning run"
+                autoFocus
+                required
+                className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+            <div>
+              <label htmlFor="habit-frequency" className="block text-xs font-medium text-muted mb-1">Frequency</label>
+              <select
+                id="habit-frequency"
+                value={formFrequency}
+                onChange={(e) => setFormFrequency(e.target.value)}
+                className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="DAILY">Daily</option>
+                <option value="WEEKLY">Weekly</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2 lg:col-span-1">
+              <label htmlFor="habit-description" className="block text-xs font-medium text-muted mb-1">Description (optional)</label>
+              <input
+                id="habit-description"
+                type="text"
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                className="w-full h-10 border border-line-strong rounded-xl px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+            <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 lg:flex-none h-10 px-4 text-sm font-semibold bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
+              >
+                {saving ? "Adding…" : "Add habit"}
+              </button>
               <button
                 type="button"
-                onClick={() => setShowPaused((v) => !v)}
-                aria-expanded={showPaused}
-                className="w-full flex items-center gap-2 px-4 h-10 text-sm text-muted hover:text-fg"
+                onClick={resetForm}
+                className="flex-1 lg:flex-none h-10 px-4 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
               >
-                <ChevronRight size={14} className={`transition-transform ${showPaused ? "rotate-90" : ""}`} aria-hidden="true" />
-                Paused ({paused.length})
+                Cancel
               </button>
-              {showPaused && (
-                <div className="relative overflow-x-auto opacity-70">
-                  <div role="table" aria-label="Paused habits" className="min-w-[39rem]">
-                    <ul role="rowgroup">{paused.map(renderRow)}</ul>
-                  </div>
-                </div>
-              )}
             </div>
-          )}
-        </section>
-      )}
+          </form>
+        )}
 
-      <p className="text-xs text-muted">
-        {XP_PER_CHECKIN} XP per check-in, up to +{MAX_STREAK_BONUS} for keeping a streak going, +{PERFECT_DAY_XP} for a perfect day.
-        Click any square to fill in a day you missed.
-      </p>
+        {/* Habit list (phones) and grid (larger screens) */}
+        {habits.length === 0 ? (
+          <EmptyState message="No habits yet." cta={{ label: "Create your first habit", onClick: openCreate }} />
+        ) : (
+          <section aria-labelledby="habits-grid-heading" className="bg-surface border border-line rounded-2xl">
+            <h2 id="habits-grid-heading" className="sr-only">Your habits</h2>
+
+            <div className="sm:hidden">
+              <p className="px-4 pt-3 font-mono text-[11px] text-muted uppercase tracking-[0.08em]">
+                {active.length} active · last 7 days
+              </p>
+              <ul className="divide-y divide-line">{active.map(renderMobileRow)}</ul>
+              {active.length === 0 && <p className="px-4 py-6 text-sm text-muted text-center">All habits are paused.</p>}
+            </div>
+
+            <div ref={gridScrollRef} className="hidden sm:block relative overflow-x-auto">
+              <div role="table" aria-label="Habits, last 14 days" className="min-w-[39rem]">
+                <div
+                  role="row"
+                  className="grid items-end gap-x-0.5 px-3 pt-3 pb-2 border-b border-line"
+                  style={{ gridTemplateColumns: gridCols }}
+                >
+                  <span role="columnheader"><span className="sr-only">Today</span></span>
+                  <span role="columnheader" className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">
+                    {active.length} active
+                  </span>
+                  <span role="columnheader" className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">Streak</span>
+                  {gridDays.map((day) => {
+                    const d = new Date(day + "T00:00:00Z");
+                    const isToday = day === today;
+                    return (
+                      <span
+                        role="columnheader"
+                        key={day}
+                        className={`flex flex-col items-center font-mono text-[10px] leading-tight ${isToday ? "text-accent font-semibold" : "text-faint"}`}
+                        aria-label={formatLogDate(day)}
+                      >
+                        <span>{WEEKDAY[d.getUTCDay()]}</span>
+                        <span>{d.getUTCDate()}</span>
+                      </span>
+                    );
+                  })}
+                  <span role="columnheader" className="font-mono text-[11px] text-muted text-right">30d</span>
+                  <span role="columnheader"><span className="sr-only">Options</span></span>
+                </div>
+                <ul role="rowgroup">{active.map(renderRow)}</ul>
+                {active.length === 0 && (
+                  <p className="px-4 py-6 text-sm text-muted text-center">All habits are paused.</p>
+                )}
+              </div>
+            </div>
+
+            {paused.length > 0 && (
+              <div className="border-t border-line">
+                <button
+                  type="button"
+                  onClick={() => setShowPaused((v) => !v)}
+                  aria-expanded={showPaused}
+                  className="w-full flex items-center gap-2 px-4 h-11 text-sm text-muted hover:text-fg"
+                >
+                  <ChevronRight size={14} className={`transition-transform ${showPaused ? "rotate-90" : ""}`} aria-hidden="true" />
+                  Paused ({paused.length})
+                </button>
+                {showPaused && (
+                  <>
+                    <ul className="sm:hidden divide-y divide-line border-t border-line opacity-70">{paused.map(renderMobileRow)}</ul>
+                    <div className="hidden sm:block relative overflow-x-auto opacity-70">
+                      <div role="table" aria-label="Paused habits" className="min-w-[39rem]">
+                        <ul role="rowgroup">{paused.map(renderRow)}</ul>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        <p className="max-sm:order-2 text-xs text-muted">
+          {XP_PER_CHECKIN} XP per check-in, up to +{MAX_STREAK_BONUS} for keeping a streak going, +{PERFECT_DAY_XP} for a perfect day.
+          <span className="sm:hidden"> Tap a day to fill in one you missed.</span>
+          <span className="hidden sm:inline"> Click any square to fill in a day you missed.</span>
+        </p>
+      </div>
     </div>
   );
 }

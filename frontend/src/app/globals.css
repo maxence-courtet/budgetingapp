@@ -226,6 +226,10 @@ select:focus-visible,
 textarea:focus-visible {
   outline-offset: 0;
 }
+/* Borderless fields whose container shows focus instead (search bar, journal). */
+[data-bare]:focus-visible {
+  outline: none;
+}
 
 /* Set for one frame while the theme changes so colours switch at once instead of fading through low contrast. */
 .theme-switching *,
