@@ -6,15 +6,16 @@ import Link from "next/link";
 import { getAccounts, getMonths, getTransactions, getHabits, getAllHabitLogs, logHabit, getGoals, getNetWorthHistory } from "@/lib/api";
 import { doneDatesByHabit, habitStats, addDays } from "@/lib/habitStats";
 import { goalProgress, isDecreasing, fmtNum } from "@/lib/goals";
-import { fmt, formatAmount } from "@/lib/format";
+import { fmt } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/constants";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AiInsightsCard } from "@/components/AiInsightsCard";
 import { NetWorthChart } from "@/components/NetWorthChart";
-import { TRANSACTIONS_CHANGED } from "@/components/QuickAddTransaction";
+import { TRANSACTIONS_CHANGED, openQuickAdd } from "@/components/QuickAddTransaction";
+import { TransactionList } from "@/components/TransactionList";
+import { usePreferences } from "@/components/PreferencesProvider";
 import { Account, Month, Transaction } from "@/lib/types";
 import { Plus, Check, ArrowRight } from "lucide-react";
 
@@ -60,6 +61,9 @@ export default function Dashboard() {
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { modules } = usePreferences();
+  const showHabits = modules.includes("habits");
+  const showGoals = modules.includes("goals");
 
   useEffect(() => {
     async function load() {
@@ -123,14 +127,14 @@ export default function Dashboard() {
   const today = now.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "short" });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
       <h1 className="sr-only">Dashboard</h1>
       <section aria-label="Overview" className="flex flex-wrap items-end justify-between gap-6">
         <div className="space-y-2">
           <p className="font-mono text-xs text-muted uppercase tracking-[0.08em]">{today} · Net worth</p>
-          <p className="font-mono text-5xl md:text-6xl font-medium tracking-[-0.04em] leading-none text-fg">
+          <p className="font-mono text-[44px] sm:text-5xl md:text-6xl font-medium tracking-[-0.04em] leading-none text-fg">
             {signed(totalBalance)}
           </p>
           <p className="text-sm text-muted">
@@ -165,7 +169,9 @@ export default function Dashboard() {
 
       <AiInsightsCard />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {(showHabits || showGoals) && (
+      <div className={`grid grid-cols-1 gap-4 ${showHabits && showGoals ? "lg:grid-cols-2" : ""}`}>
+        {showHabits && (
         <section aria-labelledby="habits-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-4">
           <CardHeader id="habits-heading" title="Habits · last 7 days" href="/habits" />
           {habits.length === 0 ? (
@@ -204,7 +210,9 @@ export default function Dashboard() {
             </ul>
           )}
         </section>
+        )}
 
+        {showGoals && (
         <section aria-labelledby="goals-heading" className="bg-surface border border-line rounded-2xl p-5 space-y-4">
           <CardHeader id="goals-heading" title="Goals" href="/goals" />
           {goals.length === 0 ? (
@@ -234,83 +242,52 @@ export default function Dashboard() {
             </ul>
           )}
         </section>
+        )}
       </div>
+      )}
 
       <section aria-labelledby="accounts-heading" className="space-y-3">
-        <CardHeader id="accounts-heading" title="Accounts" href="/accounts" />
+        <CardHeader id="accounts-heading" title="Accounts" href="/accounts" linkLabel="Manage" />
         {accounts.length === 0 ? (
           <EmptyState
             message="No accounts yet."
             cta={{ label: "Create your first account", onClick: () => (window.location.href = "/accounts") }}
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <ul role="list" className="bg-surface border border-line rounded-2xl divide-y divide-line overflow-hidden sm:bg-transparent sm:border-0 sm:rounded-none sm:divide-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-3">
             {accounts.map((a) => (
-              <Link
-                key={a.id}
-                href={`/accounts/${a.id}`}
-                className="bg-surface border border-line rounded-2xl p-4 hover:border-accent transition-colors"
-              >
-                <p className="font-mono text-[11px] text-muted uppercase tracking-[0.08em]">
-                  {a.type?.replace("_", " ") ?? "Account"}
-                </p>
-                <p className="text-sm font-medium text-fg mt-1 truncate">{a.name}</p>
-                <p className={`font-mono text-xl mt-3 ${(a.balance ?? 0) < 0 ? "text-neg" : "text-fg"}`}>
-                  {signed(a.balance ?? 0)}
-                </p>
-              </Link>
+              <li key={a.id}>
+                <Link
+                  href={`/accounts/${a.id}`}
+                  className="flex items-center justify-between gap-3 px-4 py-3 sm:block sm:h-full sm:bg-surface sm:border sm:border-line sm:rounded-2xl sm:p-4 hover:bg-surface-2 sm:hover:bg-surface sm:hover:border-accent transition-colors"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-mono text-[10px] sm:text-[11px] text-muted uppercase tracking-[0.08em]">
+                      {a.type?.replace("_", " ") ?? "Account"}
+                    </span>
+                    <span className="block text-sm font-medium text-fg sm:mt-1 truncate">{a.name}</span>
+                  </span>
+                  <span className={`block font-mono text-[15px] sm:text-xl sm:mt-3 shrink-0 ${(a.balance ?? 0) < 0 ? "text-neg" : "text-fg"}`}>
+                    {signed(a.balance ?? 0)}
+                  </span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
 
       <section aria-labelledby="transactions-heading" className="bg-surface border border-line rounded-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <h2 id="transactions-heading" className="text-[15px] font-semibold text-fg">Recent activity</h2>
-          <Link href="/search" className="text-sm font-medium text-accent hover:text-accent-hover">
-            All transactions →
+          <Link href="/months" className="text-sm font-medium text-accent hover:text-accent-hover">
+            All →
           </Link>
         </div>
         {transactions.length === 0 ? (
           <p className="px-5 py-8 text-sm text-muted text-center">No transactions yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" aria-label="Recent transactions">
-              <thead className="sr-only">
-                <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Description</th>
-                  <th scope="col">Category</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((t) => (
-                  <tr key={t.id} className="border-b border-line last:border-0 hover:bg-surface-2/60">
-                    <td className="pl-5 pr-3 py-3 font-mono text-xs text-muted whitespace-nowrap">
-                      {new Date(t.date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "2-digit",
-                        year: t.date.slice(0, 4) === TODAY.slice(0, 4) ? undefined : "numeric",
-                        timeZone: "UTC",
-                      })}
-                    </td>
-                    <td className="px-3 py-3 font-medium text-fg">{t.description ?? "—"}</td>
-                    <td className="px-3 py-3 text-muted">{t.category?.name}</td>
-                    <td className="px-3 py-3"><StatusBadge status={t.status} /></td>
-                    <td
-                      className={`pl-3 pr-5 py-3 text-right font-mono whitespace-nowrap ${
-                        t.type === "INCOME" ? "text-pos" : t.type === "SPENDING" ? "text-fg" : "text-muted"
-                      }`}
-                    >
-                      {formatAmount(t.amount, t.type)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TransactionList transactions={transactions} onSelect={(tx) => openQuickAdd(tx)} />
         )}
       </section>
     </div>
@@ -326,12 +303,12 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
   );
 }
 
-function CardHeader({ id, title, href }: { id: string; title: string; href: string }) {
+function CardHeader({ id, title, href, linkLabel = "View all" }: { id: string; title: string; href: string; linkLabel?: string }) {
   return (
     <div className="flex items-center justify-between">
       <h2 id={id} className="text-[15px] font-semibold text-fg">{title}</h2>
       <Link href={href} className="font-mono text-xs text-faint hover:text-accent transition-colors" aria-label={`Open ${title}`}>
-        View all →
+        {linkLabel} →
       </Link>
     </div>
   );

@@ -14,3 +14,8 @@ export function formatDate(iso: string): string {
 export function formatNumber(n: number): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
+
+/** Whole currency units, for tight summary tiles. */
+export function fmtWhole(n: number): string {
+  return "$" + Math.round(Math.abs(n)).toLocaleString("en-US");
+}

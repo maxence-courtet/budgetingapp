@@ -12,6 +12,8 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -102,21 +104,25 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Categories</h1>
-        {!showCreate && !editingId && (
-          <button
-            onClick={() => {
-              resetForm();
-              setShowCreate(true);
-            }}
-            className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-accent-ink rounded-xl transition-colors"
-          >
-            New Category
-          </button>
-        )}
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Categories"
+        back={{ href: "/settings", label: "Settings" }}
+        action={
+          !showCreate &&
+          !editingId && (
+            <button
+              onClick={() => {
+                resetForm();
+                setShowCreate(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-accent-ink rounded-xl transition-colors"
+            >
+              <Plus size={16} aria-hidden="true" /> New category
+            </button>
+          )
+        }
+      />
 
       {error && (
         <ErrorBanner message={error} onDismiss={() => setError("")} />
@@ -124,12 +130,12 @@ export default function CategoriesPage() {
 
       {/* Create Form */}
       {showCreate && (
-        <div className="bg-surface border border-line rounded-2xl p-6">
+        <div className="bg-surface border border-line rounded-2xl p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-fg mb-4">
-            New Category
+            New category
           </h2>
-          <div className="flex gap-3 items-end">
-            <div className="flex-1">
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="flex-1 min-w-full sm:min-w-0">
               <label
                 htmlFor="category-name"
                 className="block text-sm font-medium text-fg-2 mb-1"
@@ -164,119 +170,78 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Categories Table */}
+      {/* Categories */}
       {categories.length === 0 ? (
         <EmptyState message="No categories yet." />
       ) : (
-        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line bg-surface-2">
-                <th
-                  scope="col"
-                  className="text-left px-4 py-3 font-medium text-muted"
-                >
-                  Name
-                </th>
-                <th
-                  scope="col"
-                  className="text-center px-4 py-3 font-medium text-muted"
-                >
-                  Transactions
-                </th>
-                <th
-                  scope="col"
-                  className="text-right px-4 py-3 font-medium text-muted"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((cat: any) =>
-                editingId === cat.id ? (
-                  <tr
-                    key={cat.id}
-                    className="border-b border-line bg-surface-2"
+        <ul role="list" className="bg-surface border border-line rounded-2xl divide-y divide-line overflow-hidden">
+          {categories.map((cat: any) => {
+            const count = cat.transactionCount ?? cat._count?.transactions ?? 0;
+            if (editingId === cat.id) {
+              return (
+                <li key={cat.id} className="flex flex-wrap items-center gap-2 px-4 py-3 bg-surface-2">
+                  <label className="sr-only" htmlFor={`edit-${cat.id}`}>Name</label>
+                  <input
+                    id={`edit-${cat.id}`}
+                    type="text"
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, handleUpdate)}
+                    className="flex-1 min-w-[10rem] border border-line-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleUpdate}
+                    disabled={saving || !formName.trim()}
+                    className="px-3 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-accent-ink rounded-lg disabled:opacity-50 transition-colors"
                   >
-                    <td className="px-4 py-3" colSpan={2}>
-                      <input
-                        type="text"
-                        value={formName}
-                        onChange={(e) => setFormName(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, handleUpdate)}
-                        className="w-full max-w-xs border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                        autoFocus
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={handleUpdate}
-                          disabled={saving || !formName.trim()}
-                          className="px-3 py-1 text-xs font-medium bg-accent hover:bg-accent-hover text-accent-ink rounded disabled:opacity-50 transition-colors"
-                        >
-                          {saving ? "Saving..." : "Save"}
-                        </button>
-                        <button
-                          onClick={resetForm}
-                          className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    onClick={resetForm}
+                    className="px-3 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-lg hover:bg-surface transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </li>
+              );
+            }
+            return (
+              <li key={cat.id} className="flex items-center gap-3 pl-4 pr-2 py-2.5 min-h-[3.25rem]">
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[15px] font-medium text-fg truncate">{cat.name}</span>
+                  <span className="block text-xs text-muted">
+                    {count} transaction{count === 1 ? "" : "s"}
+                  </span>
+                </span>
+                {deleteConfirm === cat.id ? (
+                  <ConfirmDelete
+                    onConfirm={() => handleDelete(cat.id)}
+                    onCancel={() => setDeleteConfirm(null)}
+                    label={count > 0 ? "In use. Delete?" : "Delete?"}
+                  />
                 ) : (
-                  <tr
-                    key={cat.id}
-                    className="border-b border-line last:border-0 hover:bg-surface-2"
-                  >
-                    <td className="px-4 py-3 text-fg font-medium">
-                      {cat.name}
-                    </td>
-                    <td className="px-4 py-3 text-center text-muted">
-                      {cat.transactionCount ?? cat._count?.transactions ?? 0}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {deleteConfirm === cat.id ? (
-                        <div className="flex justify-end items-center gap-2">
-                          {(cat.transactionCount ??
-                            cat._count?.transactions ??
-                            0) > 0 && (
-                            <span className="text-xs text-amber-600 mr-2">
-                              This category is in use!
-                            </span>
-                          )}
-                          <ConfirmDelete
-                            onConfirm={() => handleDelete(cat.id)}
-                            onCancel={() => setDeleteConfirm(null)}
-                            label="Delete category?"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => startEdit(cat)}
-                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(cat.id)}
-                            className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded hover:bg-red-50 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
+                  <div className="flex shrink-0">
+                    <button
+                      onClick={() => startEdit(cat)}
+                      aria-label={`Rename ${cat.name}`}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2"
+                    >
+                      <Pencil size={15} aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(cat.id)}
+                      aria-label={`Delete ${cat.name}`}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-neg hover:bg-surface-2"
+                    >
+                      <Trash2 size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

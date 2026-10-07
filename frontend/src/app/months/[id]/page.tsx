@@ -2,358 +2,50 @@
 
 import { use, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, Plus, FileText, Trash2 } from "lucide-react";
 import {
   getMonth,
   getBudgets,
   getCategories,
-  getAccounts,
   applyBudgetToMonth,
-  createTransaction,
-  updateTransaction,
-  deleteTransaction,
+  deleteMonth,
   updateTransactionStatus,
 } from "@/lib/api";
-import { fmt } from "@/lib/format";
-import { MONTH_NAMES, STATUS_COLORS, STATUS_ORDER } from "@/lib/constants";
-import type { Category, Account, Transaction, Month as MonthData, BudgetTemplate } from "@/lib/types";
+import { fmtWhole } from "@/lib/format";
+import { localISO } from "@/lib/date";
+import { MONTH_NAMES, STATUS_ORDER } from "@/lib/constants";
+import type { Category, Transaction, Month as MonthData, BudgetTemplate } from "@/lib/types";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
-import { TypeBadge } from "@/components/ui/TypeBadge";
-import { TRANSACTIONS_CHANGED } from "@/components/QuickAddTransaction";
+import { TransactionList } from "@/components/TransactionList";
+import { TRANSACTIONS_CHANGED, openQuickAdd } from "@/components/QuickAddTransaction";
 
 type Status = (typeof STATUS_ORDER)[number];
+type Filter = "all" | "budget" | "other";
 
-const emptyTxForm = {
-  type: "SPENDING",
-  date: new Date().toISOString().slice(0, 10),
-  amount: "",
-  description: "",
-  categoryId: "",
-  toCategoryId: "",
-  fromAccountId: "",
-  toAccountId: "",
-  status: "PLANNED",
-};
-
-function TransactionTable({
-  txList,
-  editingTxId,
-  editTxForm,
-  setEditTxForm,
-  handleUpdateTx,
-  setEditingTxId,
-  handleStatusCycle,
-  startEditTx,
-  confirmDeleteTxId,
-  handleDeleteTx,
-  setConfirmDeleteTxId,
-  categories,
-  accounts,
-  monthMin,
-  monthMax,
-}: {
-  monthMin?: string;
-  monthMax?: string;
-  txList: Transaction[];
-  editingTxId: string | null;
-  editTxForm: typeof emptyTxForm;
-  setEditTxForm: (f: typeof emptyTxForm) => void;
-  handleUpdateTx: (e: React.FormEvent) => void;
-  setEditingTxId: (id: string | null) => void;
-  handleStatusCycle: (tx: Transaction) => void;
-  startEditTx: (tx: Transaction) => void;
-  confirmDeleteTxId: string | null;
-  handleDeleteTx: (id: string) => void;
-  setConfirmDeleteTxId: (id: string | null) => void;
-  categories: Category[];
-  accounts: Account[];
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-line bg-surface-2">
-            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Date</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Description</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Type</th>
-            <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Amount</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Category</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Account(s)</th>
-            <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Status</th>
-            <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {txList.map((tx) => {
-            if (editingTxId === tx.id) {
-              return (
-                <tr key={tx.id} className="border-b border-line bg-surface-2">
-                  <td className="px-4 py-2">
-                    <input
-                      type="date"
-                      min={monthMin}
-                      max={monthMax}
-                      value={editTxForm.date}
-                      onChange={(e) => setEditTxForm({ ...editTxForm, date: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      required
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="text"
-                      value={editTxForm.description}
-                      onChange={(e) => setEditTxForm({ ...editTxForm, description: e.target.value })}
-                      placeholder="Optional"
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <select
-                      value={editTxForm.type}
-                      onChange={(e) => setEditTxForm({ ...editTxForm, type: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                    >
-                      <option value="INCOME">INCOME</option>
-                      <option value="SPENDING">SPENDING</option>
-                      <option value="TRANSFER">TRANSFER</option>
-                    </select>
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={editTxForm.amount}
-                      onChange={(e) => setEditTxForm({ ...editTxForm, amount: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-accent"
-                      required
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <select
-                      value={editTxForm.categoryId}
-                      onChange={(e) => setEditTxForm({ ...editTxForm, categoryId: e.target.value })}
-                      className={`w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent${editTxForm.type === "TRANSFER" ? " mb-1" : ""}`}
-                      required
-                    >
-                      <option value="">From category</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                    {editTxForm.type === "TRANSFER" && (
-                      <select
-                        value={editTxForm.toCategoryId}
-                        onChange={(e) => setEditTxForm({ ...editTxForm, toCategoryId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      >
-                        <option value="">To category</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {(editTxForm.type === "SPENDING" || editTxForm.type === "TRANSFER") && (
-                      <select
-                        value={editTxForm.fromAccountId}
-                        onChange={(e) => setEditTxForm({ ...editTxForm, fromAccountId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent mb-1"
-                      >
-                        <option value="">From...</option>
-                        {accounts.map((a) => (
-                          <option key={a.id} value={a.id}>{a.name}</option>
-                        ))}
-                      </select>
-                    )}
-                    {(editTxForm.type === "INCOME" || editTxForm.type === "TRANSFER") && (
-                      <select
-                        value={editTxForm.toAccountId}
-                        onChange={(e) => setEditTxForm({ ...editTxForm, toAccountId: e.target.value })}
-                        className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      >
-                        <option value="">To...</option>
-                        {accounts.map((a) => (
-                          <option key={a.id} value={a.id}>{a.name}</option>
-                        ))}
-                      </select>
-                    )}
-                    {editTxForm.type !== "SPENDING" && editTxForm.type !== "INCOME" && editTxForm.type !== "TRANSFER" && (
-                      <span className="text-faint">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <select
-                      value={editTxForm.status}
-                      onChange={(e) => setEditTxForm({ ...editTxForm, status: e.target.value })}
-                      className="w-full px-2 py-1.5 border border-line-strong rounded text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                    >
-                      {STATUS_ORDER.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={handleUpdateTx}
-                        className="text-pos hover:text-accent-hover text-sm font-medium transition-colors"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setEditingTxId(null)}
-                        className="text-muted hover:text-fg-2 text-sm font-medium transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            }
-
-            const accountStr =
-              tx.type === "TRANSFER"
-                ? `${tx.fromAccount?.name ?? "-"} → ${tx.toAccount?.name ?? "-"}`
-                : tx.type === "SPENDING"
-                ? tx.fromAccount?.name ?? "-"
-                : tx.toAccount?.name ?? "-";
-
-            const amountPrefix =
-              tx.type === "INCOME"
-                ? "+"
-                : tx.type === "SPENDING"
-                ? "-"
-                : "";
-
-            const amountColor =
-              tx.type === "INCOME"
-                ? "text-pos"
-                : tx.type === "SPENDING"
-                ? "text-neg"
-                : "text-muted";
-
-            return (
-              <tr
-                key={tx.id}
-                className={`border-b border-line hover:bg-surface-2 ${
-                  tx.status === "SKIPPED" ? "opacity-50" : ""
-                }`}
-              >
-                <td className="px-4 py-3 text-muted whitespace-nowrap">
-                  {new Date(tx.date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </td>
-                <td className="px-4 py-3 text-fg">
-                  {tx.description || "-"}
-                </td>
-                <td className="px-4 py-3">
-                  <TypeBadge type={tx.type} />
-                </td>
-                <td
-                  className={`px-4 py-3 text-right font-mono ${amountColor}`}
-                >
-                  {amountPrefix}
-                  {fmt(tx.amount)}
-                </td>
-                <td className="px-4 py-3 text-muted">
-                  {tx.category?.name ?? "-"}
-                  {tx.toCategoryId && tx.toCategoryId !== tx.categoryId && (
-                    <span className="text-faint">
-                      {" "}
-                      /{" "}
-                      {categories.find((c) => c.id === tx.toCategoryId)
-                        ?.name ?? ""}
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-muted whitespace-nowrap">
-                  {accountStr}
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => handleStatusCycle(tx)}
-                    className={`inline-block px-2 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${
-                      STATUS_COLORS[tx.status as Status] || ""
-                    }`}
-                    aria-label={`Status: ${tx.status}. Click to cycle`}
-                  >
-                    {tx.status}
-                  </button>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {confirmDeleteTxId === tx.id ? (
-                    <ConfirmDelete
-                      onConfirm={() => handleDeleteTx(tx.id)}
-                      onCancel={() => setConfirmDeleteTxId(null)}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => startEditTx(tx)}
-                        className="text-muted hover:text-fg text-sm font-medium transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteTxId(tx.id)}
-                        className="text-neg hover:text-red-800 text-sm font-medium transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export default function MonthDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function MonthDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
 
   const [month, setMonth] = useState<MonthData | null>(null);
   const [budgets, setBudgets] = useState<BudgetTemplate[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
   const [showApply, setShowApply] = useState(false);
   const [applyBudgetId, setApplyBudgetId] = useState("");
-
-  const [showTxForm, setShowTxForm] = useState(false);
-  const [txForm, setTxForm] = useState(emptyTxForm);
-  const [editingTxId, setEditingTxId] = useState<string | null>(null);
-  const [editTxForm, setEditTxForm] = useState(emptyTxForm);
-  const [confirmDeleteTxId, setConfirmDeleteTxId] = useState<string | null>(null);
+  const [confirmDeleteMonth, setConfirmDeleteMonth] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [m, b, cats, accs] = await Promise.all([
-        getMonth(id),
-        getBudgets(),
-        getCategories(),
-        getAccounts(),
-      ]);
+      const [m, b, cats] = await Promise.all([getMonth(id), getBudgets(), getCategories()]);
       setMonth(m);
       setBudgets(b);
       setCategories(cats);
-      setAccounts(accs);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -363,18 +55,10 @@ export default function MonthDetailPage({
 
   useEffect(() => {
     load();
-    // Reload after a transaction is added from the quick-add dialog.
+    // Reload after a transaction is added, edited or deleted in the transaction sheet.
     window.addEventListener(TRANSACTIONS_CHANGED, load);
     return () => window.removeEventListener(TRANSACTIONS_CHANGED, load);
   }, [load]);
-
-  // Set default date to first day of month when month loads
-  useEffect(() => {
-    if (month) {
-      const d = `${month.year}-${String(month.month).padStart(2, "0")}-01`;
-      setTxForm((prev) => ({ ...prev, date: d }));
-    }
-  }, [month]);
 
   const handleApplyBudget = async () => {
     if (!applyBudgetId) return;
@@ -388,102 +72,12 @@ export default function MonthDetailPage({
     }
   };
 
-  const handleCreateTx = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!txForm.categoryId || !txForm.amount) return;
+  const handleDeleteMonth = async () => {
     try {
-      const payload: any = {
-        type: txForm.type,
-        date: txForm.date,
-        amount: parseFloat(txForm.amount),
-        description: txForm.description || undefined,
-        categoryId: txForm.categoryId,
-        status: txForm.status,
-        monthId: id,
-      };
-      if (txForm.type === "TRANSFER" && txForm.toCategoryId) {
-        payload.toCategoryId = txForm.toCategoryId;
-      }
-      if (
-        (txForm.type === "SPENDING" || txForm.type === "TRANSFER") &&
-        txForm.fromAccountId
-      ) {
-        payload.fromAccountId = txForm.fromAccountId;
-      }
-      if (
-        (txForm.type === "INCOME" || txForm.type === "TRANSFER") &&
-        txForm.toAccountId
-      ) {
-        payload.toAccountId = txForm.toAccountId;
-      }
-      await createTransaction(payload);
-      setTxForm({
-        ...emptyTxForm,
-        date: `${month!.year}-${String(month!.month).padStart(2, "0")}-01`,
-      });
-      setShowTxForm(false);
-      load();
+      await deleteMonth(id);
+      router.push("/months");
     } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
-  const startEditTx = (tx: Transaction) => {
-    setEditingTxId(tx.id);
-    setEditTxForm({
-      type: tx.type,
-      date: tx.date.slice(0, 10),
-      amount: String(tx.amount),
-      description: tx.description ?? "",
-      categoryId: tx.categoryId,
-      toCategoryId: tx.toCategoryId ?? "",
-      fromAccountId: tx.fromAccountId ?? "",
-      toAccountId: tx.toAccountId ?? "",
-      status: tx.status,
-    });
-  };
-
-  const handleUpdateTx = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingTxId || !editTxForm.categoryId || !editTxForm.amount) return;
-    try {
-      const payload: any = {
-        type: editTxForm.type,
-        date: editTxForm.date,
-        amount: parseFloat(editTxForm.amount),
-        description: editTxForm.description || undefined,
-        categoryId: editTxForm.categoryId,
-        status: editTxForm.status,
-      };
-      if (editTxForm.type === "TRANSFER" && editTxForm.toCategoryId) {
-        payload.toCategoryId = editTxForm.toCategoryId;
-      }
-      if (
-        (editTxForm.type === "SPENDING" || editTxForm.type === "TRANSFER") &&
-        editTxForm.fromAccountId
-      ) {
-        payload.fromAccountId = editTxForm.fromAccountId;
-      }
-      if (
-        (editTxForm.type === "INCOME" || editTxForm.type === "TRANSFER") &&
-        editTxForm.toAccountId
-      ) {
-        payload.toAccountId = editTxForm.toAccountId;
-      }
-      await updateTransaction(editingTxId, payload);
-      setEditingTxId(null);
-      load();
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
-  const handleDeleteTx = async (txId: string) => {
-    try {
-      await deleteTransaction(txId);
-      setConfirmDeleteTxId(null);
-      load();
-    } catch (e: any) {
+      setConfirmDeleteMonth(false);
       setError(e.message);
     }
   };
@@ -503,461 +97,209 @@ export default function MonthDetailPage({
     return <LoadingState message="Loading month..." />;
   }
 
-  // Date pickers stay inside the month (the API refuses dates outside it).
-  const monthMin = month ? `${month.year}-${String(month.month).padStart(2, "0")}-01` : undefined;
-  const monthMax = month
-    ? `${month.year}-${String(month.month).padStart(2, "0")}-${String(new Date(Date.UTC(month.year, month.month, 0)).getUTCDate()).padStart(2, "0")}`
-    : undefined;
-
   if (!month) {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-muted">
-          Month not found. <Link href="/months" className="text-accent font-medium">Back to months</Link>
+          Month not found.{" "}
+          <Link href="/months" className="text-accent font-medium">
+            Back to transactions
+          </Link>
         </p>
       </div>
     );
   }
 
   const transactions = month.transactions || [];
-  const sortedTx = [...transactions].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-  const templateTx = sortedTx.filter((t) => t.fromTemplate);
-  const manualTx = sortedTx.filter((t) => !t.fromTemplate);
+  const sortedTx = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const templateCount = sortedTx.filter((t) => t.fromTemplate).length;
+  const shown = sortedTx.filter((t) => (filter === "all" ? true : filter === "budget" ? t.fromTemplate : !t.fromTemplate));
 
-  // Summaries
-  const paidIncome = transactions
-    .filter((t) => t.type === "INCOME" && t.status === "PAID")
-    .reduce((s, t) => s + t.amount, 0);
-  const paidSpending = transactions
-    .filter((t) => t.type === "SPENDING" && t.status === "PAID")
-    .reduce((s, t) => s + t.amount, 0);
-  const plannedIncome = transactions
-    .filter((t) => t.type === "INCOME" && t.status !== "SKIPPED")
-    .reduce((s, t) => s + t.amount, 0);
-  const plannedSpending = transactions
-    .filter((t) => t.type === "SPENDING" && t.status !== "SKIPPED")
-    .reduce((s, t) => s + t.amount, 0);
+  const sum = (type: string, paidOnly: boolean) =>
+    transactions
+      .filter((t) => t.type === type && (paidOnly ? t.status === "PAID" : t.status !== "SKIPPED"))
+      .reduce((s, t) => s + t.amount, 0);
+  const paidIncome = sum("INCOME", true);
+  const paidSpending = sum("SPENDING", true);
+  const plannedIncome = sum("INCOME", false);
+  const plannedSpending = sum("SPENDING", false);
+  const net = paidIncome - paidSpending;
+  const plannedNet = plannedIncome - plannedSpending;
+
+  // New transactions default to today when it's in this month, else the month's first day.
+  const prefix = `${month.year}-${String(month.month).padStart(2, "0")}`;
+  const today = localISO();
+  const newDate = today.startsWith(prefix) ? today : `${prefix}-01`;
 
   return (
     <div>
       {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
-      <div className="mb-1">
-        <Link
-          href="/months"
-          className="text-sm text-muted hover:text-fg-2 transition-colors"
-        >
-          &larr; Back to Months
-        </Link>
-      </div>
+      <Link href="/months" className="inline-flex items-center gap-1 -ml-1 mb-1 text-sm font-medium text-muted hover:text-fg">
+        <ChevronLeft size={16} aria-hidden="true" />
+        Transactions
+      </Link>
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <h1 className="text-[28px] font-semibold tracking-tight text-fg">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mb-5">
+        <h1 className="text-[24px] sm:text-[28px] font-semibold tracking-tight text-fg mr-auto">
           {MONTH_NAMES[month.month - 1]} {month.year}
         </h1>
-        {month.budgetTemplate && (
-          <span className="px-3 py-1 text-sm bg-surface-2 text-muted rounded-xl">
-            Template: {month.budgetTemplate.name}
-          </span>
-        )}
-        <div className="flex gap-2 ml-auto">
-          <button
-            onClick={() => setShowApply(!showApply)}
-            className="px-4 py-2 text-sm font-medium text-fg-2 bg-surface-2 rounded-xl hover:bg-line transition-colors"
-          >
-            Apply Budget
-          </button>
-          <button
-            onClick={() => setShowTxForm(!showTxForm)}
-            className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
-          >
-            {showTxForm ? "Cancel" : "Add Transaction"}
-          </button>
-        </div>
+        <button
+          onClick={() => openQuickAdd({ date: newDate, monthId: id })}
+          className="flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
+        >
+          <Plus size={16} aria-hidden="true" /> Add
+        </button>
       </div>
 
-      {/* Apply Budget */}
-      {showApply && (
-        <div className="bg-surface rounded-2xl border border-line p-4 mb-6">
-          <div className="flex items-end gap-3">
-            <div>
-              <label className="block text-sm font-medium text-fg-2 mb-1">
-                Select Budget Template
-              </label>
-              <select
-                value={applyBudgetId}
-                onChange={(e) => setApplyBudgetId(e.target.value)}
-                className="px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              >
-                <option value="">Choose...</option>
-                {budgets.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+      {/* Totals first: what came in, what went out, what's left. */}
+      <section aria-label="Totals" className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
+        <Stat label="In" value={paidIncome} planned={plannedIncome} tone="pos" />
+        <Stat label="Out" value={paidSpending} planned={plannedSpending} tone="neg" />
+        <Stat label="Net" value={net} planned={plannedNet} tone={net >= 0 ? "pos" : "neg"} signed />
+      </section>
+
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div role="tablist" aria-label="Show" className="flex p-1 rounded-xl bg-surface-2">
+          {(
+            [
+              ["all", `All ${transactions.length}`],
+              ["budget", `Budget ${templateCount}`],
+              ["other", `Other ${transactions.length - templateCount}`],
+            ] as [Filter, string][]
+          ).map(([f, label]) => (
             <button
-              onClick={handleApplyBudget}
-              disabled={!applyBudgetId}
-              className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              key={f}
+              role="tab"
+              aria-selected={filter === f}
+              onClick={() => setFilter(f)}
+              className={`px-3 h-8 rounded-lg text-[13px] font-medium transition-colors ${
+                filter === f ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
+              }`}
             >
-              Apply
+              {label}
             </button>
-            <button
-              onClick={() => setShowApply(false)}
-              className="px-4 py-2 text-sm font-medium text-muted bg-surface-2 rounded-xl hover:bg-line transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
+          ))}
         </div>
-      )}
+        {month.budgetTemplate && (
+          <span className="hidden sm:inline text-xs text-muted">Budget: {month.budgetTemplate.name}</span>
+        )}
+      </div>
 
-      {/* Add Transaction Form */}
-      {showTxForm && (
-        <div className="bg-surface rounded-2xl border border-line p-5 mb-6">
-          <h2 className="text-lg font-semibold text-fg mb-4">
-            New Transaction
-          </h2>
-          <form onSubmit={handleCreateTx}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-fg-2 mb-1">
-                  Type
+      <div className="bg-surface rounded-2xl border border-line overflow-hidden mb-6">
+        {shown.length > 0 ? (
+          <TransactionList
+            transactions={shown}
+            categories={categories}
+            onSelect={(tx) => openQuickAdd(tx)}
+            onStatusCycle={handleStatusCycle}
+          />
+        ) : (
+          <div className="px-5 py-10 text-center text-sm text-muted">
+            {filter === "budget"
+              ? "No budget transactions. Apply a budget template below to plan this month."
+              : "Nothing here yet. Tap Add to record a transaction."}
+          </div>
+        )}
+      </div>
+
+      {/* Rarely used: kept at the bottom, out of the way. */}
+      <section aria-label="Month options" className="bg-surface rounded-2xl border border-line divide-y divide-line">
+        <div className="px-4 py-3">
+          {showApply ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[12rem]">
+                <label htmlFor="apply-budget" className="block text-sm font-medium text-fg-2 mb-1">
+                  Budget template
                 </label>
                 <select
-                  value={txForm.type}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, type: e.target.value })
-                  }
+                  id="apply-budget"
+                  value={applyBudgetId}
+                  onChange={(e) => setApplyBudgetId(e.target.value)}
                   className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 >
-                  <option value="INCOME">INCOME</option>
-                  <option value="SPENDING">SPENDING</option>
-                  <option value="TRANSFER">TRANSFER</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-fg-2 mb-1">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  min={monthMin}
-                  max={monthMax}
-                  value={txForm.date}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, date: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-fg-2 mb-1">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={txForm.amount}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, amount: e.target.value })
-                  }
-                  placeholder="0.00"
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-fg-2 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={txForm.description}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, description: e.target.value })
-                  }
-                  placeholder="Optional"
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-fg-2 mb-1">
-                  Category
-                </label>
-                <select
-                  value={txForm.categoryId}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, categoryId: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  required
-                >
-                  <option value="">Select category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
+                  <option value="">Choose...</option>
+                  {budgets.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
                     </option>
                   ))}
                 </select>
               </div>
-
-              {txForm.type === "TRANSFER" && (
-                <div>
-                  <label className="block text-sm font-medium text-fg-2 mb-1">
-                    To Category
-                  </label>
-                  <select
-                    value={txForm.toCategoryId}
-                    onChange={(e) =>
-                      setTxForm({ ...txForm, toCategoryId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <option value="">Select category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {(txForm.type === "SPENDING" || txForm.type === "TRANSFER") && (
-                <div>
-                  <label className="block text-sm font-medium text-fg-2 mb-1">
-                    From Account
-                  </label>
-                  <select
-                    value={txForm.fromAccountId}
-                    onChange={(e) =>
-                      setTxForm({ ...txForm, fromAccountId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <option value="">Select account</option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {(txForm.type === "INCOME" || txForm.type === "TRANSFER") && (
-                <div>
-                  <label className="block text-sm font-medium text-fg-2 mb-1">
-                    To Account
-                  </label>
-                  <select
-                    value={txForm.toAccountId}
-                    onChange={(e) =>
-                      setTxForm({ ...txForm, toAccountId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <option value="">Select account</option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-fg-2 mb-1">
-                  Status
-                </label>
-                <select
-                  value={txForm.status}
-                  onChange={(e) =>
-                    setTxForm({ ...txForm, status: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                >
-                  {STATUS_ORDER.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4">
               <button
-                type="submit"
-                className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
+                onClick={handleApplyBudget}
+                disabled={!applyBudgetId}
+                className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
               >
-                Save Transaction
+                Apply
+              </button>
+              <button
+                onClick={() => setShowApply(false)}
+                className="px-4 py-2 text-sm font-medium text-muted bg-surface-2 rounded-xl hover:bg-line transition-colors"
+              >
+                Cancel
               </button>
             </div>
-          </form>
+          ) : (
+            <button onClick={() => setShowApply(true)} className="w-full flex items-center gap-3 text-sm font-medium text-fg">
+              <FileText size={16} className="text-muted" aria-hidden="true" />
+              <span className="flex-1 text-left">
+                Apply a budget template
+                {month.budgetTemplate && <span className="block text-xs font-normal text-muted">Current: {month.budgetTemplate.name}</span>}
+              </span>
+            </button>
+          )}
         </div>
+        <div className="px-4 py-3">
+          {confirmDeleteMonth ? (
+            <ConfirmDelete
+              label="Delete the month and all its transactions?"
+              onConfirm={handleDeleteMonth}
+              onCancel={() => setConfirmDeleteMonth(false)}
+            />
+          ) : (
+            <button onClick={() => setConfirmDeleteMonth(true)} className="w-full flex items-center gap-3 text-sm font-medium text-neg">
+              <Trash2 size={16} aria-hidden="true" />
+              Delete month
+            </button>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  planned,
+  tone,
+  signed,
+}: {
+  label: string;
+  value: number;
+  planned: number;
+  tone: "pos" | "neg";
+  signed?: boolean;
+}) {
+  const progress = planned > 0 && !signed ? Math.min(value / planned, 1) : null;
+  return (
+    <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 min-w-0">
+      <p className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.08em] text-muted">{label}</p>
+      <p className={`mt-1 text-base sm:text-xl font-semibold font-mono truncate ${tone === "pos" ? "text-pos" : "text-neg"}`}>
+        {signed ? (value >= 0 ? "+" : "−") : ""}
+        {fmtWhole(value)}
+      </p>
+      <p className="mt-0.5 text-[11px] sm:text-xs text-muted truncate">
+        {signed ? "planned " : "of "}
+        {signed && planned < 0 ? "−" : ""}
+        {fmtWhole(planned)}
+      </p>
+      {progress !== null && (
+        <span className="mt-2 block h-1 rounded-full bg-surface-2 overflow-hidden" aria-hidden="true">
+          <span className={`block h-full rounded-full ${tone === "pos" ? "bg-pos" : "bg-accent"}`} style={{ width: `${progress * 100}%` }} />
+        </span>
       )}
-
-      {/* Budget Transactions Table */}
-      <div className="bg-surface rounded-2xl border border-line overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-line">
-          <h2 className="text-lg font-semibold text-fg">
-            Budget Transactions ({templateTx.length})
-          </h2>
-        </div>
-
-        {templateTx.length > 0 ? (
-          <TransactionTable
-            txList={templateTx}
-            monthMin={monthMin}
-            monthMax={monthMax}
-            editingTxId={editingTxId}
-            editTxForm={editTxForm}
-            setEditTxForm={setEditTxForm}
-            handleUpdateTx={handleUpdateTx}
-            setEditingTxId={setEditingTxId}
-            handleStatusCycle={handleStatusCycle}
-            startEditTx={startEditTx}
-            confirmDeleteTxId={confirmDeleteTxId}
-            handleDeleteTx={handleDeleteTx}
-            setConfirmDeleteTxId={setConfirmDeleteTxId}
-            categories={categories}
-            accounts={accounts}
-          />
-        ) : (
-          <div className="px-5 py-8 text-center text-muted">
-            No budget transactions. Apply a budget template to generate them.
-          </div>
-        )}
-      </div>
-
-      {/* Additional Transactions Table */}
-      <div className="bg-surface rounded-2xl border border-line overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-line">
-          <h2 className="text-lg font-semibold text-fg">
-            Additional Transactions ({manualTx.length})
-          </h2>
-        </div>
-
-        {manualTx.length > 0 ? (
-          <TransactionTable
-            txList={manualTx}
-            monthMin={monthMin}
-            monthMax={monthMax}
-            editingTxId={editingTxId}
-            editTxForm={editTxForm}
-            setEditTxForm={setEditTxForm}
-            handleUpdateTx={handleUpdateTx}
-            setEditingTxId={setEditingTxId}
-            handleStatusCycle={handleStatusCycle}
-            startEditTx={startEditTx}
-            confirmDeleteTxId={confirmDeleteTxId}
-            handleDeleteTx={handleDeleteTx}
-            setConfirmDeleteTxId={setConfirmDeleteTxId}
-            categories={categories}
-            accounts={accounts}
-          />
-        ) : (
-          <div className="px-5 py-8 text-center text-muted">
-            No additional transactions. Add one manually above.
-          </div>
-        )}
-      </div>
-
-      {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-surface rounded-2xl border border-line p-5">
-          <h3 className="text-lg font-semibold text-fg mb-4">
-            Paid Summary
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted">Total Paid Income</span>
-              <span className="font-mono text-pos">
-                +{fmt(paidIncome)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted">Total Paid Spending</span>
-              <span className="font-mono text-neg">
-                -{fmt(paidSpending)}
-              </span>
-            </div>
-            <div className="border-t border-line pt-3 flex justify-between font-semibold">
-              <span className="text-fg">Net</span>
-              <span
-                className={`font-mono ${
-                  paidIncome - paidSpending >= 0
-                    ? "text-pos"
-                    : "text-neg"
-                }`}
-              >
-                {paidIncome - paidSpending >= 0 ? "+" : "-"}
-                {fmt(paidIncome - paidSpending)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-surface rounded-2xl border border-line p-5">
-          <h3 className="text-lg font-semibold text-fg mb-4">
-            Planned vs Paid
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted">Planned Income</span>
-              <span className="font-mono text-fg-2">
-                {fmt(plannedIncome)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted">Paid Income</span>
-              <span className="font-mono text-pos">
-                {fmt(paidIncome)}
-              </span>
-            </div>
-            <div className="border-t border-line pt-2" />
-            <div className="flex justify-between">
-              <span className="text-muted">Planned Spending</span>
-              <span className="font-mono text-fg-2">
-                {fmt(plannedSpending)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted">Paid Spending</span>
-              <span className="font-mono text-neg">
-                {fmt(paidSpending)}
-              </span>
-            </div>
-            <div className="border-t border-line pt-3 flex justify-between font-semibold">
-              <span className="text-fg">Planned Net</span>
-              <span
-                className={`font-mono ${
-                  plannedIncome - plannedSpending >= 0
-                    ? "text-pos"
-                    : "text-neg"
-                }`}
-              >
-                {plannedIncome - plannedSpending >= 0 ? "+" : "-"}
-                {fmt(plannedIncome - plannedSpending)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

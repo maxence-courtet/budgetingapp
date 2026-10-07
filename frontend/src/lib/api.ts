@@ -42,6 +42,11 @@ async function fetchApi(path: string, options?: RequestInit, retried = false): P
   return res.json();
 }
 
+// The signed-in user's preferences
+export const getMe = () => fetchApi('/me');
+export const updateMe = (data: { modules?: string[]; onboarded?: true }) =>
+  fetchApi('/me', { method: 'PATCH', body: JSON.stringify(data) });
+
 // Accounts
 export const getAccounts = () => fetchApi('/accounts');
 export const getAccount = (id: string) => fetchApi(`/accounts/${id}`);

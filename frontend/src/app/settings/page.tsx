@@ -1,6 +1,10 @@
 "use client";
 
-import { Sun, Moon, Monitor, Check } from "lucide-react";
+import Link from "next/link";
+import { Sun, Moon, Monitor, Check, ChevronRight, Play } from "lucide-react";
+import { usePreferences } from "@/components/PreferencesProvider";
+import { Switch } from "@/components/Welcome";
+import { moduleItems, setupItems, ALL_MODULES, ModuleId } from "@/lib/nav";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ACCENTS, ThemePref } from "@/lib/appearance";
@@ -14,12 +18,80 @@ const THEME_OPTIONS: { id: ThemePref; label: string; hint: string; icon: typeof 
 
 export default function SettingsPage() {
   const { theme, setTheme, accent, setAccent, resolvedTheme } = useAppearance();
+  const { modules, save, replayWelcome } = usePreferences();
+
+  function toggle(id: ModuleId) {
+    const next = modules.includes(id) ? modules.filter((m) => m !== id) : ALL_MODULES.filter((m) => m === id || modules.includes(m));
+    save({ modules: next }).catch(() => undefined);
+  }
 
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader title="Settings" />
 
-      <section aria-labelledby="appearance-heading" className="bg-surface border border-line rounded-2xl p-6 space-y-6">
+      <section aria-labelledby="setup-heading" className="bg-surface border border-line rounded-2xl overflow-hidden">
+        <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3">
+          <h2 id="setup-heading" className="text-[15px] font-semibold text-fg">Money setup</h2>
+          <p className="text-sm text-muted mt-1">The things you set up once and rarely change.</p>
+        </div>
+        <ul role="list" className="divide-y divide-line border-t border-line">
+          {setupItems.map(({ href, label, icon: Icon, description }) => (
+            <li key={href}>
+              <Link href={href} className="flex items-center gap-3.5 px-5 sm:px-6 py-3.5 hover:bg-surface-2 transition-colors">
+                <span className="w-9 h-9 shrink-0 rounded-xl bg-accent-soft flex items-center justify-center">
+                  <Icon size={17} className="text-accent" aria-hidden="true" />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-semibold text-fg">{label}</span>
+                  <span className="block text-xs text-muted truncate">{description}</span>
+                </span>
+                <ChevronRight size={16} className="text-faint" aria-hidden="true" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="modules-heading" className="bg-surface border border-line rounded-2xl overflow-hidden">
+        <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 flex items-start justify-between gap-4">
+          <div>
+            <h2 id="modules-heading" className="text-[15px] font-semibold text-fg">Your Hive</h2>
+            <p className="text-sm text-muted mt-1">Choose what shows in the menu. Turning a module off keeps its data.</p>
+          </div>
+          <button
+            type="button"
+            onClick={replayWelcome}
+            className="shrink-0 flex items-center gap-1.5 h-9 px-3 rounded-lg border border-line-strong text-sm font-medium text-fg hover:border-accent"
+          >
+            <Play size={14} aria-hidden="true" /> Tour
+          </button>
+        </div>
+        <ul role="list" className="divide-y divide-line border-t border-line">
+          {moduleItems.map(({ module, label, icon: Icon, description }) => {
+            const on = modules.includes(module!);
+            return (
+              <li key={module}>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  onClick={() => toggle(module!)}
+                  className="w-full flex items-center gap-3.5 px-5 sm:px-6 py-3.5 text-left hover:bg-surface-2 transition-colors"
+                >
+                  <Icon size={18} className={on ? "text-accent shrink-0" : "text-faint shrink-0"} aria-hidden="true" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-semibold text-fg">{label}</span>
+                    <span className="block text-xs text-muted">{description}</span>
+                  </span>
+                  <Switch on={on} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section aria-labelledby="appearance-heading" className="bg-surface border border-line rounded-2xl p-5 sm:p-6 space-y-6">
         <div>
           <h2 id="appearance-heading" className="text-[15px] font-semibold text-fg">Appearance</h2>
           <p className="text-sm text-muted mt-1">Saved on this device.</p>
@@ -27,7 +99,7 @@ export default function SettingsPage() {
 
         <fieldset className="space-y-3">
           <legend className="font-mono text-[11px] text-muted uppercase tracking-[0.08em] mb-3">Theme</legend>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {THEME_OPTIONS.map(({ id, label, hint, icon: Icon }) => {
               const selected = theme === id;
               return (
@@ -36,16 +108,16 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setTheme(id)}
                   aria-pressed={selected}
-                  className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-colors ${
+                  className={`flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl border text-center sm:text-left transition-colors ${
                     selected ? "border-accent ring-1 ring-accent bg-accent-soft" : "border-line-strong hover:border-accent"
                   }`}
                 >
                   <Icon size={18} className={selected ? "text-accent" : "text-muted"} aria-hidden="true" />
                   <span className="flex-1">
                     <span className="block text-sm font-medium text-fg">{label}</span>
-                    <span className="block text-xs text-muted">{hint}</span>
+                    <span className="hidden sm:block text-xs text-muted">{hint}</span>
                   </span>
-                  {selected && <Check size={16} className="text-accent" aria-hidden="true" />}
+                  {selected && <Check size={16} className="hidden sm:block text-accent" aria-hidden="true" />}
                 </button>
               );
             })}
@@ -54,7 +126,7 @@ export default function SettingsPage() {
 
         <fieldset className="space-y-3">
           <legend className="font-mono text-[11px] text-muted uppercase tracking-[0.08em] mb-3">Accent color</legend>
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
             {ACCENTS.map((a) => {
               const selected = accent === a.id;
               return (

@@ -13,6 +13,14 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Plus, Pencil, Trash2, Landmark, PiggyBank, CreditCard, Banknote, TrendingUp } from "lucide-react";
+
+function AccountIcon({ type }: { type: string }) {
+  const Icon =
+    type === "savings" ? PiggyBank : type === "credit card" ? CreditCard : type === "cash" ? Banknote : type === "investment" ? TrendingUp : Landmark;
+  return <Icon size={18} className="text-muted" aria-hidden="true" />;
+}
 
 const ACCOUNT_TYPES = [
   "checking",
@@ -122,31 +130,35 @@ export default function AccountsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Accounts</h1>
-        {!showCreate && !editingId && (
-          <button
-            onClick={() => {
-              resetForm();
-              setShowCreate(true);
-            }}
-            className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
-          >
-            New Account
-          </button>
-        )}
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Accounts"
+        back={{ href: "/settings", label: "Settings" }}
+        action={
+          !showCreate &&
+          !editingId && (
+            <button
+              onClick={() => {
+                resetForm();
+                setShowCreate(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+            >
+              <Plus size={16} aria-hidden="true" /> New account
+            </button>
+          )
+        }
+      />
 
       {error && (
         <ErrorBanner message={error} onDismiss={() => setError("")} />
       )}
 
       {/* Create Form */}
-      {showCreate && (
-        <div className="bg-surface border border-line rounded-2xl p-6">
+      {(showCreate || editingId) && (
+        <div className="bg-surface border border-line rounded-2xl p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-fg mb-4">
-            New Account
+            {editingId ? "Edit account" : "New account"}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -195,15 +207,15 @@ export default function AccountsPage() {
           </div>
           <div className="flex gap-3 mt-4">
             <button
-              onClick={handleCreate}
+              onClick={editingId ? handleUpdate : handleCreate}
               disabled={saving || !formName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
+              className="px-4 py-2.5 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
-              {saving ? "Saving..." : "Create Account"}
+              {saving ? "Saving..." : editingId ? "Save" : "Create account"}
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
+              className="px-4 py-2.5 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
@@ -211,7 +223,7 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* Accounts Table */}
+      {/* Accounts */}
       {accounts.length === 0 ? (
         <EmptyState
           message="No accounts yet."
@@ -224,138 +236,53 @@ export default function AccountsPage() {
           }}
         />
       ) : (
-        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line bg-surface-2">
-                <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                  Name
-                </th>
-                <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                  Type
-                </th>
-                <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                  Balance
-                </th>
-                <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts.map((a: any) =>
-                editingId === a.id ? (
-                  <tr
-                    key={a.id}
-                    className="border-b border-line bg-surface-2"
-                  >
-                    <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        value={formName}
-                        onChange={(e) => setFormName(e.target.value)}
-                        className="w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={formType}
-                        onChange={(e) => setFormType(e.target.value)}
-                        className="w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      >
-                        {ACCOUNT_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                          </option>
-                        ))}
-                      </select>
-                      <label className="sr-only" htmlFor={`edit-notes-${a.id}`}>Notes</label>
-                      <input
-                        id={`edit-notes-${a.id}`}
-                        type="text"
-                        value={formNotes}
-                        onChange={(e) => setFormNotes(e.target.value)}
-                        placeholder="Notes"
-                        className="mt-1 w-full border border-line-strong rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right text-muted">
-                      {fmt(a.balance ?? 0)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={handleUpdate}
-                          disabled={saving || !formName.trim()}
-                          className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded hover:bg-accent-hover disabled:opacity-50 transition-colors"
-                        >
-                          {saving ? "Saving..." : "Save"}
-                        </button>
-                        <button
-                          onClick={resetForm}
-                          className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+        <ul role="list" className="bg-surface border border-line rounded-2xl divide-y divide-line overflow-hidden">
+          {accounts.map((a: any) => {
+            const type = String(a.type ?? "").replace("_", " ").toLowerCase();
+            const balance = a.balance ?? 0;
+            return (
+              <li key={a.id} className="flex items-center gap-3 px-4 py-3.5">
+                <Link href={`/accounts/${a.id}`} className="flex-1 min-w-0 flex items-center gap-3 group">
+                  <span className="hidden sm:flex w-10 h-10 shrink-0 rounded-xl bg-surface-2 items-center justify-center">
+                    <AccountIcon type={type} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-medium text-fg leading-snug break-words group-hover:underline">{a.name}</span>
+                    <span className="block text-xs text-muted capitalize">{type}</span>
+                  </span>
+                </Link>
+                <span className={`text-[15px] font-semibold tabular-nums ${balance >= 0 ? "text-fg" : "text-neg"}`}>
+                  {balance < 0 ? "-" : ""}
+                  {fmt(balance)}
+                </span>
+                {deleteConfirm === a.id ? (
+                  <ConfirmDelete
+                    onConfirm={() => handleDelete(a.id)}
+                    onCancel={() => setDeleteConfirm(null)}
+                    label="Delete?"
+                  />
                 ) : (
-                  <tr
-                    key={a.id}
-                    className="border-b border-line last:border-0 hover:bg-surface-2"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/accounts/${a.id}`}
-                        className="text-fg font-medium hover:underline"
-                      >
-                        {a.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-muted capitalize">
-                      {String(a.type ?? "").replace("_", " ").toLowerCase()}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right font-medium ${
-                        (a.balance ?? 0) >= 0
-                          ? "text-pos"
-                          : "text-neg"
-                      }`}
+                  <div className="flex shrink-0">
+                    <button
+                      onClick={() => startEdit(a)}
+                      aria-label={`Edit ${a.name}`}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2"
                     >
-                      {(a.balance ?? 0) < 0 ? "-" : ""}
-                      {fmt(a.balance ?? 0)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {deleteConfirm === a.id ? (
-                        <ConfirmDelete
-                          onConfirm={() => handleDelete(a.id)}
-                          onCancel={() => setDeleteConfirm(null)}
-                          label="Delete account?"
-                        />
-                      ) : (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => startEdit(a)}
-                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(a.id)}
-                            className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded hover:bg-red-50 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
+                      <Pencil size={15} aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(a.id)}
+                      aria-label={`Delete ${a.name}`}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-neg hover:bg-surface-2"
+                    >
+                      <Trash2 size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

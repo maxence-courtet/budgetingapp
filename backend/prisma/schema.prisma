@@ -14,6 +14,10 @@ model User {
   email     String
   name      String
   createdAt DateTime @default(now())
+  // Optional areas of the app the user chose to show (see MODULES in routes/me.ts). Money is always on.
+  modules     String[]  @default(["investments", "habits", "fitness", "goals", "notes", "review"])
+  // Set when the user finishes or skips the welcome walkthrough; null means show it.
+  onboardedAt DateTime?
 
   accounts          Account[]
   categories        Category[]

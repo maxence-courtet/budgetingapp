@@ -16,6 +16,7 @@ import fitnessRoutes from './routes/fitness';
 import goalRoutes from './routes/goals';
 import noteRoutes from './routes/notes';
 import statsRoutes from './routes/stats';
+import meRoutes from './routes/me';
 import { runDataFixes } from './services/dataFixes';
 
 const app = express();
@@ -37,6 +38,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Finance routes (existing)
+app.use('/api/me', authMiddleware, meRoutes);
 app.use('/api/accounts', authMiddleware, accountRoutes);
 app.use('/api/categories', authMiddleware, categoryRoutes);
 app.use('/api/transactions', authMiddleware, transactionRoutes);

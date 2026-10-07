@@ -20,7 +20,7 @@ cd dev && npm install && npm start
 - Starts Postgres on 5433 (data in `dev/.data`), syncs the Prisma schema, the backend on 3001 and the frontend on 3000, then creates the demo account. Ctrl+C stops everything.
 - Sample data is seeded on the first launch only. `npm run reset` deletes the database so the next start re-seeds it.
 - Sign in as `demo@hive.local` / `hive-demo-password`; the sample data belongs to that account. You can also create more accounts at `/login`.
-- Settings are passed to each process directly, so your `.env` files are not used, except for `ANTHROPIC_API_KEY` (from your shell or `backend/.env`) to enable AI Insights.
+- Settings are passed to each process directly, so your `.env` files are not used, except for `AI_API_KEY` (and optionally `AI_BASE_URL` / `AI_MODEL`, from your shell or `backend/.env`) to enable AI Insights.
 
 ### First-time setup (full stack with Docker + Better Auth)
 
@@ -37,7 +37,7 @@ cd backend && npm run db:push && cd ..
 
 # 4. Configure environment variables
 cp backend/.env.example backend/.env
-# Edit backend/.env — set DATABASE_URL, BETTER_AUTH_URL (the frontend URL), ANTHROPIC_API_KEY (optional, for AI Insights)
+# Edit backend/.env — set DATABASE_URL, BETTER_AUTH_URL (the frontend URL), AI_API_KEY (optional, for AI Insights; Proton Lumo by default)
 # The frontend needs DATABASE_URL, BETTER_AUTH_SECRET (any long random string), APP_BASE_URL and NEXT_PUBLIC_API_URL
 # in frontend/.env.local. Optional: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET to offer Google sign-in.
 
@@ -98,12 +98,17 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
 
 ### Phase 6 — Command redesign & life features ✅
 - Command design: theme tokens in `globals.css`, light / dark / auto, five accent presets (Settings page), Geist fonts
-- Sidebar with Money nested in Life, mobile drawer; ⌘K command bar; quick-add transaction dialog
+- ⌘K command bar; quick-add transaction dialog
 - Habits grid with streaks and gamification; goal milestones; daily journal; net worth timeline; weekly review; patterns
+
+### Phase 7 — Simpler navigation, phones, onboarding ✅
+- Money is two tabs: Transactions (`/months`, with search) and Reports, plus Investments when that module is on. Accounts, categories and budget templates moved to Settings → Money setup.
+- Phones: bottom tab bar (Home, Money, +, Life, More), full-screen search, transaction add/edit as a bottom sheet, list layouts instead of tables (`TransactionList`, `stack-sm` table utility in `globals.css`).
+- First-run walkthrough (`components/Welcome.tsx`) ending with a module choice. Stored per user: `User.modules` / `User.onboardedAt`, read and written through `GET` / `PATCH /api/me`. Changeable in Settings → Your Hive, which can also replay the tour.
 
 ### Phase 5 — AI Analytics ✅
 - Backend endpoint `GET /api/stats/life-overview` ✅
-- `POST /api/stats/insights` ✅ — sends the life-overview snapshot to Claude (`backend/src/services/insights.ts`, model `claude-opus-5-5`, structured JSON output) and returns `{ summary, highlights, alerts, suggestions }`. Requires `ANTHROPIC_API_KEY` in `backend/.env`; returns 503 with a clear message if missing.
+- `POST /api/stats/insights` ✅ — sends the life-overview snapshot to an OpenAI-compatible model (`backend/src/services/ai.ts`; Proton Lumo at `https://lumo.proton.me/api/ai/v1` by default, override with `AI_BASE_URL` / `AI_MODEL`; JSON output) and returns `{ summary, highlights, alerts, suggestions }`. Requires `AI_API_KEY` in `backend/.env`; returns 503 with a clear message if missing.
 - Dashboard "AI Insights" card ✅ (`frontend/src/components/AiInsightsCard.tsx`) — on-demand "Get Analysis" button (each click is one paid API call)
 
 ---

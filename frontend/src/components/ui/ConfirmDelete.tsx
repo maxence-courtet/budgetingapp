@@ -10,7 +10,7 @@ export function ConfirmDelete({ label = "Delete this item?", onConfirm, onCancel
       <span className="text-xs text-muted">{label}</span>
       <button
         onClick={onConfirm}
-        className="px-3 py-1 text-xs font-medium bg-red-600 text-accent-ink rounded-xl hover:bg-red-700 transition-colors"
+        className="px-3 py-1 text-xs font-medium bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
       >
         Confirm
       </button>

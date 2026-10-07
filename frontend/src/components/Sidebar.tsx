@@ -3,32 +3,48 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Settings, ChevronRight, PiggyBank, Menu, X } from "lucide-react";
+import { LogOut, Settings, Search, X } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { HiveLogo } from "@/components/HiveLogo";
-import { homeItem, moneyItems, lifeItems, NavItem } from "@/lib/nav";
+import { usePreferences } from "@/components/PreferencesProvider";
+import { openCommandBar } from "@/components/CommandBar";
+import { homeItem, moneyItems, lifeItems, NavItem, isEnabled, matchesPath } from "@/lib/nav";
 
-const OPEN_KEY = "lh-nav-open";
+const OPEN_MENU_EVENT = "lh:open-menu";
+
+/** Opens the navigation drawer on phones (the bottom bar's "More"). */
+export function openMenu() {
+  window.dispatchEvent(new Event(OPEN_MENU_EVENT));
+}
 
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = authClient.useSession();
   const user = session?.user;
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const { modules } = usePreferences();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const asideRef = useRef<HTMLElement>(null);
   const wasOpen = useRef(false);
 
-  // The mobile drawer closes on navigation and on Escape.
+  // The mobile drawer opens from the bottom bar, and closes on navigation and on Escape.
   useEffect(() => setMobileOpen(false), [pathname]);
+  useEffect(() => {
+    const onOpen = () => {
+      opener.current = document.activeElement as HTMLElement | null;
+      setMobileOpen(true);
+    };
+    window.addEventListener(OPEN_MENU_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_MENU_EVENT, onOpen);
+  }, []);
   // While open: focus moves into the drawer and stays there, and the page behind doesn't scroll.
   // On close, focus returns to the menu button.
   useEffect(() => {
     if (!mobileOpen) {
-      if (wasOpen.current) menuButtonRef.current?.focus();
+      // Focus goes back to whatever opened the drawer (the bottom bar's More button).
+      if (wasOpen.current) opener.current?.focus();
       wasOpen.current = false;
       return;
     }
@@ -57,54 +73,23 @@ export function Sidebar() {
     };
   }, [mobileOpen]);
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
-
-  useEffect(() => {
-    try {
-      setOpen(JSON.parse(localStorage.getItem(OPEN_KEY) ?? "{}"));
-    } catch {
-      // Unreadable storage: sections fall back to their defaults.
-    }
-  }, []);
-
-  const moneyActive = moneyItems.some((i) => isActive(i.href));
-  const lifeActive = moneyActive || lifeItems.some((i) => isActive(i.href));
-
-  // The groups holding the current page always open.
-  useEffect(() => {
-    if (lifeActive || moneyActive) {
-      setOpen((o) => ({ ...o, ...(lifeActive && { Life: true }), ...(moneyActive && { Money: true }) }));
-    }
-  }, [lifeActive, moneyActive]);
-
-  function toggle(label: string) {
-    setOpen((o) => {
-      const next = { ...o, [label]: !o[label] };
-      try {
-        localStorage.setItem(OPEN_KEY, JSON.stringify(next));
-      } catch {
-        // Storage unavailable: the toggle still applies for this visit.
-      }
-      return next;
-    });
-  }
+  const money = moneyItems.filter((i) => isEnabled(i, modules));
+  const life = lifeItems.filter((i) => isEnabled(i, modules));
 
   return (
     <>
     <div className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-4 bg-side border-b border-line">
+      <Link href="/" aria-label="Hive home" className="mr-auto">
+        <HiveLogo size={24} />
+      </Link>
       <button
         type="button"
-        ref={menuButtonRef}
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open menu"
-        aria-expanded={mobileOpen}
-        aria-controls="sidebar"
-        className="w-10 h-10 -ml-2 rounded-lg flex items-center justify-center text-fg hover:bg-surface-2"
+        onClick={openCommandBar}
+        aria-label="Search"
+        className="w-10 h-10 -mr-2 rounded-lg flex items-center justify-center text-fg hover:bg-surface-2"
       >
-        <Menu size={20} aria-hidden="true" />
+        <Search size={20} aria-hidden="true" />
       </button>
-      <HiveLogo size={24} />
     </div>
     {mobileOpen && (
       <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} aria-hidden="true" />
@@ -130,44 +115,12 @@ export function Sidebar() {
         <HiveLogo size={26} />
       </div>
 
-      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-2">
         <ul role="list">
-          <NavLink item={homeItem} active={isActive(homeItem.href)} />
+          <NavLink item={homeItem} pathname={pathname} />
         </ul>
-
-        <GroupToggle
-          label="Life"
-          expanded={!!open.Life}
-          onToggle={() => toggle("Life")}
-          count={lifeItems.length + moneyItems.length}
-          showDot={!open.Life && lifeActive}
-          className="mt-3"
-          eyebrow
-        />
-        {open.Life && (
-          <div id="nav-life" className="space-y-0.5">
-            <GroupToggle
-              label="Money"
-              icon={<PiggyBank size={16} aria-hidden="true" className={moneyActive ? "text-accent" : "text-faint"} />}
-              expanded={!!open.Money}
-              onToggle={() => toggle("Money")}
-              count={moneyItems.length}
-              showDot={!open.Money && moneyActive}
-            />
-            {open.Money && (
-              <ul id="nav-money" role="list" className="ml-[22px] pl-2 border-l border-line space-y-0.5">
-                {moneyItems.map((item) => (
-                  <NavLink key={item.href} item={item} active={isActive(item.href)} />
-                ))}
-              </ul>
-            )}
-            <ul role="list" className="space-y-0.5">
-              {lifeItems.map((item) => (
-                <NavLink key={item.href} item={item} active={isActive(item.href)} />
-              ))}
-            </ul>
-          </div>
-        )}
+        <NavGroup label="Money" items={money} pathname={pathname} />
+        {life.length > 0 && <NavGroup label="Life" items={life} pathname={pathname} />}
       </nav>
 
       <div className="border-t border-line px-3 py-3 space-y-0.5">
@@ -198,66 +151,35 @@ export function Sidebar() {
   );
 }
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+function NavGroup({ label, items, pathname }: { label: string; items: NavItem[]; pathname: string }) {
+  const id = `nav-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  return (
+    <div className="mt-5">
+      <h2 id={id} className="px-3 mb-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-faint">
+        {label}
+      </h2>
+      <ul role="list" aria-labelledby={id} className="space-y-0.5">
+        {items.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const { href, label, icon: Icon } = item;
+  const active = matchesPath(item, pathname);
   return (
     <li>
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
-        className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-          active ? "bg-surface-2 text-fg" : "text-muted hover:text-fg hover:bg-surface-2"
-        }`}
+        className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-surface-2 text-fg" : "text-muted hover:text-fg hover:bg-surface-2"}`}
       >
         <Icon size={16} aria-hidden="true" className={active ? "text-accent" : "text-faint group-hover:text-fg"} />
         <span className="flex-1">{label}</span>
       </Link>
     </li>
-  );
-}
-
-function GroupToggle({
-  label,
-  icon,
-  expanded,
-  onToggle,
-  count,
-  showDot,
-  eyebrow,
-  className = "",
-}: {
-  label: string;
-  icon?: React.ReactNode;
-  expanded: boolean;
-  onToggle: () => void;
-  count: number;
-  showDot: boolean;
-  eyebrow?: boolean;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={expanded}
-      aria-controls={`nav-${label.toLowerCase()}`}
-      className={`w-full flex items-center gap-3 px-3 h-9 rounded-lg text-muted hover:text-fg hover:bg-surface-2 transition-colors ${className}`}
-    >
-      {icon}
-      <span
-        className={`flex-1 text-left ${
-          eyebrow ? "font-mono text-[11px] uppercase tracking-[0.08em]" : "text-sm font-medium"
-        }`}
-      >
-        {label}
-      </span>
-      {showDot && (
-        <span className="w-1.5 h-1.5 rounded-full bg-accent">
-          <span className="sr-only">(contains the current page)</span>
-        </span>
-      )}
-      <span className="font-mono text-[11px] text-faint">{count}</span>
-      <ChevronRight size={14} aria-hidden="true" className={`transition-transform ${expanded ? "rotate-90" : ""}`} />
-    </button>
   );
 }

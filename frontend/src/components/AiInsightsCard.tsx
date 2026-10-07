@@ -46,7 +46,7 @@ export function AiInsightsCard() {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 id="insights-heading" className="text-[15px] font-semibold text-fg">Next moves</h2>
         <span className="text-xs text-muted">
-          {generated ? `From AI Insights · ${generated}` : "Ranked by AI Insights from your money, habits, fitness and goals"}
+          {generated ? `From AI Insights · ${generated}` : "Ranked by AI from your own data"}
         </span>
         <button
           onClick={analyse}
@@ -69,15 +69,17 @@ export function AiInsightsCard() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className={`rounded-2xl p-5 min-h-[140px] border border-dashed border-line-strong flex flex-col justify-between ${
+              className={`rounded-2xl p-5 min-h-[88px] md:min-h-[140px] border border-dashed border-line-strong flex-col justify-between ${
+                i === 0 ? "flex" : "hidden md:flex"
+              } ${
                 loading ? "animate-pulse bg-surface-2" : ""
               }`}
             >
               <span className="font-mono text-[11px] text-faint">{i + 1}</span>
               {i === 0 && (
-                <p className="text-sm text-muted" role={loading ? "status" : undefined}>
+                <p className="text-sm text-muted mt-2" role={loading ? "status" : undefined}>
                   {loading
-                    ? "Reviewing your finances, habits, fitness and goals…"
+                    ? "Reviewing your data…"
                     : "Get a quick read on where you stand and the three things worth doing next."}
                 </p>
               )}
