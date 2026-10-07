@@ -17,6 +17,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SpendingRing } from "@/components/SpendingRing";
 
 const MONTHS = [
   "January","February","March","April","May","June",
@@ -392,6 +393,17 @@ export default function BudgetDetailPage({
   const transfers = sum("TRANSFER");
   const net = income - spending;
 
+  const plannedByCategory = Array.from(
+    budget.definitions
+      .filter((d) => d.type === "SPENDING")
+      .reduce((m, d) => {
+        const entry = m.get(d.categoryId) ?? { id: d.categoryId, name: d.category?.name ?? catName(d.categoryId), value: 0 };
+        entry.value += d.amount;
+        return m.set(d.categoryId, entry);
+      }, new Map<string, { id: string; name: string; value: number }>())
+      .values()
+  );
+
   // Account impact: what each account gains or loses per month under this plan.
   const accountMap = new Map<
     string,
@@ -536,6 +548,18 @@ export default function BudgetDetailPage({
           Planned per month
           {transfers > 0 && <> · {fmt(transfers)} moved between accounts</>}
         </p>
+      </section>
+
+      {/* Where the planned spending goes */}
+      <section aria-labelledby="plan-ring-heading" className="bg-surface rounded-2xl border border-line p-4 sm:p-5">
+        <h2 id="plan-ring-heading" className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted mb-4">
+          Planned spending by category
+        </h2>
+        <SpendingRing
+          items={plannedByCategory}
+          totalLabel="Planned"
+          emptyText="Add spending lines to see where this plan sends your money."
+        />
       </section>
 
       {/* Template lines */}

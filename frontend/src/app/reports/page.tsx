@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { getAccountSummary, getMonthlySummary, getMonths } from "@/lib/api";
 import { fmt, fmtWhole } from "@/lib/format";
+import { SpendingRing } from "@/components/SpendingRing";
 import { MONTH_NAMES } from "@/lib/constants";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
@@ -438,6 +439,23 @@ function MonthlyReport({ data }: { data: any }) {
             </div>
           ))}
         </dl>
+      </section>
+
+      <section
+        aria-labelledby="ring-heading"
+        className="bg-surface rounded-2xl border border-line p-4 sm:p-5"
+      >
+        <h2 id="ring-heading" className={`${eyebrow} mb-4`}>
+          Where it went
+        </h2>
+        <SpendingRing
+          items={breakdown.map((c) => ({
+            id: c.id,
+            name: c.name,
+            value: c.spending,
+          }))}
+          emptyText="No paid spending this month yet."
+        />
       </section>
 
       {breakdown.length > 0 && (
