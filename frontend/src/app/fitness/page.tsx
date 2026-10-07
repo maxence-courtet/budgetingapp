@@ -16,6 +16,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 
 type MetricTab = "WEIGHT" | "BODY_FAT" | "STEPS" | "WORKOUT_DURATION" | "OTHER";
 
@@ -32,6 +33,12 @@ const TAB_LABELS: Record<MetricTab, string> = {
   OTHER: "Other",
 };
 
+const SHORT_LABELS: Record<MetricTab, string> = { ...TAB_LABELS, WORKOUT_DURATION: "Workout" };
+
+function labelFor(type: string): string {
+  return (TAB_LABELS as Record<string, string>)[type] ?? type;
+}
+
 const TYPE_SUGGESTIONS = ["WEIGHT", "BODY_FAT", "STEPS", "WORKOUT_DURATION"];
 
 function todayISO(): string {
@@ -45,6 +52,14 @@ function formatDate(iso: string): string {
       day: "numeric",
       year: "numeric",
     });
+  } catch {
+    return iso;
+  }
+}
+
+function formatShortDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   } catch {
     return iso;
   }
@@ -192,33 +207,39 @@ export default function FitnessPage() {
     return e.type === activeTab;
   });
 
-  // Latest value per main metric type
-  const latestByType = MAIN_TYPES.reduce<Record<string, any>>((acc, t) => {
-    const typeEntries = entries.filter((e) => e.type === t && e.validatedAt);
-    if (typeEntries.length > 0) {
-      // Sort descending by date and take first
-      const sorted = typeEntries
-        .map((e, i) => ({ e, i }))
-        .sort((a, b) => (b.e.date ?? "").localeCompare(a.e.date ?? "") || a.i - b.i)
-        .map(({ e }) => e);
-      acc[t] = sorted[0];
-    }
-    return acc;
-  }, {});
+  // Latest (and previous, for the change) value per main metric type
+  const latestByType: Record<string, any> = {};
+  const previousByType: Record<string, any> = {};
+  for (const t of MAIN_TYPES) {
+    const sorted = entries
+      .filter((e) => e.type === t && e.validatedAt)
+      .map((e, i) => ({ e, i }))
+      .sort((a, b) => (b.e.date ?? "").localeCompare(a.e.date ?? "") || a.i - b.i)
+      .map(({ e }) => e);
+    if (sorted[0]) latestByType[t] = sorted[0];
+    if (sorted[1]) previousByType[t] = sorted[1];
+  }
 
   if (loading) return <LoadingState message="Loading fitness data..." />;
 
+  const openLog = () => { resetForm(); setShowLog(true); };
+  const inputCls =
+    "w-full border border-line-strong rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-accent";
+  const sortedEntries = filteredEntries
+    .slice()
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <PageHeader
         title="Fitness"
         action={
           !showLog ? (
             <button
-              onClick={() => { resetForm(); setShowLog(true); }}
-              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+              onClick={openLog}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
-              + Log Entry
+              <Plus size={16} aria-hidden="true" /> Log entry
             </button>
           ) : undefined
         }
@@ -226,91 +247,50 @@ export default function FitnessPage() {
 
       {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
-      {/* Pending MCP banner */}
-      {pending.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-          <p className="text-sm font-medium text-yellow-800 mb-3">
-            {pending.length} fitness {pending.length === 1 ? "entry" : "entries"} added by AI — review and approve
-          </p>
-          <div className="space-y-2">
-            {pending.map((entry: any) => (
-              <div
-                key={entry.id}
-                className="flex items-center justify-between gap-4 bg-surface border border-yellow-100 rounded-xl px-3 py-2"
-              >
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-fg">
-                    {entry.type}
-                  </span>
-                  <span className="mx-2 text-faint">·</span>
-                  <span className="text-sm text-fg-2">
-                    {formatNumber(entry.value)} {entry.unit}
-                  </span>
-                  <span className="mx-2 text-faint">·</span>
-                  <span className="text-xs text-muted">{formatDate(entry.date)}</span>
-                  {entry.note && (
-                    <span className="ml-2 text-xs text-muted italic truncate">"{entry.note}"</span>
-                  )}
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  {rejectConfirm === entry.id ? (
-                    <ConfirmDelete
-                      label="Reject and delete this entry?"
-                      onConfirm={() => handleReject(entry.id)}
-                      onCancel={() => setRejectConfirm(null)}
-                    />
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => handleApprove(entry.id)}
-                        className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => setRejectConfirm(entry.id)}
-                        className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
-                      >
-                        Reject
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Latest metric summary cards */}
+      {/* Latest value per metric */}
       {Object.keys(latestByType).length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <section aria-label="Latest values" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {MAIN_TYPES.filter((t) => latestByType[t]).map((t) => {
             const entry = latestByType[t];
+            const prev = previousByType[t];
+            const delta = prev ? entry.value - prev.value : null;
             return (
-              <div key={t} className="bg-surface border border-line rounded-2xl p-5">
-                <p className="text-xs font-medium text-muted uppercase tracking-wide mb-1">
-                  {TAB_LABELS[t]}
-                </p>
-                <p className="text-2xl font-bold text-fg">
+              <button
+                key={t}
+                type="button"
+                onClick={() => setActiveTab(t)}
+                aria-pressed={activeTab === t}
+                className={`text-left bg-surface border rounded-2xl p-4 sm:p-5 transition-colors hover:border-line-strong ${
+                  activeTab === t ? "border-line-strong" : "border-line"
+                }`}
+              >
+                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">{SHORT_LABELS[t]}</p>
+                <p className="mt-1 text-[22px] sm:text-2xl font-semibold text-fg tabular-nums leading-tight">
                   {formatNumber(entry.value)}
                   <span className="text-sm font-normal text-muted ml-1">{entry.unit}</span>
                 </p>
-                <p className="text-xs text-faint mt-1">{formatDate(entry.date)}</p>
-              </div>
+                <p className="mt-1 text-xs text-faint">
+                  {formatShortDate(entry.date)}
+                  {delta !== null && delta !== 0 && (
+                    <span className="ml-1.5 text-muted tabular-nums">
+                      {delta > 0 ? "▲" : "▼"} {formatNumber(Math.abs(delta))}
+                    </span>
+                  )}
+                </p>
+              </button>
             );
           })}
-        </div>
+        </section>
       )}
 
       {/* Log form */}
       {showLog && (
-        <div className="bg-surface border border-line rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-fg mb-4">Log Fitness Entry</h2>
+        <section aria-labelledby="log-heading" className="bg-surface border border-line rounded-2xl p-4 sm:p-6">
+          <h2 id="log-heading" className="text-lg font-semibold text-fg mb-4">Log an entry</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="fitness-type" className="block text-sm font-medium text-muted mb-1">
-                Type
+              <label htmlFor="fitness-type" className="block text-sm font-medium text-fg-2 mb-1">
+                Metric
               </label>
               <input
                 id="fitness-type"
@@ -327,14 +307,14 @@ export default function FitnessPage() {
                   if (untouched) setFormUnit(unit ?? "");
                 }}
                 placeholder="e.g. WEIGHT"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={inputCls}
               />
               <datalist id="fitness-type-suggestions">
                 {TYPE_SUGGESTIONS.map((s) => <option key={s} value={s} />)}
               </datalist>
             </div>
             <div>
-              <label htmlFor="fitness-date" className="block text-sm font-medium text-muted mb-1">
+              <label htmlFor="fitness-date" className="block text-sm font-medium text-fg-2 mb-1">
                 Date
               </label>
               <input
@@ -342,38 +322,41 @@ export default function FitnessPage() {
                 type="date"
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={inputCls}
               />
             </div>
-            <div>
-              <label htmlFor="fitness-value" className="block text-sm font-medium text-muted mb-1">
-                Value
-              </label>
-              <input
-                id="fitness-value"
-                type="number"
-                value={formValue}
-                onChange={(e) => setFormValue(e.target.value)}
-                placeholder="0"
-                step="any"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
-            <div>
-              <label htmlFor="fitness-unit" className="block text-sm font-medium text-muted mb-1">
-                Unit
-              </label>
-              <input
-                id="fitness-unit"
-                type="text"
-                value={formUnit}
-                onChange={(e) => setFormUnit(e.target.value)}
-                placeholder="e.g. kg, lbs, %, steps, min"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
+            <div className="grid grid-cols-[1fr_7rem] gap-3 sm:col-span-2 sm:grid-cols-2 sm:gap-4">
+              <div>
+                <label htmlFor="fitness-value" className="block text-sm font-medium text-fg-2 mb-1">
+                  Value
+                </label>
+                <input
+                  id="fitness-value"
+                  type="number"
+                  inputMode="decimal"
+                  value={formValue}
+                  onChange={(e) => setFormValue(e.target.value)}
+                  placeholder="0"
+                  step="any"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label htmlFor="fitness-unit" className="block text-sm font-medium text-fg-2 mb-1">
+                  Unit
+                </label>
+                <input
+                  id="fitness-unit"
+                  type="text"
+                  value={formUnit}
+                  onChange={(e) => setFormUnit(e.target.value)}
+                  placeholder="kg, %, min…"
+                  className={inputCls}
+                />
+              </div>
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="fitness-note" className="block text-sm font-medium text-muted mb-1">
+              <label htmlFor="fitness-note" className="block text-sm font-medium text-fg-2 mb-1">
                 Note
               </label>
               <textarea
@@ -382,7 +365,7 @@ export default function FitnessPage() {
                 onChange={(e) => setFormNote(e.target.value)}
                 rows={2}
                 placeholder="Optional note"
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={inputCls}
               />
             </div>
           </div>
@@ -390,148 +373,189 @@ export default function FitnessPage() {
             <button
               onClick={handleCreate}
               disabled={saving || !formType.trim() || !formValue}
-              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
-              {saving ? "Saving..." : "Log Entry"}
+              {saving ? "Saving..." : "Log entry"}
             </button>
             <button
               onClick={resetForm}
-              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Tab selector */}
-      <div role="tablist" aria-label="Metric" className="flex gap-1 border-b border-line overflow-x-auto">
-        {(["WEIGHT", "BODY_FAT", "STEPS", "WORKOUT_DURATION", "OTHER"] as MetricTab[]).map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
-            className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab
-                ? "border-accent text-accent"
-                : "border-transparent text-muted hover:text-fg-2"
-            }`}
-          >
-            {TAB_LABELS[tab]}
-          </button>
-        ))}
-      </div>
+      {/* Entries added by the AI assistant, waiting for review */}
+      {pending.length > 0 && (
+        <section aria-labelledby="pending-heading" className="bg-yellow-50 border border-yellow-200 rounded-2xl overflow-hidden">
+          <h2 id="pending-heading" className="px-4 pt-3.5 pb-2 text-sm font-medium text-yellow-800">
+            {pending.length} {pending.length === 1 ? "entry" : "entries"} added by AI — review and approve
+          </h2>
+          <ul role="list" className="px-3 pb-3 space-y-2">
+            {pending.map((entry: any) => (
+              <li
+                key={entry.id}
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 bg-surface border border-yellow-100 rounded-xl px-3 py-2.5"
+              >
+                <div className="min-w-0 flex-1 basis-48">
+                  <p className="text-sm text-fg">
+                    <span className="font-medium">{labelFor(entry.type)}</span>
+                    <span className="mx-1.5 text-faint">·</span>
+                    <span className="tabular-nums">{formatNumber(entry.value)} {entry.unit}</span>
+                  </p>
+                  <p className="text-xs text-muted truncate">
+                    {formatDate(entry.date)}
+                    {entry.note && <> · <span className="italic">{entry.note}</span></>}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  {rejectConfirm === entry.id ? (
+                    <ConfirmDelete
+                      label="Reject and delete?"
+                      onConfirm={() => handleReject(entry.id)}
+                      onCancel={() => setRejectConfirm(null)}
+                    />
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleApprove(entry.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+                      >
+                        <Check size={14} aria-hidden="true" /> Approve
+                      </button>
+                      <button
+                        onClick={() => setRejectConfirm(entry.id)}
+                        className="px-3 py-1.5 text-sm font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      {/* Entries table */}
-      {filteredEntries.length === 0 ? (
-        <EmptyState
-          message={`No ${TAB_LABELS[activeTab].toLowerCase()} entries yet.`}
-          cta={{ label: "Log an entry", onClick: () => { resetForm(); setShowLog(true); } }}
-        />
-      ) : (
-        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" aria-label={`${TAB_LABELS[activeTab]} entries`}>
-              <thead>
-                <tr className="bg-surface-2 border-b border-line">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Date</th>
-                  {activeTab === "OTHER" && <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Metric</th>}
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Value</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Note</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Source</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEntries
-                  .slice()
-                  .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
-                  .map((entry: any) => (
-                    <tr key={entry.id} className="border-b border-line last:border-0 hover:bg-surface-2">
-                      {editing?.id === entry.id ? (
-                        <>
-                          <td className="px-4 py-2">
-                            <label className="sr-only" htmlFor={`edit-date-${entry.id}`}>Date</label>
-                            <input id={`edit-date-${entry.id}`} type="date" value={editing!.date} onChange={(e) => patchEdit({ date: e.target.value })} className="w-36 border border-line-strong rounded-lg px-2 py-1 text-sm" />
-                          </td>
-                          {activeTab === "OTHER" && <td className="px-4 py-2 text-fg-2">{entry.type}</td>}
-                          <td className="px-4 py-2">
-                            <span className="flex gap-1">
-                              <label className="sr-only" htmlFor={`edit-value-${entry.id}`}>Value</label>
-                              <input id={`edit-value-${entry.id}`} type="number" step="any" min="0" value={editing!.value} onChange={(e) => patchEdit({ value: e.target.value })} className="w-24 border border-line-strong rounded-lg px-2 py-1 text-sm" />
-                              <label className="sr-only" htmlFor={`edit-unit-${entry.id}`}>Unit</label>
-                              <input id={`edit-unit-${entry.id}`} type="text" value={editing!.unit} onChange={(e) => patchEdit({ unit: e.target.value })} className="w-16 border border-line-strong rounded-lg px-2 py-1 text-sm" />
-                            </span>
-                          </td>
-                          <td className="px-4 py-2">
-                            <label className="sr-only" htmlFor={`edit-note-${entry.id}`}>Note</label>
-                            <input id={`edit-note-${entry.id}`} type="text" value={editing!.note} onChange={(e) => patchEdit({ note: e.target.value })} className="w-full border border-line-strong rounded-lg px-2 py-1 text-sm" />
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                      <td className="px-4 py-3 text-fg-2">{formatDate(entry.date)}</td>
-                      {activeTab === "OTHER" && <td className="px-4 py-3 text-fg-2">{entry.type}</td>}
-                      <td className="px-4 py-3 font-medium text-fg">
-                        {formatNumber(entry.value)} <span className="text-muted font-normal text-xs">{entry.unit}</span>
-                      </td>
-                      <td className="px-4 py-3 text-muted max-w-[200px] truncate">
-                        {entry.note ?? "—"}
-                      </td>
-                        </>
-                      )}
-                      <td className="px-4 py-3">
-                        {entry.source === "MCP" && !entry.validatedAt ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
-                            Pending
-                          </span>
-                        ) : entry.source === "MCP" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted">
-                            AI
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted">Manual</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {deleteConfirm === entry.id ? (
-                          <ConfirmDelete
-                            onConfirm={() => handleDelete(entry.id)}
-                            onCancel={() => setDeleteConfirm(null)}
-                            label="Delete entry?"
-                          />
-                        ) : editing?.id === entry.id ? (
-                          <span className="flex justify-end gap-2">
-                            <button onClick={handleSaveEdit} className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover">Save</button>
-                            <button onClick={() => setEditing(null)} className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2">Cancel</button>
-                          </span>
-                        ) : (
-                          <span className="flex justify-end gap-2">
-                            <button
-                              onClick={() =>
-                                setEditing({ id: entry.id, value: String(entry.value), unit: entry.unit ?? "", date: entry.date?.slice(0, 10) ?? "", note: entry.note ?? "" })
-                              }
-                              className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(entry.id)}
-                              className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded-xl hover:bg-red-50 transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+      {/* History */}
+      <section aria-labelledby="history-heading" className="space-y-3">
+        <h2 id="history-heading" className="sr-only">History</h2>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div role="tablist" aria-label="Metric" className="inline-flex p-1 rounded-xl bg-surface-2">
+            {(["WEIGHT", "BODY_FAT", "STEPS", "WORKOUT_DURATION", "OTHER"] as MetricTab[]).map((tab) => (
+              <button
+                key={tab}
+                role="tab"
+                aria-selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  activeTab === tab ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
+                }`}
+              >
+                {SHORT_LABELS[tab]}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+
+        {sortedEntries.length === 0 ? (
+          <EmptyState
+            message={`No ${TAB_LABELS[activeTab].toLowerCase()} entries yet.`}
+            cta={{ label: "Log an entry", onClick: openLog }}
+          />
+        ) : (
+          <ul
+            role="list"
+            aria-label={`${TAB_LABELS[activeTab]} entries`}
+            className="bg-surface border border-line rounded-2xl divide-y divide-line overflow-hidden"
+          >
+            {sortedEntries.map((entry: any) => {
+              if (editing && editing.id === entry.id) {
+                const ed = editing;
+                return (
+                  <li key={entry.id} className="p-4 bg-surface-2">
+                    <p className="text-sm font-medium text-fg mb-3">Edit {labelFor(entry.type).toLowerCase()} entry</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className="block text-xs font-medium text-muted mb-1" htmlFor={`edit-date-${entry.id}`}>Date</label>
+                        <input id={`edit-date-${entry.id}`} type="date" value={ed.date} onChange={(e) => patchEdit({ date: e.target.value })} className={inputCls} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-muted mb-1" htmlFor={`edit-value-${entry.id}`}>Value</label>
+                        <input id={`edit-value-${entry.id}`} type="number" inputMode="decimal" step="any" min="0" value={ed.value} onChange={(e) => patchEdit({ value: e.target.value })} className={inputCls} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-muted mb-1" htmlFor={`edit-unit-${entry.id}`}>Unit</label>
+                        <input id={`edit-unit-${entry.id}`} type="text" value={ed.unit} onChange={(e) => patchEdit({ unit: e.target.value })} className={inputCls} />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className="block text-xs font-medium text-muted mb-1" htmlFor={`edit-note-${entry.id}`}>Note</label>
+                        <input id={`edit-note-${entry.id}`} type="text" value={ed.note} onChange={(e) => patchEdit({ note: e.target.value })} placeholder="Optional" className={inputCls} />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-3">
+                      <button onClick={handleSaveEdit} className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover">Save</button>
+                      <button onClick={() => setEditing(null)} className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface">Cancel</button>
+                    </div>
+                  </li>
+                );
+              }
+              const isPending = entry.source === "MCP" && !entry.validatedAt;
+              return (
+                <li key={entry.id} className="flex items-center gap-3 pl-4 pr-2 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[15px] font-semibold text-fg tabular-nums">
+                      {formatNumber(entry.value)}
+                      <span className="ml-1 text-xs font-normal text-muted">{entry.unit}</span>
+                      {activeTab === "OTHER" && (
+                        <span className="ml-2 text-sm font-medium text-fg-2">{entry.type}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted flex items-center gap-1.5 min-w-0">
+                      <span className="shrink-0">{formatDate(entry.date)}</span>
+                      {entry.note && <span className="truncate">· {entry.note}</span>}
+                    </p>
+                  </div>
+                  {isPending ? (
+                    <span className="shrink-0 px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">Pending</span>
+                  ) : entry.source === "MCP" ? (
+                    <span className="shrink-0 px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted" title="Added by AI">AI</span>
+                  ) : null}
+                  {deleteConfirm === entry.id ? (
+                    <ConfirmDelete
+                      onConfirm={() => handleDelete(entry.id)}
+                      onCancel={() => setDeleteConfirm(null)}
+                      label="Delete?"
+                    />
+                  ) : (
+                    <div className="flex shrink-0">
+                      <button
+                        onClick={() =>
+                          setEditing({ id: entry.id, value: String(entry.value), unit: entry.unit ?? "", date: entry.date?.slice(0, 10) ?? "", note: entry.note ?? "" })
+                        }
+                        aria-label={`Edit entry from ${formatDate(entry.date)}`}
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-fg hover:bg-surface-2"
+                      >
+                        <Pencil size={15} aria-hidden="true" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(entry.id)}
+                        aria-label={`Delete entry from ${formatDate(entry.date)}`}
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-neg hover:bg-surface-2"
+                      >
+                        <Trash2 size={15} aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

@@ -1,13 +1,21 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getAccount, getTransactions } from "@/lib/api";
+import { getAccount, getTransactions, getCategories } from "@/lib/api";
 import { fmt } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { TypeBadge } from "@/components/ui/TypeBadge";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { TransactionList } from "@/components/TransactionList";
+import { TRANSACTIONS_CHANGED, openQuickAdd } from "@/components/QuickAddTransaction";
+
+const PAGE_SIZE = 50;
+const CATEGORY_PREVIEW = 5;
+
+function signed(n: number) {
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${fmt(n)}`;
+}
 
 export default function AccountDetail({
   params,
@@ -18,26 +26,35 @@ export default function AccountDetail({
 
   const [account, setAccount] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const [allCategories, setAllCategories] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [acct, txns] = await Promise.all([
-          getAccount(id),
-          getTransactions({ accountId: id }),
-        ]);
-        setAccount(acct);
-        setTransactions(Array.isArray(txns) ? txns : txns.data ?? []);
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      const [acct, txns, cats] = await Promise.all([
+        getAccount(id),
+        getTransactions({ accountId: id }),
+        getCategories().catch(() => []),
+      ]);
+      setAccount(acct);
+      setTransactions(Array.isArray(txns) ? txns : txns.data ?? []);
+      setCategories(Array.isArray(cats) ? cats : []);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [id]);
+
+  useEffect(() => {
+    load();
+    // Reload after a transaction is edited or deleted in the transaction sheet.
+    window.addEventListener(TRANSACTIONS_CHANGED, load);
+    return () => window.removeEventListener(TRANSACTIONS_CHANGED, load);
+  }, [load]);
 
   if (loading) {
     return <LoadingState message="Loading account..." />;
@@ -46,6 +63,7 @@ export default function AccountDetail({
   if (!account) {
     return (
       <div className="space-y-4">
+        <PageHeader title="Account" back={{ href: "/accounts", label: "Accounts" }} />
         {error && <ErrorBanner message={error} />}
         <div className="bg-surface-2 border border-line text-muted rounded-xl p-4">
           Account not found. <Link href="/accounts" className="text-accent font-medium">Back to accounts</Link>
@@ -56,166 +74,104 @@ export default function AccountDetail({
 
   // Per-category balances come from the API: PAID transactions up to today, signed for this account.
   const categoryBalances: { id: string; name: string; balance: number }[] = account.categoryBalances ?? [];
+  // Largest balances first; the rest stay folded so the transactions aren't pushed far down on phones.
+  const sortedBalances = [...categoryBalances].sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
+  const visibleBalances = allCategories ? sortedBalances : sortedBalances.slice(0, CATEGORY_PREVIEW);
+  const balance = account.balance ?? 0;
+  const years = new Set(transactions.map((t) => new Date(t.date).getUTCFullYear()));
+  const visible = transactions.slice(0, shown);
 
   return (
-    <div className="space-y-8">
-      {error && <ErrorBanner message={error} />}
+    <div>
+      <PageHeader title={account.name} back={{ href: "/accounts", label: "Accounts" }} />
 
-      {/* Back link */}
-      <Link
-        href="/accounts"
-        className="text-sm text-muted hover:text-fg-2"
-      >
-        &larr; Back to Accounts
-      </Link>
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
-      {/* Account Header */}
-      <div className="bg-surface border border-line rounded-2xl p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted uppercase tracking-wide capitalize">
-              {account.type?.replace("_", " ").toLowerCase()}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6 lg:items-start">
+        {/* Balance first, with what it is made of right under it. */}
+        <div className="space-y-4 mb-6 lg:mb-0 lg:order-2 lg:sticky lg:top-6">
+          <section aria-label="Balance" className="bg-surface border border-line rounded-2xl p-5 sm:p-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+              {String(account.type ?? "").replace(/_/g, " ").toLowerCase()} · balance
             </p>
-            <h1 className="text-[28px] font-semibold tracking-tight text-fg mt-1">
-              {account.name}
-            </h1>
-            {account.notes && (
-              <p className="text-sm text-muted mt-2">{account.notes}</p>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-muted">Balance</p>
             <p
-              className={`text-3xl font-bold ${
-                (account.balance ?? 0) >= 0
-                  ? "text-pos"
-                  : "text-neg"
+              className={`mt-2 font-mono text-[34px] sm:text-[40px] font-medium tracking-[-0.03em] leading-none ${
+                balance >= 0 ? "text-fg" : "text-neg"
               }`}
             >
-              {(account.balance ?? 0) < 0 ? "-" : ""}
-              {fmt(account.balance ?? 0)}
+              {balance < 0 ? "−" : ""}
+              {fmt(balance)}
             </p>
-          </div>
-        </div>
-      </div>
+            <p className="mt-2 text-xs text-muted">
+              {transactions.length} transaction{transactions.length === 1 ? "" : "s"}
+            </p>
+            {account.notes && <p className="mt-3 text-sm text-fg-2">{account.notes}</p>}
+          </section>
 
-      {/* Category Balances */}
-      {categoryBalances.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-fg mb-3">
-            Category Balances
+          {categoryBalances.length > 0 && (
+            <section aria-labelledby="cat-balances" className="bg-surface border border-line rounded-2xl overflow-hidden">
+              <h2
+                id="cat-balances"
+                className="px-4 pt-4 pb-2 font-mono text-[11px] uppercase tracking-[0.08em] text-muted"
+              >
+                By category
+              </h2>
+              <ul role="list" className="divide-y divide-line">
+                {visibleBalances.map((c) => (
+                  <li key={c.id ?? c.name} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <span className="text-sm text-fg truncate">{c.name}</span>
+                    <span
+                      className={`shrink-0 font-mono text-sm font-medium ${
+                        c.balance > 0 ? "text-pos" : c.balance < 0 ? "text-neg" : "text-muted"
+                      }`}
+                    >
+                      {signed(c.balance)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {categoryBalances.length > CATEGORY_PREVIEW && (
+                <button
+                  type="button"
+                  onClick={() => setAllCategories((v) => !v)}
+                  aria-expanded={allCategories}
+                  className="w-full border-t border-line px-4 py-2.5 text-sm font-medium text-accent hover:bg-surface-2 transition-colors"
+                >
+                  {allCategories ? "Show fewer" : `Show all ${categoryBalances.length}`}
+                </button>
+              )}
+            </section>
+          )}
+        </div>
+
+        <section aria-labelledby="acct-tx" className="lg:order-1 min-w-0">
+          <h2 id="acct-tx" className="text-base font-semibold text-fg mb-3">
+            Transactions
           </h2>
-          <div className="bg-surface border border-line rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line bg-surface-2">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                    Category
-                  </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                    Balance
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryBalances.map((c) => (
-                  <tr
-                    key={c.id ?? c.name}
-                    className="border-b border-line last:border-0"
-                  >
-                    <td className="px-4 py-3 text-fg font-medium">
-                      {c.name}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right font-medium ${
-                        c.balance >= 0 ? "text-pos" : "text-neg"
-                      }`}
-                    >
-                      {c.balance < 0 ? "-" : "+"}
-                      {fmt(c.balance)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Transactions */}
-      <div>
-        <h2 className="text-lg font-semibold text-fg mb-3">
-          Transactions
-        </h2>
-        {transactions.length === 0 ? (
-          <div className="bg-surface border border-line rounded-2xl p-6 text-center text-muted">
-            No transactions for this account.
-          </div>
-        ) : (
-          <div className="bg-surface border border-line rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line bg-surface-2">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                    Date
-                  </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                    Description
-                  </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                    Type
-                  </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                    Amount
-                  </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                    Category
-                  </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((t: any) => (
-                  <tr
-                    key={t.id}
-                    className="border-b border-line last:border-0 hover:bg-surface-2"
-                  >
-                    <td className="px-4 py-3 text-fg-2">
-                      {t.date?.slice(0, 10)}
-                    </td>
-                    <td className="px-4 py-3 text-fg font-medium">
-                      {t.description}
-                    </td>
-                    <td className="px-4 py-3">
-                      <TypeBadge type={t.type} />
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right font-medium ${
-                        t.type === "INCOME"
-                          ? "text-pos"
-                          : t.type === "SPENDING"
-                          ? "text-neg"
-                          : "text-muted"
-                      }`}
-                    >
-                      {/* Signed from this account's point of view: money in +, money out − (transfers too). */}
-                      {t.toAccountId === id ? "+" : "−"}
-                      {fmt(t.amount ?? 0)}
-                    </td>
-                    <td className="px-4 py-3 text-muted">
-                      {t.category?.name ?? t.categoryName ?? "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={t.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          {transactions.length === 0 ? (
+            <div className="bg-surface border border-line rounded-2xl px-5 py-10 text-center text-sm text-muted">
+              No transactions for this account.
+            </div>
+          ) : (
+            <div className="bg-surface border border-line rounded-2xl overflow-hidden">
+              <TransactionList
+                transactions={visible}
+                categories={categories}
+                onSelect={(tx) => openQuickAdd(tx)}
+                showYear={years.size > 1}
+              />
+              {transactions.length > shown && (
+                <button
+                  type="button"
+                  onClick={() => setShown((n) => n + PAGE_SIZE)}
+                  className="w-full border-t border-line px-4 py-3 text-sm font-medium text-accent hover:bg-surface-2 transition-colors"
+                >
+                  Show more ({transactions.length - shown} older)
+                </button>
+              )}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

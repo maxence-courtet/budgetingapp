@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ListOrdered } from "lucide-react";
 import { getPortfolio } from "@/lib/api";
 import { fmt } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface Holding {
   ticker: string;
@@ -45,7 +47,7 @@ const ASSET_TYPE_STYLES: Record<string, string> = {
 function assetTypeBadge(type: string) {
   const classes = ASSET_TYPE_STYLES[type] ?? "bg-surface-2 text-fg-2";
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${classes}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-medium tracking-[0.04em] ${classes}`}>
       {type}
     </span>
   );
@@ -114,50 +116,57 @@ export default function InvestmentsPage() {
     return <LoadingState message="Loading portfolio..." />;
   }
 
+  const allUnpriced = !!summary && summary.holdingsCount > 0 && summary.unpricedCount === summary.holdingsCount;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-[28px] font-semibold tracking-tight text-fg">Investments</h1>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Investments"
+        action={
+          <Link
+            href="/investments/trades"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+          >
+            <ListOrdered size={16} aria-hidden="true" /> Trades
+          </Link>
+        }
+      />
 
       {error && (
         <ErrorBanner message={error} onDismiss={() => setError("")} />
       )}
 
-      {/* Hero card */}
-      {summary && (
-        <section aria-label="Portfolio summary" className="flex flex-wrap items-end justify-between gap-6">
-          <div className="space-y-2">
-            <p className="font-mono text-xs text-muted uppercase tracking-[0.08em]">Portfolio value</p>
-            <p className="font-mono text-5xl font-medium tracking-[-0.04em] leading-none text-fg">
-              {fmt(summary.totalValue)}
-            </p>
-            <p className="text-xs text-muted">
-              {summary.lastUpdated ? `Prices updated ${formatLastUpdated(summary.lastUpdated)}` : "Live prices unavailable"}
-            </p>
-          </div>
-          <div className="flex items-end gap-6">
-            <div className="space-y-1">
-              <p className="text-xs text-muted">Total gain/loss</p>
-              {summary.unpricedCount === summary.holdingsCount ? (
-                <p className="font-mono text-xl text-muted" title="No live prices right now">—</p>
-              ) : (
-                <p className={`font-mono text-xl ${gainLossColor(summary.totalGainLoss)}`}>
-                  {signedMoney(summary.totalGainLoss)}{" "}
-                  <span className="text-sm">({formatPct(summary.totalGainLossPct)})</span>
-                </p>
-              )}
-            </div>
+      {summary && holdings.length > 0 && (
+        <section aria-label="Portfolio summary" className="bg-surface border border-line rounded-2xl p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">Portfolio value</p>
             <button
               onClick={() => loadPortfolio(true)}
               disabled={refreshing}
-              aria-label="Refresh portfolio"
-              className="flex items-center gap-2 h-9 px-3.5 text-sm font-medium rounded-lg border border-line-strong text-fg hover:border-accent hover:text-accent transition-colors disabled:opacity-50 shrink-0"
+              aria-label="Refresh prices"
+              title="Refresh prices"
+              className="-mt-2 -mr-2 flex items-center justify-center gap-2 w-9 h-9 sm:w-auto sm:px-3 rounded-lg text-sm font-medium text-muted hover:text-fg hover:bg-surface-2 transition-colors disabled:opacity-50 shrink-0"
             >
-              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} aria-hidden="true" />
-              {refreshing ? "Refreshing…" : "Refresh"}
+              <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} aria-hidden="true" />
+              <span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh"}</span>
             </button>
           </div>
+          <p className="mt-1 font-mono text-[36px] sm:text-5xl font-medium tracking-[-0.04em] leading-none text-fg">
+            {fmt(summary.totalValue)}
+          </p>
+          {allUnpriced ? (
+            <p className="mt-3 font-mono text-base text-muted" title="No live prices right now">Gain —</p>
+          ) : (
+            <p className={`mt-3 font-mono text-base sm:text-lg font-medium ${gainLossColor(summary.totalGainLoss)}`}>
+              {signedMoney(summary.totalGainLoss)}{" "}
+              <span className="text-sm">({formatPct(summary.totalGainLossPct)})</span>
+              <span className="ml-1.5 font-sans text-xs font-normal text-muted">total gain</span>
+            </p>
+          )}
+          <p className="mt-3 text-xs text-muted">
+            {summary.holdingsCount} holding{summary.holdingsCount === 1 ? "" : "s"} ·{" "}
+            {summary.lastUpdated ? `prices ${formatLastUpdated(summary.lastUpdated)}` : "live prices unavailable"}
+          </p>
         </section>
       )}
 
@@ -173,7 +182,6 @@ export default function InvestmentsPage() {
         </p>
       )}
 
-      {/* Holdings table or empty state */}
       {holdings.length === 0 ? (
         <EmptyState
           message="No trades recorded yet."
@@ -183,113 +191,94 @@ export default function InvestmentsPage() {
           }}
         />
       ) : (
-        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" aria-label="Portfolio holdings">
-              <thead>
-                <tr className="bg-surface-2 border-b border-line">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                    Asset
-                  </th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                    Type
-                  </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                    Quantity
-                  </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                    Avg Cost
-                  </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                    Current Price
-                  </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                    Current Value
-                  </th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                    Gain / Loss
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {holdings.map((h) => (
-                  <tr
-                    key={h.ticker}
-                    className="border-b border-line last:border-0 hover:bg-surface-2"
-                  >
-                    {/* Asset */}
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-fg">{h.ticker}</p>
-                      <p className="text-xs text-muted mt-0.5 truncate max-w-[180px]">
-                        {h.name}
-                      </p>
-                    </td>
+        <section aria-labelledby="holdings-h">
+          <h2 id="holdings-h" className="text-base font-semibold text-fg mb-3">Holdings</h2>
+          <div className="bg-surface border border-line rounded-2xl overflow-hidden">
+            {/* Column labels for the wider layout; phones read each row on its own. */}
+            <div
+              aria-hidden="true"
+              className="hidden md:grid grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))] gap-4 px-4 py-2.5 bg-surface-2 border-b border-line font-mono text-[11px] uppercase tracking-[0.08em] text-muted"
+            >
+              <span>Asset</span>
+              <span className="text-right">Quantity · avg cost</span>
+              <span className="text-right">Price</span>
+              <span className="text-right">Value</span>
+              <span className="text-right">Gain / loss</span>
+            </div>
+            <ul role="list" aria-label="Portfolio holdings" className="divide-y divide-line">
+              {holdings.map((h) => {
+                const qty = h.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 });
+                const priced = h.priceAvailable && h.currentPrice != null;
+                const gain =
+                  h.gainLoss == null ? (
+                    <span className="text-xs text-muted">—</span>
+                  ) : (
+                    <>
+                      {signedMoney(h.gainLoss)}
+                      {h.gainLossPct != null && (
+                        <span className="text-xs font-normal"> {formatPct(h.gainLossPct)}</span>
+                      )}
+                    </>
+                  );
+                return (
+                  <li key={h.ticker} className="px-4 py-3">
+                    {/* Phone: symbol and value on top, quantity and gain below. */}
+                    <div className="md:hidden">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="font-semibold text-fg">{h.ticker}</span>
+                          {assetTypeBadge(h.assetType)}
+                        </span>
+                        <span className="font-mono text-[15px] font-semibold text-fg shrink-0">{fmt(h.currentValue)}</span>
+                      </div>
+                      <div className="mt-1 flex items-baseline justify-between gap-3 text-xs">
+                        <span className="text-muted truncate min-w-0">
+                          {qty} × {priced ? fmt(h.currentPrice!) : "price n/a"}
+                          {h.currency && h.currency !== "USD" ? ` ${h.currency}` : ""}
+                        </span>
+                        <span className={`font-mono font-medium shrink-0 ${gainLossColor(h.gainLoss)}`}>{gain}</span>
+                      </div>
+                    </div>
 
-                    {/* Type */}
-                    <td className="px-4 py-3">{assetTypeBadge(h.assetType)}</td>
-
-                    {/* Quantity */}
-                    <td className="px-4 py-3 text-right text-fg-2 tabular-nums">
-                      {h.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })}
-                    </td>
-
-                    {/* Avg Cost */}
-                    <td className="px-4 py-3 text-right text-fg-2 tabular-nums">
-                      {fmt(h.avgCostBasis)}
-                    </td>
-
-                    {/* Current Price + Day Change */}
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {h.priceAvailable && h.currentPrice != null ? (
-                        <>
-                          <p className="text-fg font-medium">
-                            {fmt(h.currentPrice)}
-                            {h.currency && h.currency !== "USD" && <span className="ml-1 text-xs text-muted">{h.currency}</span>}
-                          </p>
-                          {h.dayChange != null && h.dayChangePercent != null && (
-                            <p className={`text-xs mt-0.5 ${gainLossColor(h.dayChange)}`}>
-                              {signedMoney(h.dayChange)} today ({formatPct(h.dayChangePercent)})
+                    <div className="hidden md:grid grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))] gap-4 items-center text-sm">
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2">
+                          <span className="font-semibold text-fg">{h.ticker}</span>
+                          {assetTypeBadge(h.assetType)}
+                        </p>
+                        {h.name && h.name !== h.ticker && <p className="text-xs text-muted mt-0.5 truncate">{h.name}</p>}
+                      </div>
+                      <div className="text-right tabular-nums">
+                        <p className="text-fg-2">{qty}</p>
+                        <p className="text-xs text-muted mt-0.5">avg {fmt(h.avgCostBasis)}</p>
+                      </div>
+                      <div className="text-right tabular-nums">
+                        {priced ? (
+                          <>
+                            <p className="text-fg">
+                              {fmt(h.currentPrice!)}
+                              {h.currency && h.currency !== "USD" && <span className="ml-1 text-xs text-muted">{h.currency}</span>}
                             </p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-xs text-muted">Price unavailable</p>
-                      )}
-                    </td>
-
-                    {/* Current Value */}
-                    <td className="px-4 py-3 text-right text-fg font-medium tabular-nums">
-                      {fmt(h.currentValue)}
-                    </td>
-
-                    {/* Gain / Loss */}
-                    <td className={`px-4 py-3 text-right font-medium tabular-nums ${gainLossColor(h.gainLoss)}`}>
-                      {h.gainLoss == null ? (
-                        <p className="text-xs">—</p>
-                      ) : (
-                        <>
-                          <p>{signedMoney(h.gainLoss)}</p>
-                          {h.gainLossPct != null && <p className="text-xs mt-0.5">{formatPct(h.gainLossPct)}</p>}
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                            {h.dayChange != null && h.dayChangePercent != null && (
+                              <p className={`text-xs mt-0.5 ${gainLossColor(h.dayChange)}`}>
+                                {signedMoney(h.dayChange)} today ({formatPct(h.dayChangePercent)})
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted">Price unavailable</p>
+                        )}
+                      </div>
+                      <p className="text-right font-mono font-medium text-fg">{fmt(h.currentValue)}</p>
+                      <p className={`text-right font-mono font-medium ${gainLossColor(h.gainLoss)}`}>{gain}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        </div>
+        </section>
       )}
-
-      {/* Footer link */}
-      <div className="text-right">
-        <a
-          href="/investments/trades"
-          className="text-sm font-medium text-accent hover:text-accent-hover transition-colors"
-        >
-          View Trade Log →
-        </a>
-      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { localISO } from "@/lib/date";
 import { useState, useEffect, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
   getTrades,
   getAccounts,
@@ -63,23 +63,173 @@ function totalCost(quantity: number, price: number, fees: number, tradeType = "B
   return tradeType === "SELL" ? quantity * price - fees : quantity * price + fees;
 }
 
-function tradeBadge(type: string) {
-  return type === "BUY" ? (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-      BUY
-    </span>
-  ) : (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
-      SELL
-    </span>
-  );
+type TradeForm = ReturnType<typeof blankForm>;
+
+const inputCls =
+  "w-full border border-line-strong rounded-xl px-3 py-2 text-sm bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-accent";
+const labelCls = "block text-sm font-medium text-muted mb-1";
+
+function formValid(f: TradeForm) {
+  return Boolean(f.ticker.trim() && f.quantity && f.pricePerUnit);
 }
 
-function assetBadge(type: string) {
+/** The fields of a trade, shared by the new-trade card and the edit card. One column on phones. */
+function TradeFields({
+  idPrefix,
+  form,
+  setForm,
+  accounts,
+  showAccountTip,
+}: {
+  idPrefix: string;
+  form: TradeForm;
+  setForm: (fn: (f: TradeForm) => TradeForm) => void;
+  accounts: Account[];
+  showAccountTip: boolean;
+}) {
+  const set = (key: keyof TradeForm) => (e: { target: { value: string } }) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+  const total =
+    form.quantity && form.pricePerUnit
+      ? totalCost(parseFloat(form.quantity), parseFloat(form.pricePerUnit), parseFloat(form.fees || "0"), form.tradeType)
+      : null;
+
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-fg-2">
-      {type}
-    </span>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div>
+        <span className={labelCls} id={`${idPrefix}-tradeType-label`}>Trade</span>
+        <div
+          role="radiogroup"
+          aria-labelledby={`${idPrefix}-tradeType-label`}
+          className="flex p-1 rounded-xl bg-surface-2"
+        >
+          {TRADE_TYPES.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="radio"
+              aria-checked={form.tradeType === t}
+              onClick={() => setForm((f) => ({ ...f, tradeType: t }))}
+              className={`flex-1 h-8 rounded-lg text-[13px] font-medium transition-colors ${
+                form.tradeType === t
+                  ? `bg-surface shadow-sm ${t === "BUY" ? "text-pos" : "text-neg"}`
+                  : "text-muted hover:text-fg"
+              }`}
+            >
+              {t === "BUY" ? "Buy" : "Sell"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-ticker`} className={labelCls}>Ticker</label>
+        <input
+          id={`${idPrefix}-ticker`}
+          type="text"
+          autoCapitalize="characters"
+          value={form.ticker}
+          onChange={(e) => setForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))}
+          className={inputCls}
+          placeholder="e.g. AAPL"
+        />
+      </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-assetType`} className={labelCls}>Asset type</label>
+        <select id={`${idPrefix}-assetType`} value={form.assetType} onChange={set("assetType")} className={inputCls}>
+          {ASSET_TYPES.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-quantity`} className={labelCls}>Quantity</label>
+        <input
+          id={`${idPrefix}-quantity`}
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.000001"
+          value={form.quantity}
+          onChange={set("quantity")}
+          className={inputCls}
+          placeholder="0"
+        />
+      </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-price`} className={labelCls}>Price per unit</label>
+        <input
+          id={`${idPrefix}-price`}
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.01"
+          value={form.pricePerUnit}
+          onChange={set("pricePerUnit")}
+          className={inputCls}
+          placeholder="0.00"
+        />
+      </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-fees`} className={labelCls}>
+          Fees <span className="text-faint font-normal">(optional)</span>
+        </label>
+        <input
+          id={`${idPrefix}-fees`}
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.01"
+          value={form.fees}
+          onChange={set("fees")}
+          className={inputCls}
+          placeholder="0.00"
+        />
+      </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-date`} className={labelCls}>Date</label>
+        <input id={`${idPrefix}-date`} type="date" value={form.date} onChange={set("date")} className={inputCls} />
+      </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-accountId`} className={labelCls}>Account</label>
+        <select id={`${idPrefix}-accountId`} value={form.accountId} onChange={set("accountId")} className={inputCls}>
+          <option value="">Choose an account</option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>{a.name}</option>
+          ))}
+        </select>
+        {showAccountTip && (
+          <p className="mt-1 text-xs text-muted">
+            Tip: add an account of type “Investment” on the Accounts page to keep trades separate.
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-notes`} className={labelCls}>
+          Notes <span className="text-faint font-normal">(optional)</span>
+        </label>
+        <input
+          id={`${idPrefix}-notes`}
+          type="text"
+          value={form.notes}
+          onChange={set("notes")}
+          className={inputCls}
+          placeholder="Optional notes"
+        />
+      </div>
+
+      <p className="sm:col-span-2 lg:col-span-3 text-sm text-muted" aria-live="polite">
+        {form.tradeType === "SELL" ? "You receive" : "Total cost"}{" "}
+        <span className="font-mono font-semibold text-fg">{total == null || isNaN(total) ? "—" : fmt(total)}</span>
+      </p>
+    </div>
   );
 }
 
@@ -236,9 +386,10 @@ export default function TradesPage() {
   if (loading) return <LoadingState message="Loading trades..." />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
-        title="Trade Log"
+        title="Trades"
+        back={{ href: "/investments", label: "Investments" }}
         action={
           !showCreate && !editingId ? (
             <button
@@ -246,10 +397,10 @@ export default function TradesPage() {
                 resetCreateForm();
                 setShowCreate(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
             >
-              <Plus size={15} aria-hidden="true" />
-              New Trade
+              <Plus size={16} aria-hidden="true" />
+              New trade
             </button>
           ) : null
         }
@@ -259,453 +410,190 @@ export default function TradesPage() {
         <ErrorBanner message={error} onDismiss={() => setError("")} />
       )}
 
-      {/* ── Create form ─────────────────────────────────────────────────── */}
       {showCreate && (
-        <div className="bg-surface border border-line rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-fg mb-4">New Trade</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Ticker */}
-            <div>
-              <label htmlFor="create-ticker" className="block text-sm font-medium text-muted mb-1">
-                Ticker
-              </label>
-              <input
-                id="create-ticker"
-                type="text"
-                value={form.ticker}
-                onChange={(e) => setForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="e.g. AAPL"
-              />
-            </div>
-
-            {/* Asset Type */}
-            <div>
-              <label htmlFor="create-assetType" className="block text-sm font-medium text-muted mb-1">
-                Asset Type
-              </label>
-              <select
-                id="create-assetType"
-                value={form.assetType}
-                onChange={(e) => setForm((f) => ({ ...f, assetType: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              >
-                {ASSET_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Trade Type */}
-            <div>
-              <label htmlFor="create-tradeType" className="block text-sm font-medium text-muted mb-1">
-                Trade Type
-              </label>
-              <div className="flex rounded-xl overflow-hidden border border-line-strong text-sm font-medium h-[38px]">
-                {TRADE_TYPES.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, tradeType: t }))}
-                    className={`flex-1 transition-colors ${
-                      form.tradeType === t
-                        ? t === "BUY"
-                          ? "bg-green-600 text-accent-ink"
-                          : "bg-red-600 text-accent-ink"
-                        : "bg-surface text-muted hover:bg-surface-2"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Account */}
-            <div>
-              <label htmlFor="create-accountId" className="block text-sm font-medium text-muted mb-1">
-                Account
-              </label>
-              <select
-                id="create-accountId"
-                value={form.accountId}
-                onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              >
-                <option value="">Choose an account</option>
-                {investmentAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
-              {investmentOnly.length === 0 && (
-                <p className="mt-1 text-xs text-muted">
-                  Tip: add an account of type “Investment” on the Accounts page to keep trades separate.
-                </p>
-              )}
-            </div>
-
-            {/* Date */}
-            <div>
-              <label htmlFor="create-date" className="block text-sm font-medium text-muted mb-1">
-                Date
-              </label>
-              <input
-                id="create-date"
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <label htmlFor="create-quantity" className="block text-sm font-medium text-muted mb-1">
-                Quantity
-              </label>
-              <input
-                id="create-quantity"
-                type="number"
-                min="0"
-                step="0.000001"
-                value={form.quantity}
-                onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="0.000000"
-              />
-            </div>
-
-            {/* Price per Unit */}
-            <div>
-              <label htmlFor="create-price" className="block text-sm font-medium text-muted mb-1">
-                Price per Unit
-              </label>
-              <input
-                id="create-price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.pricePerUnit}
-                onChange={(e) => setForm((f) => ({ ...f, pricePerUnit: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="0.00"
-              />
-            </div>
-
-            {/* Fees */}
-            <div>
-              <label htmlFor="create-fees" className="block text-sm font-medium text-muted mb-1">
-                Fees <span className="text-faint font-normal">(optional)</span>
-              </label>
-              <input
-                id="create-fees"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.fees}
-                onChange={(e) => setForm((f) => ({ ...f, fees: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="0.00"
-              />
-            </div>
-
-            {/* Notes */}
-            <div className="sm:col-span-2 lg:col-span-1">
-              <label htmlFor="create-notes" className="block text-sm font-medium text-muted mb-1">
-                Notes <span className="text-faint font-normal">(optional)</span>
-              </label>
-              <textarea
-                id="create-notes"
-                rows={1}
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                placeholder="Optional notes"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 mt-5">
+        <section aria-labelledby="new-trade-h" className="bg-surface border border-line rounded-2xl p-4 sm:p-6">
+          <h2 id="new-trade-h" className="text-base font-semibold text-fg mb-4">New trade</h2>
+          <TradeFields
+            idPrefix="create"
+            form={form}
+            setForm={setForm}
+            accounts={investmentAccounts}
+            showAccountTip={investmentOnly.length === 0}
+          />
+          <div className="flex gap-2 mt-5">
             <button
               onClick={handleCreate}
-              disabled={saving || !form.ticker.trim() || !form.quantity || !form.pricePerUnit}
-              className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
+              disabled={saving || !formValid(form)}
+              className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
             >
-              {saving ? "Saving…" : "Create Trade"}
+              {saving ? "Saving…" : "Save trade"}
             </button>
             <button
               onClick={resetCreateForm}
-              className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
             >
               Cancel
             </button>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* ── Trades table ────────────────────────────────────────────────── */}
       {trades.length === 0 ? (
-        <EmptyState
-          message="No trades recorded yet."
-          cta={{
-            label: "Add your first trade",
-            onClick: () => {
-              resetCreateForm();
-              setShowCreate(true);
-            },
-          }}
-        />
+        !showCreate && (
+          <EmptyState
+            message="No trades recorded yet."
+            cta={{
+              label: "Add your first trade",
+              onClick: () => {
+                resetCreateForm();
+                setShowCreate(true);
+              },
+            }}
+          />
+        )
       ) : (
-        <>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-xs text-muted">
-            Ticker
-            <input
-              type="search"
-              value={filterTicker}
-              onChange={(e) => setFilterTicker(e.target.value)}
-              placeholder="e.g. AAPL"
-              className="mt-1 block w-36 border border-line-strong rounded-xl px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          </label>
-          <label className="text-xs text-muted">
-            Account
-            <select
-              value={filterAccount}
-              onChange={(e) => setFilterAccount(e.target.value)}
-              className="mt-1 block w-48 border border-line-strong rounded-xl px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="">All accounts</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </label>
-          <span className="text-xs text-muted pb-2">
-            {visibleTrades.length} of {trades.length} trades
-          </span>
-        </div>
-        <div className="bg-surface border border-line rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" aria-label="Trade log">
-              <thead>
-                <tr className="bg-surface-2 border-b border-line">
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Date</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Ticker</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Type</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Asset</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Qty</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Price</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Fees</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Total</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Account</th>
-                  <th scope="col" className="text-left px-4 py-3 font-medium text-muted">Notes</th>
-                  <th scope="col" className="text-right px-4 py-3 font-medium text-muted">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleTrades.map((trade) =>
-                  editingId === trade.id ? (
-                    /* ── Inline edit row ─────────────────────────────── */
-                    <tr key={trade.id} className="border-b border-line bg-surface-2">
-                      {/* Date */}
-                      <td className="px-4 py-2">
-                        <input
-                          type="date"
-                          value={editForm.date}
-                          onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
-                          className="w-32 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+        <section aria-label="Trade log" className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex-1 min-w-[8rem] sm:flex-none">
+              <span className="sr-only">Filter by ticker</span>
+              <input
+                type="search"
+                value={filterTicker}
+                onChange={(e) => setFilterTicker(e.target.value)}
+                placeholder="Ticker"
+                className="block w-full sm:w-40 border border-line-strong rounded-xl px-3 py-2 text-sm bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </label>
+            <label className="flex-1 min-w-[8rem] sm:flex-none">
+              <span className="sr-only">Filter by account</span>
+              <select
+                value={filterAccount}
+                onChange={(e) => setFilterAccount(e.target.value)}
+                className="block w-full sm:w-52 border border-line-strong rounded-xl px-3 py-2 text-sm bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="">All accounts</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </label>
+            <span className="w-full sm:w-auto sm:ml-auto text-xs text-muted">
+              {visibleTrades.length === trades.length
+                ? `${trades.length} trade${trades.length === 1 ? "" : "s"}`
+                : `${visibleTrades.length} of ${trades.length} trades`}
+            </span>
+          </div>
+
+          <div className="bg-surface border border-line rounded-2xl overflow-hidden">
+            {visibleTrades.length === 0 ? (
+              <p className="px-5 py-10 text-center text-sm text-muted">No trades match these filters.</p>
+            ) : (
+              <ul role="list" className="divide-y divide-line">
+                {visibleTrades.map((trade) => {
+                  const date = new Date(trade.date);
+                  const isBuy = trade.tradeType === "BUY";
+                  const total = totalCost(trade.quantity, trade.pricePerUnit, trade.fees ?? 0, trade.tradeType);
+
+                  if (editingId === trade.id) {
+                    return (
+                      <li key={trade.id} className="p-4 sm:p-5 bg-surface-2/50">
+                        <h3 className="text-sm font-semibold text-fg mb-4">Edit {trade.ticker} trade</h3>
+                        <TradeFields
+                          idPrefix={`edit-${trade.id}`}
+                          form={editForm}
+                          setForm={setEditForm}
+                          accounts={investmentAccounts}
+                          showAccountTip={false}
                         />
-                      </td>
-                      {/* Ticker */}
-                      <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          value={editForm.ticker}
-                          onChange={(e) => setEditForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))}
-                          className="w-20 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                      </td>
-                      {/* Trade Type toggle */}
-                      <td className="px-4 py-2">
-                        <div className="flex rounded overflow-hidden border border-line-strong text-xs font-medium">
-                          {TRADE_TYPES.map((t) => (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => setEditForm((f) => ({ ...f, tradeType: t }))}
-                              className={`px-2 py-1 transition-colors ${
-                                editForm.tradeType === t
-                                  ? t === "BUY"
-                                    ? "bg-green-600 text-accent-ink"
-                                    : "bg-red-600 text-accent-ink"
-                                  : "bg-surface text-muted"
-                              }`}
-                            >
-                              {t}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                      {/* Asset Type */}
-                      <td className="px-4 py-2">
-                        <select
-                          value={editForm.assetType}
-                          onChange={(e) => setEditForm((f) => ({ ...f, assetType: e.target.value }))}
-                          className="border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
-                        >
-                          {ASSET_TYPES.map((t) => (
-                            <option key={t} value={t}>{t}</option>
-                          ))}
-                        </select>
-                      </td>
-                      {/* Quantity */}
-                      <td className="px-4 py-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.000001"
-                          value={editForm.quantity}
-                          onChange={(e) => setEditForm((f) => ({ ...f, quantity: e.target.value }))}
-                          className="w-24 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                      </td>
-                      {/* Price */}
-                      <td className="px-4 py-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={editForm.pricePerUnit}
-                          onChange={(e) => setEditForm((f) => ({ ...f, pricePerUnit: e.target.value }))}
-                          className="w-24 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                      </td>
-                      {/* Fees */}
-                      <td className="px-4 py-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={editForm.fees}
-                          onChange={(e) => setEditForm((f) => ({ ...f, fees: e.target.value }))}
-                          className="w-20 border border-line-strong rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-accent"
-                        />
-                      </td>
-                      {/* Total (computed, read-only) */}
-                      <td className="px-4 py-2 text-right text-muted tabular-nums text-xs">
-                        {editForm.quantity && editForm.pricePerUnit
-                          ? fmt(totalCost(
-                              parseFloat(editForm.quantity),
-                              parseFloat(editForm.pricePerUnit),
-                              parseFloat(editForm.fees || "0"),
-                              editForm.tradeType,
-                            ))
-                          : "—"}
-                      </td>
-                      {/* Account */}
-                      <td className="px-4 py-2">
-                        <select
-                          value={editForm.accountId}
-                          onChange={(e) => setEditForm((f) => ({ ...f, accountId: e.target.value }))}
-                          className="border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
-                        >
-                          <option value="">— None —</option>
-                          {investmentAccounts.map((a) => (
-                            <option key={a.id} value={a.id}>{a.name}</option>
-                          ))}
-                        </select>
-                      </td>
-                      {/* Notes */}
-                      <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          value={editForm.notes}
-                          onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
-                          className="w-32 border border-line-strong rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
-                          placeholder="Notes"
-                        />
-                      </td>
-                      {/* Actions */}
-                      <td className="px-4 py-2 text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-wrap items-center gap-2 mt-5">
                           <button
                             onClick={handleUpdate}
-                            disabled={saving || !editForm.ticker.trim() || !editForm.quantity || !editForm.pricePerUnit}
-                            className="px-3 py-1 text-xs font-medium bg-accent text-accent-ink rounded hover:bg-accent-hover disabled:opacity-50 transition-colors"
+                            disabled={saving || !formValid(editForm)}
+                            className="px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-50 transition-colors"
                           >
                             {saving ? "Saving…" : "Save"}
                           </button>
                           <button
                             onClick={cancelEdit}
-                            className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
+                            className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
                           >
                             Cancel
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    /* ── Normal display row ──────────────────────────── */
-                    <tr key={trade.id} className="border-b border-line last:border-0 hover:bg-surface-2">
-                      <td className="px-4 py-3 text-fg-2 whitespace-nowrap">
-                        {trade.date?.slice(0, 10)}
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-fg">
-                        {trade.ticker}
-                      </td>
-                      <td className="px-4 py-3">{tradeBadge(trade.tradeType)}</td>
-                      <td className="px-4 py-3">{assetBadge(trade.assetType)}</td>
-                      <td className="px-4 py-3 text-right text-fg-2 tabular-nums">
-                        {trade.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })}
-                      </td>
-                      <td className="px-4 py-3 text-right text-fg-2 tabular-nums">
-                        {fmt(trade.pricePerUnit)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-muted tabular-nums">
-                        {fmt(trade.fees ?? 0)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-fg tabular-nums">
-                        {fmt(totalCost(trade.quantity, trade.pricePerUnit, trade.fees ?? 0, trade.tradeType))}
-                      </td>
-                      <td className="px-4 py-3 text-muted">
-                        {trade.account?.name ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-muted max-w-[140px] truncate">
-                        {trade.notes ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {deleteConfirm === trade.id ? (
-                          <ConfirmDelete
-                            label="Delete trade?"
-                            onConfirm={() => handleDelete(trade.id)}
-                            onCancel={() => setDeleteConfirm(null)}
-                          />
-                        ) : (
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => startEdit(trade)}
-                              className="px-3 py-1 text-xs font-medium border border-line-strong text-fg-2 rounded hover:bg-surface-2 transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(trade.id)}
-                              className="px-3 py-1 text-xs font-medium border border-red-300 text-neg rounded hover:bg-red-50 transition-colors"
-                            >
-                              Delete
-                            </button>
+                          <div className="ml-auto">
+                            {deleteConfirm === trade.id ? (
+                              <ConfirmDelete
+                                label="Delete trade?"
+                                onConfirm={() => handleDelete(trade.id)}
+                                onCancel={() => setDeleteConfirm(null)}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => setDeleteConfirm(trade.id)}
+                                aria-label={`Delete ${trade.ticker} trade`}
+                                className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-neg rounded-xl hover:bg-surface-2 transition-colors"
+                              >
+                                <Trash2 size={15} aria-hidden="true" />
+                                <span className="hidden sm:inline">Delete</span>
+                              </button>
+                            )}
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                )}
-              </tbody>
-            </table>
+                        </div>
+                      </li>
+                    );
+                  }
+
+                  return (
+                    <li key={trade.id}>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(trade)}
+                        aria-label={`Edit ${trade.tradeType === "BUY" ? "buy" : "sell"} of ${trade.ticker} on ${trade.date?.slice(0, 10)}`}
+                        className="w-full flex items-center gap-3 px-3 sm:px-4 py-3 text-left hover:bg-surface-2 transition-colors"
+                      >
+                        <span className="w-11 shrink-0 text-center leading-none">
+                          <span className="block font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
+                            {date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
+                          </span>
+                          <span className="block mt-1 text-[17px] font-semibold text-fg">
+                            {date.toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" })}
+                          </span>
+                          <span className="block mt-0.5 font-mono text-[10px] text-faint">{date.getUTCFullYear()}</span>
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="flex items-center gap-2">
+                            <span
+                              className={`shrink-0 px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold tracking-[0.04em] ${
+                                isBuy ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {trade.tradeType}
+                            </span>
+                            <span className="text-[15px] font-semibold text-fg truncate">{trade.ticker}</span>
+                            <span className="hidden sm:inline text-xs text-faint">{trade.assetType}</span>
+                          </span>
+                          <span className="block mt-0.5 text-xs text-muted truncate">
+                            {trade.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })} × {fmt(trade.pricePerUnit)}
+                            {trade.fees ? <span className="hidden sm:inline"> + {fmt(trade.fees)} fees</span> : null}
+                            {trade.account?.name ? ` · ${trade.account.name}` : ""}
+                            {trade.notes ? <span className="hidden sm:inline"> · {trade.notes}</span> : null}
+                          </span>
+                        </span>
+                        <span
+                          className={`shrink-0 font-mono text-[15px] font-semibold ${isBuy ? "text-fg" : "text-pos"}`}
+                          title={isBuy ? "Total cost" : "Proceeds"}
+                        >
+                          {isBuy ? "−" : "+"}
+                          {fmt(total)}
+                        </span>
+                        <Pencil size={14} className="hidden sm:block shrink-0 text-faint" aria-hidden="true" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
-        </div>
-        </>
+        </section>
       )}
     </div>
   );

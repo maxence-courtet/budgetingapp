@@ -1,19 +1,19 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 import {
   searchTransactions,
   getAccounts,
   getCategories,
 } from "@/lib/api";
 import { fmt } from "@/lib/format";
-import { MONTH_NAMES } from "@/lib/constants";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { TypeBadge } from "@/components/ui/TypeBadge";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { TransactionList } from "@/components/TransactionList";
+import { TRANSACTIONS_CHANGED, openQuickAdd } from "@/components/QuickAddTransaction";
 
 interface Category {
   id: string;
@@ -39,6 +39,10 @@ interface SearchResult {
   month: { id: string; month: number; year: number };
 }
 
+const inputClass =
+  "w-full h-10 px-3 border border-line-strong bg-surface rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent";
+const labelClass = "block text-xs font-medium text-muted mb-1";
+
 export default function SearchPageWrapper() {
   return (
     <Suspense fallback={<LoadingState message="Loading search..." />}>
@@ -58,6 +62,11 @@ function SearchPage() {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Phones only (filters are always shown from sm up). Arriving without a query means the
+  // person came for the filters, so start with them open.
+  const [filtersOpen, setFiltersOpen] = useState(!urlQuery);
+  // The params of the last search run, so edits in the transaction sheet can refresh the same results.
+  const lastParams = useRef<Record<string, string> | null>(null);
 
   // Filters
   const [description, setDescription] = useState("");
@@ -70,6 +79,10 @@ function SearchPage() {
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
 
+  const activeFilters = [accountId, categoryId, type, status, dateFrom, dateTo, amountMin, amountMax].filter(
+    Boolean
+  ).length;
+
   useEffect(() => {
     Promise.all([getAccounts(), getCategories()])
       .then(([a, c]) => {
@@ -79,32 +92,11 @@ function SearchPage() {
       .catch((e: any) => setError(e.message));
   }, []);
 
-  // A query from the command bar (/search?query=…) runs immediately.
-  useEffect(() => {
-    if (urlQuery) {
-      setDescription(urlQuery);
-      handleSearch(undefined, urlQuery);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlQuery]);
-
-  const handleSearch = async (e?: React.FormEvent, queryOverride?: string) => {
-    e?.preventDefault();
-    setLoading(true);
+  const runSearch = async (params: Record<string, string>, quiet = false) => {
+    lastParams.current = params;
+    if (!quiet) setLoading(true);
     setSearched(true);
     try {
-      const params: Record<string, string> = {};
-      const query = (queryOverride ?? description).trim();
-      if (query) params.query = query;
-      if (accountId) params.accountId = accountId;
-      if (categoryId) params.categoryId = categoryId;
-      if (type) params.type = type;
-      if (status) params.status = status;
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
-      if (amountMin) params.amountMin = amountMin;
-      if (amountMax) params.amountMax = amountMax;
-
       const data = await searchTransactions(params);
       const rows = Array.isArray(data) ? data : data.transactions ?? [];
       setResults(rows);
@@ -115,6 +107,43 @@ function SearchPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // A query from the command bar (/search?query=…) runs immediately.
+  useEffect(() => {
+    if (urlQuery) {
+      setDescription(urlQuery);
+      handleSearch(undefined, urlQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlQuery]);
+
+  // Reload the results after a transaction is edited or deleted in the transaction sheet.
+  useEffect(() => {
+    const reload = () => {
+      if (lastParams.current) runSearch(lastParams.current, true);
+    };
+    window.addEventListener(TRANSACTIONS_CHANGED, reload);
+    return () => window.removeEventListener(TRANSACTIONS_CHANGED, reload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSearch = async (e?: React.FormEvent, queryOverride?: string) => {
+    e?.preventDefault();
+    const params: Record<string, string> = {};
+    const query = (queryOverride ?? description).trim();
+    if (query) params.query = query;
+    if (accountId) params.accountId = accountId;
+    if (categoryId) params.categoryId = categoryId;
+    if (type) params.type = type;
+    if (status) params.status = status;
+    if (dateFrom) params.dateFrom = dateFrom;
+    if (dateTo) params.dateTo = dateTo;
+    if (amountMin) params.amountMin = amountMin;
+    if (amountMax) params.amountMax = amountMax;
+    // On phones, fold the filters away so the results are what's on screen.
+    if (e) setFiltersOpen(false);
+    await runSearch(params);
   };
 
   const handleClear = () => {
@@ -131,44 +160,71 @@ function SearchPage() {
     setAmountMax("");
     setResults([]);
     setSearched(false);
+    lastParams.current = null;
   };
+
+  const income = results.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const spending = results.filter((t) => t.type === "SPENDING").reduce((s, t) => s + t.amount, 0);
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold tracking-tight text-fg mb-6">
-        Search Transactions
-      </h1>
+      <PageHeader title="Search" back={{ href: "/months", label: "Transactions" }} />
 
       {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
-      <form onSubmit={handleSearch}>
-        {/* Search bar */}
-        <div className="mb-4">
-          <label htmlFor="search-description" className="sr-only">
-            Search by description
+      <form onSubmit={handleSearch} role="search" className="mb-5 sm:mb-6">
+        <div className="flex gap-2">
+          <label className="flex-1 min-w-0 flex items-center gap-3 h-11 px-4 rounded-xl border border-line-strong bg-surface focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
+            <Search size={17} className="text-muted shrink-0" aria-hidden="true" />
+            <span className="sr-only">Search by description</span>
+            <input
+              id="search-description"
+              type="search"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Search by description"
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm"
+            />
           </label>
-          <input
-            id="search-description"
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Search by description..."
-            className="w-full px-4 py-3 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-          />
+          <button
+            type="submit"
+            className="h-11 px-4 shrink-0 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
+          >
+            Search
+          </button>
         </div>
 
-        {/* Filter row */}
-        <div className="bg-surface rounded-2xl border border-line p-4 mb-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+          aria-controls="search-filters"
+          className="sm:hidden mt-3 flex items-center gap-2 h-9 px-3 -ml-1 rounded-lg text-sm font-medium text-fg-2 hover:bg-surface-2"
+        >
+          <SlidersHorizontal size={15} aria-hidden="true" />
+          Filters
+          {activeFilters > 0 && (
+            <span className="min-w-5 h-5 px-1.5 rounded-full bg-accent text-accent-ink text-[11px] font-semibold flex items-center justify-center">
+              {activeFilters}
+            </span>
+          )}
+          <ChevronDown
+            size={15}
+            aria-hidden="true"
+            className={`text-muted transition-transform ${filtersOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        <div
+          id="search-filters"
+          className={`${filtersOpen ? "block" : "hidden"} sm:block mt-3 bg-surface rounded-2xl border border-line p-4`}
+        >
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">
+              <label htmlFor="f-account" className={labelClass}>
                 Account
               </label>
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              >
+              <select id="f-account" value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inputClass}>
                 <option value="">All</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -179,14 +235,10 @@ function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">
+              <label htmlFor="f-category" className={labelClass}>
                 Category
               </label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              >
+              <select id="f-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>
                 <option value="">All</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -197,106 +249,92 @@ function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">
+              <label htmlFor="f-type" className={labelClass}>
                 Type
               </label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              >
+              <select id="f-type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
                 <option value="">All</option>
-                <option value="INCOME">INCOME</option>
-                <option value="SPENDING">SPENDING</option>
-                <option value="TRANSFER">TRANSFER</option>
+                <option value="INCOME">Income</option>
+                <option value="SPENDING">Spending</option>
+                <option value="TRANSFER">Transfer</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">
+              <label htmlFor="f-status" className={labelClass}>
                 Status
               </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              >
+              <select id="f-status" value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
                 <option value="">All</option>
-                <option value="PLANNED">PLANNED</option>
-                <option value="PAID">PAID</option>
-                <option value="PENDING">PENDING</option>
-                <option value="SKIPPED">SKIPPED</option>
+                <option value="PLANNED">Planned</option>
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Pending</option>
+                <option value="SKIPPED">Skipped</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">
-                Date From
+              <label htmlFor="f-from" className={labelClass}>
+                From
               </label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
+              <input id="f-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputClass} />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">
-                Date To
+              <label htmlFor="f-to" className={labelClass}>
+                To
               </label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
+              <input id="f-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputClass} />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">
-                Amount Min
+              <label htmlFor="f-min" className={labelClass}>
+                Min amount
               </label>
               <input
+                id="f-min"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 value={amountMin}
                 onChange={(e) => setAmountMin(e.target.value)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={inputClass}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">
-                Amount Max
+              <label htmlFor="f-max" className={labelClass}>
+                Max amount
               </label>
               <input
+                id="f-max"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 value={amountMax}
                 onChange={(e) => setAmountMax(e.target.value)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className={inputClass}
               />
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-2 mt-4">
             <button
               type="submit"
-              className="px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
             >
-              Search
+              Apply filters
             </button>
             <button
               type="button"
               onClick={handleClear}
               className="px-4 py-2 text-sm font-medium text-muted bg-surface-2 rounded-xl hover:bg-line transition-colors"
             >
-              Clear
+              Clear all
             </button>
           </div>
         </div>
@@ -306,127 +344,45 @@ function SearchPage() {
       {loading ? (
         <LoadingState message="Searching..." />
       ) : searched ? (
-        <div>
-          <p className="text-sm text-muted mb-3">
-            {total > results.length
-              ? `Showing the ${results.length} most recent of ${total} results. Narrow the filters to see the rest.`
-              : `${results.length} result${results.length !== 1 ? "s" : ""} found`}
-          </p>
+        <section aria-labelledby="results-heading">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1 mb-2">
+            <h2 id="results-heading" className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+              {results.length} result{results.length !== 1 ? "s" : ""}
+            </h2>
+            {results.length > 0 && (
+              <p className="text-xs font-mono text-muted">
+                {income > 0 && <span className="text-pos">in +{fmt(income)}</span>}
+                {income > 0 && spending > 0 && <span className="mx-1.5 text-faint">·</span>}
+                {spending > 0 && <span>out −{fmt(spending)}</span>}
+              </p>
+            )}
+          </div>
+          {total > results.length && (
+            <p className="px-1 mb-2 text-xs text-muted">
+              Showing the {results.length} most recent of {total}. Narrow the filters to see the rest.
+            </p>
+          )}
 
           {results.length > 0 ? (
             <div className="bg-surface rounded-2xl border border-line overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-line bg-surface-2">
-                      <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                        Date
-                      </th>
-                      <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                        Description
-                      </th>
-                      <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                        Type
-                      </th>
-                      <th scope="col" className="text-right px-4 py-3 font-medium text-muted">
-                        Amount
-                      </th>
-                      <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                        Category
-                      </th>
-                      <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                        Account(s)
-                      </th>
-                      <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                        Status
-                      </th>
-                      <th scope="col" className="text-left px-4 py-3 font-medium text-muted">
-                        Month
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((tx) => {
-                      const accountStr =
-                        tx.type === "TRANSFER"
-                          ? `${tx.fromAccount?.name ?? "-"} → ${tx.toAccount?.name ?? "-"}`
-                          : tx.type === "SPENDING"
-                          ? tx.fromAccount?.name ?? "-"
-                          : tx.toAccount?.name ?? "-";
-
-                      const amountPrefix =
-                        tx.type === "INCOME"
-                          ? "+"
-                          : tx.type === "SPENDING"
-                          ? "-"
-                          : "";
-
-                      const amountColor =
-                        tx.type === "INCOME"
-                          ? "text-pos"
-                          : tx.type === "SPENDING"
-                          ? "text-neg"
-                          : "text-muted";
-
-                      return (
-                        <tr
-                          key={tx.id}
-                          className="border-b border-line hover:bg-surface-2"
-                        >
-                          <td className="px-4 py-3 text-muted whitespace-nowrap">
-                            {new Date(tx.date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </td>
-                          <td className="px-4 py-3 text-fg">
-                            {tx.description || "-"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <TypeBadge type={tx.type} />
-                          </td>
-                          <td
-                            className={`px-4 py-3 text-right font-mono ${amountColor}`}
-                          >
-                            {amountPrefix}
-                            {fmt(tx.amount)}
-                          </td>
-                          <td className="px-4 py-3 text-muted">
-                            {tx.category?.name ?? "-"}
-                          </td>
-                          <td className="px-4 py-3 text-muted whitespace-nowrap">
-                            {accountStr}
-                          </td>
-                          <td className="px-4 py-3">
-                            <StatusBadge status={tx.status} />
-                          </td>
-                          <td className="px-4 py-3 text-muted whitespace-nowrap">
-                            {tx.month ? (
-                              <Link
-                                href={`/months/${tx.month.id}`}
-                                className="text-accent hover:text-accent-hover transition-colors"
-                              >
-                                {MONTH_NAMES[tx.month.month - 1]} {tx.month.year}
-                              </Link>
-                            ) : "-"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <TransactionList
+                transactions={results}
+                categories={categories}
+                onSelect={(tx) => openQuickAdd(tx)}
+                showYear
+              />
             </div>
           ) : (
-            <div className="bg-surface rounded-2xl border border-line p-8 text-center">
-              <p className="text-muted">
-                No transactions match your search criteria.
-              </p>
+            <div className="bg-surface rounded-2xl border border-line p-6 text-center">
+              <p className="text-muted">No transactions match your search.</p>
             </div>
           )}
-        </div>
-      ) : null}
+        </section>
+      ) : (
+        <p className="px-1 text-sm text-muted">
+          Search by description, or pick filters and apply them.
+        </p>
+      )}
     </div>
   );
 }
