@@ -3,20 +3,11 @@ import {
   ArrowRight,
   Check,
   Plus,
-  Wallet,
-  PieChart,
   Sparkles,
   Lock,
   Ban,
   EyeOff,
   Plug,
-  FileText,
-  CheckCircle,
-  Target,
-  StickyNote,
-  Activity,
-  TrendingUp,
-  CalendarCheck,
   LucideIcon,
 } from "lucide-react";
 import { Browser, Phone } from "@/components/Frames";
@@ -27,7 +18,6 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <Modules />
       <HowItWorks />
       <Features />
       <Privacy />
@@ -111,36 +101,6 @@ function Hero() {
   );
 }
 
-const MODULE_CHIPS: { label: string; icon: LucideIcon }[] = [
-  { label: "Transactions", icon: Wallet },
-  { label: "Reports", icon: PieChart },
-  { label: "Budget templates", icon: FileText },
-  { label: "Investments", icon: TrendingUp },
-  { label: "Habits", icon: CheckCircle },
-  { label: "Fitness", icon: Activity },
-  { label: "Goals", icon: Target },
-  { label: "Notes & journal", icon: StickyNote },
-  { label: "Weekly review", icon: CalendarCheck },
-  { label: "AI next moves", icon: Sparkles },
-];
-
-function Modules() {
-  return (
-    <section aria-label="What's inside" className="border-y border-line bg-surface">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-7">
-        <ul className="flex flex-wrap justify-center gap-2 sm:gap-2.5">
-          {MODULE_CHIPS.map(({ label, icon: Icon }) => (
-            <li key={label} className="h-9 px-3.5 inline-flex items-center gap-2 rounded-full border border-line bg-canvas text-sm text-fg-2">
-              <Icon size={15} className="text-accent-text" aria-hidden="true" />
-              {label}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
 const STEPS = [
   {
     title: "Set it up once",
@@ -148,9 +108,9 @@ const STEPS = [
     visual: (
       <div className="space-y-2" aria-hidden="true">
         {[
-          ["Salary", "+8,220", "text-accent-text"],
-          ["Rent", "−1,495", "text-fg"],
-          ["To savings", "1,000", "text-muted"],
+          ["Salary", "+6,400", "text-accent-text"],
+          ["Rent", "−1,850", "text-fg"],
+          ["To savings", "800", "text-muted"],
         ].map(([a, b, c]) => (
           <div key={a} className="flex items-center justify-between h-9 px-3 rounded-lg bg-canvas border border-line text-sm">
             <span>{a}</span>
