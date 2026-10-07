@@ -6,8 +6,6 @@ export type PlanId = "FREE" | "PLUS" | "PRO";
 export interface Entitlements {
   modules: ModuleId[];
   budgetTemplates: number | null;
-  aiInsightsPerDay: number;
-  aiReviewsPerDay: number;
   mcp: boolean;
   apiTokens: boolean;
 }
@@ -18,8 +16,6 @@ export const PLAN_NAMES: Record<PlanId, string> = { FREE: "Free", PLUS: "Plus", 
 export const UNKNOWN_ENTITLEMENTS: Entitlements = {
   modules: ["investments", "habits", "fitness", "goals", "notes", "review"],
   budgetTemplates: null,
-  aiInsightsPerDay: 1,
-  aiReviewsPerDay: 1,
   mcp: true,
   apiTokens: true,
 };

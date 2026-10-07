@@ -11,7 +11,6 @@ import { MONTH_NAMES } from "@/lib/constants";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { AiInsightsCard } from "@/components/AiInsightsCard";
 import { NetWorthChart } from "@/components/NetWorthChart";
 import { TRANSACTIONS_CHANGED, openQuickAdd } from "@/components/QuickAddTransaction";
 import { TransactionList } from "@/components/TransactionList";
@@ -166,8 +165,6 @@ export default function Dashboard() {
       </section>
 
       <NetWorthChart />
-
-      <AiInsightsCard />
 
       {(showHabits || showGoals) && (
       <div className={`grid grid-cols-1 gap-4 ${showHabits && showGoals ? "lg:grid-cols-2" : ""}`}>

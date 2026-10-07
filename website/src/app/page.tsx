@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Check,
   Plus,
-  Sparkles,
   Lock,
   Ban,
   EyeOff,
@@ -54,7 +53,7 @@ function Hero() {
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-muted max-w-2xl leading-relaxed">
             Hive is a calm place to track what you earn, spend and save, month by month. Add habits and goals when
-            you&apos;re ready, and ask an AI that actually knows your numbers what to do next.
+            you&apos;re ready, and keep everything in one calm place.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <a
@@ -83,7 +82,7 @@ function Hero() {
         {/* Desktop: the app in a browser with a phone in front. Phones: two phones. */}
         <div className="relative mt-14 sm:mt-20 rise" style={{ animationDelay: "120ms" }}>
           <div className="hidden md:block pl-[12%]">
-            <Browser name="home" alt="Hive on a computer: net worth, its chart over the year, and next moves" priority />
+            <Browser name="home" alt="Hive on a computer: net worth, this month in and out, and its chart over the year" priority />
           </div>
           <Phone
             name="reports"
@@ -137,7 +136,7 @@ const STEPS = [
   },
   {
     title: "See where it goes",
-    text: "Each month gets a ring of where the money went, spending and transfers alike. Your net worth builds into a chart, and AI points out what's worth doing next.",
+    text: "Each month gets a ring of where the money went, spending and transfers alike. Your net worth builds into a chart you'll want to keep growing.",
     visual: (
       <svg viewBox="0 0 120 64" className="w-full h-16" aria-hidden="true">
         <g transform="translate(32 32) rotate(-90)">
@@ -272,55 +271,51 @@ function Features() {
           }
         />
         <FeatureRow
-          eyebrow="AI"
-          title="An assistant that knows your numbers"
-          text="Ask for your next moves and Hive's AI reads your month, habits and goals, then ranks the three things most worth doing. Or connect the assistant you already use."
-          points={["Next moves and a weekly review, only when you ask", "Connect Claude, ChatGPT or any MCP assistant", "Assistants only ever see your own data"]}
-          visual={<AiMock />}
+          eyebrow="Assistants"
+          title="Works with the AI you already use"
+          text="Connect Claude, ChatGPT or any assistant that supports MCP, and ask it about your money in plain words. It reads and adds to your Hive, and only ever sees your own data."
+          points={["Ask questions about any month, category or goal", "Add transactions or log a habit from a chat", "Revoke an assistant's access any time in Settings"]}
+          visual={<AssistantMock />}
         />
       </div>
     </section>
   );
 }
 
-function AiMock() {
-  const moves = [
-    ["Highest impact", "Dining out is 30% over plan with a week left. Cap it at CHF 60."],
-    ["Next", "Move CHF 300 to savings to stay on your emergency-fund goal."],
-    ["Next", "You've run 3 times this week. One more keeps the streak."],
-  ];
+function AssistantMock() {
   return (
-    <div className="rounded-3xl border border-line bg-canvas p-4 sm:p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)]" aria-label="Example of AI next moves">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold">Next moves</p>
-        <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-line-strong text-xs font-medium">
-          <Sparkles size={13} aria-hidden="true" /> Refresh
+    <div
+      className="rounded-3xl border border-line bg-canvas p-4 sm:p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)]"
+      aria-label="Example of a conversation with an AI assistant connected to Hive"
+    >
+      <div className="flex items-center gap-2 pb-4 border-b border-line">
+        <span className="w-8 h-8 rounded-lg bg-accent-soft flex items-center justify-center">
+          <Plug size={15} className="text-accent-text" aria-hidden="true" />
+        </span>
+        <p className="text-sm font-semibold">Your assistant</p>
+        <span className="ml-auto h-6 px-2 inline-flex items-center rounded-md bg-surface border border-line text-[11px] font-mono text-muted">
+          Hive connected
         </span>
       </div>
-      <ol className="mt-4 grid gap-3">
-        {moves.map(([label, text], i) => (
-          <li
-            key={i}
-            className={`rounded-2xl p-4 ${i === 0 ? "bg-accent text-accent-ink" : "bg-surface border border-line text-fg"}`}
-          >
-            <p className="flex justify-between font-mono text-[10px] uppercase tracking-[0.08em] opacity-75">
-              <span>{label}</span>
-              <span>{i + 1}</span>
-            </p>
-            <p className="mt-2 text-[15px] font-semibold leading-snug">{text}</p>
-          </li>
-        ))}
-      </ol>
-      <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-line-strong p-4">
-        <span className="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center shrink-0">
-          <Plug size={18} className="text-accent-text" aria-hidden="true" />
-        </span>
-        <p className="text-sm text-muted">
-          <span className="font-medium text-fg">Bring your own assistant.</span> Add Hive as a connector and ask
-          &ldquo;how much did I spend on food this year?&rdquo; from your favourite AI.
+      <div className="mt-4 space-y-3 text-[15px]">
+        <p className="ml-auto max-w-[85%] w-fit rounded-2xl rounded-br-md bg-accent text-accent-ink px-4 py-2.5">
+          How much did I spend eating out last month?
         </p>
+        <div className="max-w-[90%] rounded-2xl rounded-bl-md bg-surface border border-line px-4 py-3 text-fg-2">
+          <p>
+            <span className="font-semibold text-fg">$570</span> across 6 visits in September, $330 over your plan of $240. Pizza
+            night and sushi were the biggest.
+          </p>
+        </div>
+        <p className="ml-auto max-w-[85%] w-fit rounded-2xl rounded-br-md bg-accent text-accent-ink px-4 py-2.5">
+          Log $18 for lunch today.
+        </p>
+        <div className="max-w-[90%] rounded-2xl rounded-bl-md bg-surface border border-line px-4 py-3 text-fg-2 flex items-center gap-2">
+          <Check size={16} className="text-accent-text shrink-0" aria-hidden="true" />
+          Added to October under Dining out.
+        </div>
       </div>
-      <p className="mt-3 text-[11px] text-faint">Example suggestions; yours are based on your own data.</p>
+      <p className="mt-4 text-[11px] text-faint">An example conversation; answers come from your own Hive data.</p>
     </div>
   );
 }
@@ -333,8 +328,8 @@ const PRIVACY: { icon: LucideIcon; title: string; text: string }[] = [
   },
   {
     icon: EyeOff,
-    title: "AI when you ask",
-    text: "Nothing is sent to an AI in the background. Analyses run when you press the button, with a daily limit you can see.",
+    title: "Nothing in the background",
+    text: "Hive doesn't send your data anywhere on its own. An assistant only sees it when you connect one, and you can disconnect it any time.",
   },
   {
     icon: Ban,

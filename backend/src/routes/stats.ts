@@ -1,12 +1,10 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
-import { generateInsights } from "../services/insights";
 import { netWorthHistory } from "../services/netWorth";
-import { withAiQuota } from "../services/ai";
-import { PlanError, requireModule, sendPlanError } from "../services/plans";
+import { requireModule } from "../services/plans";
 import { findPatterns } from "../services/patterns";
-import { compileWeek, runWeeklyReview } from "../services/weeklyReview";
+import { compileWeek } from "../services/weeklyReview";
 
 const router = Router();
 router.use(authMiddleware);
@@ -166,27 +164,6 @@ router.get("/patterns", requireModule("review"), async (req, res) => {
 
 router.get("/weekly-summary", requireModule("review"), async (req, res) => {
   res.json(await compileWeek(req.userId!, weekParam(req.query.week)));
-});
-
-router.post("/weekly-review", async (req, res) => {
-  try {
-    const source = req.body?.source === "MCP" ? "MCP" : "MANUAL";
-    res.json(await withAiQuota(req.userId!, "weekly-review", () => runWeeklyReview(req.userId!, weekParam(req.body?.week), source)));
-  } catch (err: any) {
-    if (err instanceof PlanError) return sendPlanError(res, err);
-    res.status(err.status ?? 502).json({ error: err.message });
-  }
-});
-
-router.post("/insights", async (req, res) => {
-  try {
-    const overview = await buildLifeOverview(req.userId!);
-    const insights = await withAiQuota(req.userId!, "insights", () => generateInsights(overview));
-    res.json({ generatedAt: overview.generatedAt, ...insights });
-  } catch (err: any) {
-    if (err instanceof PlanError) return sendPlanError(res, err);
-    res.status(err.status ?? 502).json({ error: err.message });
-  }
 });
 
 export default router;

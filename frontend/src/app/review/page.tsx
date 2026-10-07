@@ -2,22 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Sparkles, TrendingDown, TrendingUp, Link2, CalendarDays, Dumbbell, ChevronRight, Check } from "lucide-react";
-import { getWeeklySummary, runWeeklyReview, getPatterns, getNotes } from "@/lib/api";
+import { TrendingDown, TrendingUp, Link2, CalendarDays, Dumbbell, ChevronRight } from "lucide-react";
+import { getWeeklySummary, getPatterns, getNotes } from "@/lib/api";
 import { fmt } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 
 type Week = "current" | "previous";
-
-interface Review {
-  headline: string;
-  summary: string;
-  wins: string[];
-  watchouts: string[];
-  actionItems: { title: string; area: string }[];
-}
 
 interface Pattern {
   id: string;
@@ -68,8 +60,6 @@ export default function ReviewPage() {
   const [summary, setSummary] = useState<any>(null);
   const [patterns, setPatterns] = useState<Pattern[] | null>(null);
   const [past, setPast] = useState<any[]>([]);
-  const [review, setReview] = useState<Review | null>(null);
-  const [generating, setGenerating] = useState(false);
   const [openPast, setOpenPast] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -84,23 +74,8 @@ export default function ReviewPage() {
 
   useEffect(() => {
     setSummary(null);
-    setReview(null);
     getWeeklySummary(week).then(setSummary).catch((e) => setError(e.message));
   }, [week]);
-
-  async function generate() {
-    setGenerating(true);
-    setError("");
-    try {
-      const res = await runWeeklyReview(week);
-      setReview(res.review);
-      loadPast();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setGenerating(false);
-    }
-  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -141,69 +116,6 @@ export default function ReviewPage() {
             · {summary.week.days} day{summary.week.days > 1 ? "s" : ""}
             {!summary.week.complete && " so far"}
           </p>
-
-          {/* AI review */}
-          <section aria-labelledby="ai-review-heading" className={`rounded-2xl p-4 sm:p-6 ${review ? "bg-surface border border-line" : "border border-dashed border-line-strong"}`}>
-            {!review ? (
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex-1 sm:min-w-[16rem]">
-                  <h2 id="ai-review-heading" className="text-[15px] font-semibold text-fg">Your review</h2>
-                  <p className="text-sm text-muted mt-1">
-                    Turn this week into a short write-up with wins, watch-outs and three things to do next. It&apos;s saved to your reviews below.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={generate}
-                  disabled={generating}
-                  className="w-full sm:w-auto justify-center flex items-center gap-2 h-11 px-5 rounded-xl bg-accent text-accent-ink text-sm font-semibold hover:bg-accent-hover disabled:opacity-60"
-                >
-                  <Sparkles size={16} className={generating ? "animate-pulse" : ""} aria-hidden="true" />
-                  {generating ? "Writing your review…" : "Write my review"}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-5" aria-live="polite">
-                <div>
-                  <p className="font-mono text-[11px] text-accent uppercase tracking-[0.08em]">Your review</p>
-                  <h2 id="ai-review-heading" className="text-xl sm:text-2xl font-semibold tracking-tight text-fg mt-1">{review.headline}</h2>
-                  <p className="text-fg-2 leading-relaxed mt-2 max-w-3xl">{review.summary}</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <div>
-                    <h3 className="font-mono text-[11px] text-muted uppercase tracking-[0.08em] mb-2">Wins</h3>
-                    <ul className="space-y-2 text-sm text-fg-2">
-                      {review.wins.map((w, i) => (
-                        <li key={i} className="flex gap-2"><Check size={15} className="text-accent shrink-0 mt-0.5" aria-hidden="true" />{w}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-mono text-[11px] text-muted uppercase tracking-[0.08em] mb-2">Watch out</h3>
-                    {review.watchouts.length ? (
-                      <ul className="space-y-2 text-sm text-fg-2">
-                        {review.watchouts.map((w, i) => <li key={i} className="flex gap-2"><span className="text-neg" aria-hidden="true">!</span>{w}</li>)}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-muted">Nothing slipping.</p>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-mono text-[11px] text-muted uppercase tracking-[0.08em] mb-2">Next week</h3>
-                    <ol className="space-y-2">
-                      {review.actionItems.map((a, i) => (
-                        <li key={i} className="flex gap-3 rounded-xl bg-surface-2 p-3 text-sm text-fg">
-                          <span className="font-mono text-accent">{i + 1}</span>
-                          <span className="flex-1 min-w-0">{a.title}</span>
-                          <span className="font-mono text-[10px] text-muted uppercase">{a.area}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
 
           {/* Week at a glance */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">

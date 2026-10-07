@@ -387,7 +387,8 @@ model NetWorthSnapshot {
 
 // ─── AI usage ────────────────────────────────────────────────────────────────
 
-// Paid AI calls per user per day, so one user can't run up the Anthropic bill.
+// Unused since the in-app AI was removed (it lives on the claude/with-ai-agent branch). Kept so the startup
+// `prisma db push` doesn't have to drop the table, which it refuses to do without --accept-data-loss.
 model AiUsage {
   id      String   @id @default(uuid())
   day     DateTime @db.Date

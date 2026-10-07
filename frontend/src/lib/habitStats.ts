@@ -57,7 +57,7 @@ function weekKey(iso: string): string {
   return addDays(iso, -((d.getUTCDay() + 6) % 7)); // Monday of that week
 }
 
-/** Completed, validated log dates per habit. Pending AI entries don't count until approved. */
+/** Completed, validated log dates per habit. Pending entries from an assistant don't count until approved. */
 export function doneDatesByHabit(logs: LogLite[]): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
   for (const l of logs) {

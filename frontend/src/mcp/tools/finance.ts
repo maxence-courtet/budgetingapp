@@ -113,13 +113,13 @@ export const financeTools = [
     handler: async ({ days }: { days: number }) => api(`/stats/patterns?days=${days}`),
   },
   {
-    name: "run_weekly_review",
+    name: "get_weekly_summary",
     description:
-      "Compile the week (money vs last week, habit completion, fitness, goals and milestones, journal, patterns), " +
-      "write a review with wins, watch-outs and 3 action items, and save it as a note tagged weekly-review. " +
-      "Uses one paid AI call. Use week \"previous\" for the last full Monday–Sunday week.",
+      "The week compiled: money vs the week before, habit completion, fitness, goals and milestones, journal and " +
+      "patterns. Use week \"previous\" for the last full Monday–Sunday week. To give the user a weekly review, write " +
+      "it from this (wins, watch-outs, three action items) and save it with add_note, noteType REVIEW, tag weekly-review; " +
+      "it then shows under Past reviews in Hive.",
     inputSchema: z.object({ week: z.enum(["current", "previous"]).default("previous") }),
-    handler: async ({ week }: { week: string }) =>
-      api("/stats/weekly-review", { method: "POST", body: { week, source: "MCP" } }),
+    handler: async ({ week }: { week: string }) => api(`/stats/weekly-summary?week=${week}`),
   },
 ];

@@ -5,7 +5,7 @@ import { SIGN_UP } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Hive is free for tracking your money. Plus adds habits, goals and AI for CHF 4 a month; Pro raises the AI limits.",
+  description: "Hive is free for tracking your money. Plus adds habits, goals and your AI assistant for CHF 4 a month; Pro adds tokens for automations."
 };
 
 const WHY = [
@@ -16,13 +16,13 @@ const WHY = [
   },
   {
     icon: Sparkles,
-    title: "AI is what costs money",
-    text: "Every AI analysis is a paid request to a model provider. Daily limits keep Plus at the price of a coffee a month; Pro raises them for heavy use.",
+    title: "Plus pays for the rest",
+    text: "Habits, fitness, goals, notes and connecting your assistant are what we build next. Plus keeps that going for the price of a coffee a month.",
   },
   {
     icon: HeartHandshake,
     title: "You're the customer",
-    text: "No ads and no selling data: subscriptions pay for hosting, AI and new modules. Yearly billing gives you two months free.",
+    text: "No ads and no selling data: subscriptions pay for hosting and new modules. Yearly billing gives you two months free.",
   },
 ];
 
@@ -34,10 +34,6 @@ const FAQ = [
   {
     q: "What happens to my data if I downgrade?",
     a: "Nothing is deleted. Modules that aren't in your plan are hidden until you upgrade again, with your habits, goals and notes intact.",
-  },
-  {
-    q: "Do the AI limits reset?",
-    a: "Yes, every day. A failed analysis doesn't count towards your limit.",
   },
   {
     q: "What is 'connect your AI assistant'?",
@@ -63,7 +59,7 @@ export default function PricingPage() {
             <p className="font-mono text-[11px] sm:text-xs uppercase tracking-[0.14em] text-accent-text">Pricing</p>
             <h1 className="text-balance mt-3 text-[40px] leading-[1.05] sm:text-6xl font-semibold tracking-[-0.035em]">Simple plans. Start for free.</h1>
             <p className="mt-5 text-lg text-muted">
-              Track your money for free. Upgrade when you want your habits, goals and an AI that knows your numbers.
+              Track your money for free. Upgrade when you want your habits, goals and your own AI assistant in the same place.
             </p>
           </div>
           <div className="mt-10">

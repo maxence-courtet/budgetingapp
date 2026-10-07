@@ -391,7 +391,7 @@ export default function FitnessPage() {
       {pending.length > 0 && (
         <section aria-labelledby="pending-heading" className="bg-yellow-50 border border-yellow-200 rounded-2xl overflow-hidden">
           <h2 id="pending-heading" className="px-4 pt-3.5 pb-2 text-sm font-medium text-yellow-800">
-            {pending.length} {pending.length === 1 ? "entry" : "entries"} added by AI — review and approve
+            {pending.length} {pending.length === 1 ? "entry" : "entries"} added by your assistant — review and approve
           </h2>
           <ul role="list" className="px-3 pb-3 space-y-2">
             {pending.map((entry: any) => (
@@ -522,7 +522,7 @@ export default function FitnessPage() {
                   {isPending ? (
                     <span className="shrink-0 px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">Pending</span>
                   ) : entry.source === "MCP" ? (
-                    <span className="shrink-0 px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted" title="Added by AI">AI</span>
+                    <span className="shrink-0 px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted" title="Added by your AI assistant">Assistant</span>
                   ) : null}
                   {deleteConfirm === entry.id ? (
                     <ConfirmDelete

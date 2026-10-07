@@ -12,8 +12,6 @@ export interface Entitlements {
   modules: ModuleId[];
   /** Most budget templates the user can have; null = unlimited. */
   budgetTemplates: number | null;
-  aiInsightsPerDay: number;
-  aiReviewsPerDay: number;
   /** Connecting an AI assistant over MCP. */
   mcp: boolean;
   /** Personal access tokens (hive_…) for assistants and automations. */
@@ -24,9 +22,9 @@ const ALL_MODULES: ModuleId[] = ["investments", "habits", "fitness", "goals", "n
 
 /** What each plan unlocks; mirrors the pricing page (website/src/lib/plans.ts). */
 export const ENTITLEMENTS: Record<PlanId, Entitlements> = {
-  FREE: { modules: [], budgetTemplates: 1, aiInsightsPerDay: 0, aiReviewsPerDay: 0, mcp: false, apiTokens: false },
-  PLUS: { modules: ALL_MODULES, budgetTemplates: null, aiInsightsPerDay: 5, aiReviewsPerDay: 3, mcp: true, apiTokens: false },
-  PRO: { modules: ALL_MODULES, budgetTemplates: null, aiInsightsPerDay: 20, aiReviewsPerDay: 10, mcp: true, apiTokens: true },
+  FREE: { modules: [], budgetTemplates: 1, mcp: false, apiTokens: false },
+  PLUS: { modules: ALL_MODULES, budgetTemplates: null, mcp: true, apiTokens: false },
+  PRO: { modules: ALL_MODULES, budgetTemplates: null, mcp: true, apiTokens: true },
 };
 
 const PLAN_NAMES: Record<PlanId, string> = { FREE: "Free", PLUS: "Plus", PRO: "Pro" };

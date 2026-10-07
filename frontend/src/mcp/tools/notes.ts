@@ -34,7 +34,7 @@ export const noteTools = [
       title: z.string(),
       content: z.string().describe("Note content in markdown"),
       tags: z.array(z.string()).default([]),
-      noteType: z.enum(["NOTE", "JOURNAL"]).default("NOTE"),
+      noteType: z.enum(["NOTE", "JOURNAL", "REVIEW"]).default("NOTE"),
       linkedType: z.enum(["TRANSACTION", "MONTH", "GOAL", "HABIT"]).optional(),
       linkedId: z.string().optional(),
       entryDate: z.string().optional().describe("JOURNAL only: the day the entry is about (YYYY-MM-DD)"),

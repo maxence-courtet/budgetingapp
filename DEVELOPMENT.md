@@ -20,7 +20,7 @@ cd dev && npm install && npm start
 - Starts Postgres on 5433 (data in `dev/.data`), syncs the Prisma schema, the backend on 3001 and the frontend on 3000, then creates the demo account. Ctrl+C stops everything.
 - Sample data is seeded on the first launch only. `npm run reset` deletes the database so the next start re-seeds it.
 - Sign in as `demo@hive.local` / `hive-demo-password`; the sample data belongs to that account. You can also create more accounts at `/login`.
-- Settings are passed to each process directly, so your `.env` files are not used, except for `AI_API_KEY` (and optionally `AI_BASE_URL` / `AI_MODEL`, from your shell or `backend/.env`) to enable AI Insights.
+- Settings are passed to each process directly, so your `.env` files are not used.
 
 ### First-time setup (full stack with Docker + Better Auth)
 
@@ -37,7 +37,7 @@ cd backend && npm run db:push && cd ..
 
 # 4. Configure environment variables
 cp backend/.env.example backend/.env
-# Edit backend/.env — set DATABASE_URL, BETTER_AUTH_URL (the frontend URL), AI_API_KEY (optional, for AI Insights; Proton Lumo by default)
+# Edit backend/.env — set DATABASE_URL and BETTER_AUTH_URL (the frontend URL)
 # The frontend needs DATABASE_URL, BETTER_AUTH_SECRET (any long random string), APP_BASE_URL and NEXT_PUBLIC_API_URL
 # in frontend/.env.local. Optional: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET to offer Google sign-in.
 
@@ -109,10 +109,10 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
 ### Phase 8 — Plans and access control ✅
 - Each user has `plan` (FREE | PLUS | PRO), `planExpiresAt` (null = no end) and `planSource` (grandfathered | manual | later the payment provider). A paid plan past its end date counts as Free; nothing is deleted, the paid parts just lock.
 - What each plan unlocks lives in one place, `backend/src/services/plans.ts` (`ENTITLEMENTS`), mirroring the pricing page (`website/src/lib/plans.ts`):
-  - Free: money (accounts, transactions, months, reports), 1 budget template, no AI, no assistants.
-  - Plus: every module (investments, habits, fitness, goals, notes, weekly review), unlimited templates, AI next moves 5/day and weekly review 3/day, AI assistants over MCP.
-  - Pro: as Plus with AI 20/day and 10/day, plus personal access tokens.
-- Enforced by the backend (403 with `code: "PLAN_REQUIRED"` and `requiredPlan`): module routes, budget template count, AI quotas. `/api/mcp` checks the plan before serving (Plus for assistants, Pro for `hive_` tokens). The app hides or locks the same things and shows upgrade cards; `GET /api/me` returns `plan`, `planExpiresAt`, `expiredPlan`, `entitlements` and `upgradeUrl`.
+  - Free: money (accounts, transactions, months, reports), 1 budget template, no AI assistants.
+  - Plus: every module (investments, habits, fitness, goals, notes, weekly review), unlimited templates, AI assistants over MCP.
+  - Pro: as Plus, plus personal access tokens.
+- Enforced by the backend (403 with `code: "PLAN_REQUIRED"` and `requiredPlan`): module routes and the budget template count. `/api/mcp` checks the plan before serving (Plus for assistants, Pro for `hive_` tokens). The app hides or locks the same things and shows upgrade cards; `GET /api/me` returns `plan`, `planExpiresAt`, `expiredPlan`, `entitlements` and `upgradeUrl`.
 - Existing users keep full access: at startup, users created before `GRANDFATHER_BEFORE` (default 2026-10-07T15:30Z) who never had a plan become Pro with no end date.
 - Granting plans by hand until payments exist (backend env `ADMIN_TOKEN`; without it the admin API is off):
   ```bash
@@ -122,9 +122,13 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
   curl "$API/admin/plan?email=someone@example.com" -H "Authorization: Bearer $ADMIN_TOKEN"
   ```
   A payment provider's webhook should call `setPlan(email, plan, expiresAt, "<provider>")` from `services/plans.ts`.
-- Backend env: `ADMIN_TOKEN`, `PRICING_URL` (where "Upgrade" points), `GRANDFATHER_BEFORE`. `AI_INSIGHTS_DAILY_LIMIT` / `AI_REVIEW_DAILY_LIMIT` are no longer used: limits come from the plan.
+- Backend env: `ADMIN_TOKEN`, `PRICING_URL` (where "Upgrade" points), `GRANDFATHER_BEFORE`.
 
-### Phase 5 — AI Analytics ✅
+### Phase 9 — In-app AI removed ✅
+- The built-in AI (Next moves card, AI-written weekly review, `POST /api/stats/insights` and `/weekly-review`, `services/ai.ts`) is gone; it is kept on the `claude/with-ai-agent` branch to bring back if needed. The `AiUsage` table stays in the schema so `prisma db push` doesn't drop it.
+- The MCP server stays: assistants use `get_weekly_summary` and write the review themselves, saving it with `add_note` (noteType REVIEW) so it appears under Past reviews.
+
+### Phase 5 — AI Analytics (removed in Phase 9)
 - Backend endpoint `GET /api/stats/life-overview` ✅
 - `POST /api/stats/insights` ✅ — sends the life-overview snapshot to an OpenAI-compatible model (`backend/src/services/ai.ts`; Proton Lumo at `https://lumo.proton.me/api/ai/v1` by default, override with `AI_BASE_URL` / `AI_MODEL`; JSON output) and returns `{ summary, highlights, alerts, suggestions }`. Requires `AI_API_KEY` in `backend/.env`; returns 503 with a clear message if missing.
 - Dashboard "AI Insights" card ✅ (`frontend/src/components/AiInsightsCard.tsx`) — on-demand "Get Analysis" button (each click is one paid API call)

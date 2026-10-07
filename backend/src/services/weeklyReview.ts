@@ -1,7 +1,6 @@
 import prisma from "./prisma";
 import { todayUtc } from "./validate";
 import { findPatterns } from "./patterns";
-import { generateJson } from "./ai";
 
 const DAY_MS = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -107,89 +106,3 @@ export async function compileWeek(userId: string, which: "current" | "previous")
 }
 
 export type WeekSummary = Awaited<ReturnType<typeof compileWeek>>;
-
-export interface WeeklyReview {
-  headline: string;
-  summary: string;
-  wins: string[];
-  watchouts: string[];
-  actionItems: { title: string; area: "money" | "habits" | "fitness" | "goals" | "other" }[];
-}
-
-const REVIEW_SCHEMA = {
-  type: "object",
-  properties: {
-    headline: { type: "string" },
-    summary: { type: "string" },
-    wins: { type: "array", items: { type: "string" } },
-    watchouts: { type: "array", items: { type: "string" } },
-    actionItems: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          area: { type: "string", enum: ["money", "habits", "fitness", "goals", "other"] },
-        },
-        required: ["title", "area"],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ["headline", "summary", "wins", "watchouts", "actionItems"],
-  additionalProperties: false,
-};
-
-const REVIEW_PROMPT = `You write the weekly review inside Hive, a personal app tracking money, habits, fitness, goals and a journal for one user.
-
-You receive a JSON summary of one week (Monday to Sunday, or the week so far when "complete" is false) with the previous week's figures for comparison. Write to the user as "you".
-
-- headline: one short line (max 10 words) capturing the week.
-- summary: 3-5 sentences comparing this week with the last one across the areas that have data.
-- wins: up to 4, each one sentence citing a number.
-- watchouts: up to 3 things slipping or at risk; empty if nothing is.
-- actionItems: exactly 3 specific, doable things for the coming week, each tied to an area. Prefer actions that build on the patterns or fix a watchout.
-
-"patterns" are statistical correlations from the last 90 days; describe them as links, never as causes. Only use facts present in the data. Amounts are in the user's currency, without a symbol.`;
-
-const fmtRange = (s: string, e: string) => {
-  const f = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-  return `${f(s)} – ${f(e)}`;
-};
-
-/** Generate the AI review for a week and save it as a note tagged "weekly-review". */
-export async function runWeeklyReview(userId: string, which: "current" | "previous", source: "MANUAL" | "MCP" = "MANUAL") {
-  const summary = await compileWeek(userId, which);
-  const review = await generateJson<WeeklyReview>(
-    REVIEW_PROMPT,
-    REVIEW_SCHEMA,
-    `Here is my week:\n\n${JSON.stringify(summary, null, 2)}`
-  );
-
-  const content = [
-    `## ${review.headline}`,
-    "",
-    review.summary,
-    "",
-    "### Wins",
-    ...review.wins.map((w) => `- ${w}`),
-    ...(review.watchouts.length ? ["", "### Watch out", ...review.watchouts.map((w) => `- ${w}`)] : []),
-    "",
-    "### This week",
-    ...review.actionItems.map((a) => `- [ ] ${a.title} (${a.area})`),
-  ].join("\n");
-
-  const note = await prisma.note.create({
-    data: {
-      userId,
-      title: `Weekly review · ${fmtRange(summary.week.start, summary.week.end)}`,
-      content,
-      tags: ["weekly-review"],
-      noteType: "REVIEW",
-      entryDate: new Date(summary.week.start),
-      source,
-    },
-  });
-
-  return { review, summary, noteId: note.id };
-}

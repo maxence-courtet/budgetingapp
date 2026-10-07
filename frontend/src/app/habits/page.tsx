@@ -700,7 +700,7 @@ export default function HabitsPage() {
         {pendingLogs.length > 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
             <p className="text-sm font-medium text-yellow-800 mb-3">
-              {pendingLogs.length} habit {pendingLogs.length === 1 ? "entry" : "entries"} added by AI — approve to count {pendingLogs.length === 1 ? "it" : "them"} toward streaks
+              {pendingLogs.length} habit {pendingLogs.length === 1 ? "entry" : "entries"} added by your assistant — approve to count {pendingLogs.length === 1 ? "it" : "them"} toward streaks
             </p>
             <ul className="space-y-1.5">
               {pendingLogs.map((log: any) => (

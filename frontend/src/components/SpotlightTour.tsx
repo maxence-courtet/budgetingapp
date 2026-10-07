@@ -26,13 +26,7 @@ const STEPS: Step[] = [
     title: "Add a transaction",
     text: "Tap + from any page. Hive files it into the right month and creates the month if needed.",
   },
-  {
-    target: "ai",
-    path: "/",
-    title: "Next moves",
-    text: "Ask the AI for the three things most worth doing now, based on your own data.",
-    when: (_, e) => e.aiInsightsPerDay > 0,
-  },
+
   {
     target: "money",
     title: "Your money",

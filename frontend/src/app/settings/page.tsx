@@ -169,14 +169,9 @@ function PlanSection() {
   const { plan, planExpiresAt, planSource, expiredPlan, entitlements, upgradeUrl, loaded } = usePreferences();
   if (!loaded) return null;
   const until = planExpiresAt ? new Date(planExpiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : null;
-  const ai =
-    entitlements.aiInsightsPerDay > 0
-      ? `AI next moves ${entitlements.aiInsightsPerDay}/day, weekly review ${entitlements.aiReviewsPerDay}/day`
-      : "No AI features";
   const included = [
     entitlements.modules.length ? "Every module (investments, habits, fitness, goals, notes, weekly review)" : "Money: accounts, transactions, reports",
     entitlements.budgetTemplates === null ? "Unlimited budget templates" : `${entitlements.budgetTemplates} budget template`,
-    ai,
     entitlements.mcp ? (entitlements.apiTokens ? "AI assistants and personal tokens" : "Connect AI assistants") : null,
   ].filter(Boolean);
 

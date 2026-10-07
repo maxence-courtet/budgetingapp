@@ -50,7 +50,7 @@ export const lifeItems: NavItem[] = [
   { href: "/fitness", label: "Fitness", icon: Activity, module: "fitness", description: "Weight, workouts and a training plan" },
   { href: "/goals", label: "Goals", icon: Target, module: "goals", description: "Targets with milestones and progress" },
   { href: "/notes", label: "Notes", icon: StickyNote, module: "notes", description: "Notes and a daily journal" },
-  { href: "/review", label: "Weekly review", icon: CalendarCheck, module: "review", description: "An AI recap of your week" },
+  { href: "/review", label: "Weekly review", icon: CalendarCheck, module: "review", description: "A recap of your week across money, habits and fitness" },
 ];
 
 /** Things set up once and rarely changed, reached from Settings. */

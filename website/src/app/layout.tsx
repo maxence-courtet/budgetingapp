@@ -8,7 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "Hive · Your money and the rest of your life, side by side", template: "%s · Hive" },
   description:
-    "Hive is a calm personal finance app with habits, goals and an AI that knows your numbers. Free to start, on your phone and your computer.",
+    "Hive is a calm personal finance app with habits and goals, on your phone and your computer. Works with your AI assistant. Free to start.",
   icons: { icon: "/icon.svg" },
 };
 
