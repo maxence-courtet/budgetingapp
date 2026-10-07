@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/* Same palette as the app (honey accent); dark follows the visitor's system setting. */
+:root {
+  color-scheme: light;
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --surface-2: #f1f1ee;
+  --line: #e6e6e1;
+  --line-strong: #d0d0ca;
+  --fg: #0b0b0c;
+  --fg-2: #3f3f46;
+  --muted: #5e5e66;
+  --faint: #6b6b73;
+  --accent: #f5b31f;
+  --accent-ink: #1c1810;
+  --accent-text: #8a5a00;
+  --accent-soft: #fdf1d3;
+  --hex-line: rgba(11, 11, 12, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --surface-2: #1c1c20;
+    --line: #222227;
+    --line-strong: #34343b;
+    --fg: #ededef;
+    --fg-2: #c9c9cf;
+    --muted: #9a9aa3;
+    --faint: #8b8b94;
+    --accent-text: #f5b31f;
+    --accent-soft: #2a2213;
+    --hex-line: rgba(237, 237, 239, 0.05);
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Honeycomb outline pattern used behind the hero and the final call to action. */
+.honeycomb {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z' fill='%23000'/%3E%3C/svg%3E");
+  background-size: 56px 98px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 10%, transparent 70%);
+  mask-image: radial-gradient(ellipse at 50% 30%, black 10%, transparent 70%);
+  opacity: 0.07;
+}
+@media (prefers-color-scheme: dark) {
+  .honeycomb {
+    filter: invert(1);
+    opacity: 0.08;
+  }
+}
+
+/* Screenshots: light ones in light mode, dark ones in dark mode. */
+.shot-dark {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  .shot-light {
+    display: none;
+  }
+  .shot-dark {
+    display: block;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.rise {
+  animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
