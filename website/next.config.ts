@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   env: {
     // Where "Sign in" and "Start free" go. Baked in at build time.
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "https://frontend-qa-qa-0794.up.railway.app",
+    // Changes on every build, so screenshot URLs change when the images do and no cache serves old ones.
+    NEXT_PUBLIC_BUILD: Date.now().toString(36),
   },
 };
 

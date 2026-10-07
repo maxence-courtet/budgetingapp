@@ -14,7 +14,9 @@ server {
     add_header Cache-Control "public, max-age=31536000, immutable";
   }
 
+  # Pages and screenshots: always check for a newer version, so a deploy shows up on the next visit.
   location / {
+    add_header Cache-Control "no-cache";
     try_files $uri $uri/ $uri.html =404;
   }
 

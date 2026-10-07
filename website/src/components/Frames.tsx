@@ -56,14 +56,16 @@ export function Browser({ name, alt, className = "", priority }: { name: string;
   );
 }
 
+const VERSION = process.env.NEXT_PUBLIC_BUILD ? `?v=${process.env.NEXT_PUBLIC_BUILD}` : "";
+
 function Shot({ src, alt, priority }: { src: string; alt: string; priority?: boolean }) {
   const loading = priority ? "eager" : "lazy";
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`${src}-light.webp`} alt={alt} loading={loading} className="shot-light w-full h-full object-cover object-top" />
+      <img src={`${src}-light.webp${VERSION}`} alt={alt} loading={loading} className="shot-light w-full h-full object-cover object-top" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`${src}-dark.webp`} alt="" aria-hidden="true" loading={loading} className="shot-dark w-full h-full object-cover object-top" />
+      <img src={`${src}-dark.webp${VERSION}`} alt="" aria-hidden="true" loading={loading} className="shot-dark w-full h-full object-cover object-top" />
     </>
   );
 }
