@@ -17,6 +17,8 @@ import goalRoutes from './routes/goals';
 import noteRoutes from './routes/notes';
 import statsRoutes from './routes/stats';
 import meRoutes from './routes/me';
+import adminRoutes from './routes/admin';
+import { requireModule } from './services/plans';
 import { runDataFixes } from './services/dataFixes';
 
 const app = express();
@@ -47,13 +49,16 @@ app.use('/api/months', authMiddleware, monthRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/search', authMiddleware, searchRoutes);
 
-// New routes
-app.use('/api/investments', investmentRoutes);
-app.use('/api/habits', habitRoutes);
-app.use('/api/fitness', fitnessRoutes);
-app.use('/api/goals', goalRoutes);
-app.use('/api/notes', noteRoutes);
+// Paid modules: the plan guard runs before the router (services/plans.ts).
+app.use('/api/investments', authMiddleware, requireModule('investments'), investmentRoutes);
+app.use('/api/habits', authMiddleware, requireModule('habits'), habitRoutes);
+app.use('/api/fitness', authMiddleware, requireModule('fitness'), fitnessRoutes);
+app.use('/api/goals', authMiddleware, requireModule('goals'), goalRoutes);
+app.use('/api/notes', authMiddleware, requireModule('notes'), noteRoutes);
 app.use('/api/stats', statsRoutes);
+
+// Setting plans by hand until the payment provider is wired in (ADMIN_TOKEN).
+app.use('/api/admin', adminRoutes);
 
 app.use(errorHandler);
 

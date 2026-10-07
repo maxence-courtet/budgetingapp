@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePreferences } from "@/components/PreferencesProvider";
+import { PlanChip, UpgradeCard } from "@/components/PlanGate";
 import { Check, Copy, KeyRound, Link2, Trash2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
@@ -54,6 +56,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 }
 
 export function AiAssistantsSettings() {
+  const { entitlements } = usePreferences();
   const [mcpUrl, setMcpUrl] = useState("");
   const [tokens, setTokens] = useState<Token[] | null>(null);
   const [apps, setApps] = useState<ConnectedApp[] | null>(null);
@@ -103,8 +106,21 @@ export function AiAssistantsSettings() {
     load();
   }
 
+  if (!entitlements.mcp) {
+    return (
+      <section aria-labelledby="ai-heading" className="bg-surface border border-line rounded-2xl p-5 sm:p-6 space-y-4">
+        <h2 id="ai-heading" className="text-[15px] font-semibold text-fg">AI assistants</h2>
+        <UpgradeCard
+          compact
+          title="Connect your AI assistant"
+          text="Let Claude, ChatGPT or any assistant that supports MCP read and add to your Hive data. Part of Hive Plus."
+        />
+      </section>
+    );
+  }
+
   return (
-    <section aria-labelledby="ai-heading" className="bg-surface border border-line rounded-2xl p-6 space-y-6">
+    <section aria-labelledby="ai-heading" className="bg-surface border border-line rounded-2xl p-5 sm:p-6 space-y-6">
       <div>
         <h2 id="ai-heading" className="text-[15px] font-semibold text-fg">AI assistants</h2>
         <p className="text-sm text-muted mt-1">
@@ -153,7 +169,15 @@ export function AiAssistantsSettings() {
       </div>
 
       <div className="space-y-3">
-        <h3 className={subheading}>Personal tokens</h3>
+        <h3 className={`${subheading} flex items-center gap-2`}>
+          Personal tokens {!entitlements.apiTokens && <PlanChip plan="PRO" />}
+        </h3>
+        {!entitlements.apiTokens && (
+          <p className="text-sm text-muted">
+            Tokens for assistants and your own automations come with Hive Pro. On your plan, sign in with Hive from your
+            assistant instead.
+          </p>
+        )}
 
         {newToken && (
           <div role="status" className="border border-accent bg-accent-soft rounded-xl p-4 space-y-2">
@@ -172,7 +196,7 @@ export function AiAssistantsSettings() {
           </div>
         )}
 
-        <form onSubmit={createToken} className="flex flex-col sm:flex-row gap-2">
+        {entitlements.apiTokens && <form onSubmit={createToken} className="flex flex-col sm:flex-row gap-2">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -200,7 +224,7 @@ export function AiAssistantsSettings() {
             <KeyRound size={14} aria-hidden="true" />
             Create token
           </button>
-        </form>
+        </form>}
         {error && (
           <p role="alert" className="text-sm text-neg">
             {error}

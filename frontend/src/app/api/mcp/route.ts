@@ -10,7 +10,23 @@ import { createHiveMcpServer } from "@/mcp/server";
 // Stateless serving answers both current (2026-07-28) and older (2025) MCP clients without sessions.
 const mcpHandler = createMcpHandler(() => createHiveMcpServer(), { legacy: "stateless" });
 
-async function serveAs(request: Request, userId: string): Promise<Response> {
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api").replace(/\/$/, "");
+
+/** What the user's plan allows; assistants need a plan with MCP, personal tokens a plan with tokens. */
+async function planAllows(token: string, viaApiKey: boolean): Promise<string | null> {
+  const res = await fetch(`${API_BASE}/me`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return "Could not check your Hive plan";
+  const me = await res.json();
+  if (!me.entitlements?.mcp) return "Connecting an AI assistant is part of Hive Plus. Upgrade in Settings to use it.";
+  if (viaApiKey && !me.entitlements?.apiTokens) return "Personal access tokens are part of Hive Pro. Sign in with Hive from your assistant instead.";
+  return null;
+}
+
+function planRequired(message: string) {
+  return Response.json({ jsonrpc: "2.0", error: { code: -32003, message }, id: null }, { status: 403 });
+}
+
+async function serveAs(request: Request, userId: string, viaApiKey = false): Promise<Response> {
   const auth = getAuth();
   const ctx = await auth.$context;
   const user = await ctx.internalAdapter.findUserById(userId);
@@ -20,6 +36,8 @@ async function serveAs(request: Request, userId: string): Promise<Response> {
   const { token } = await auth.api.signJWT({
     body: { payload: { sub: user.id, email: user.email, emailVerified: user.emailVerified, name: user.name } },
   });
+  const denied = await planAllows(token, viaApiKey);
+  if (denied) return planRequired(denied);
   return withBackendToken(token, () => mcpHandler.fetch(request));
 }
 
@@ -43,7 +61,7 @@ export async function POST(request: Request) {
   if (token?.startsWith(API_KEY_PREFIX)) {
     const result = await auth.api.verifyApiKey({ body: { key: token } });
     if (!result.valid || !result.key) return unauthorized("Invalid or expired token");
-    return serveAs(request, result.key.referenceId);
+    return serveAs(request, result.key.referenceId, true);
   }
 
   // Anything else must be an OAuth access token bound to this resource; with none, the 401 tells the

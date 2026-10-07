@@ -4,6 +4,7 @@ import prisma from "../services/prisma";
 import { generateInsights } from "../services/insights";
 import { netWorthHistory } from "../services/netWorth";
 import { withAiQuota } from "../services/ai";
+import { PlanError, requireModule, sendPlanError } from "../services/plans";
 import { findPatterns } from "../services/patterns";
 import { compileWeek, runWeeklyReview } from "../services/weeklyReview";
 
@@ -158,12 +159,12 @@ router.get("/net-worth", async (req, res) => {
 
 const weekParam = (v: unknown) => (v === "previous" ? "previous" : "current");
 
-router.get("/patterns", async (req, res) => {
+router.get("/patterns", requireModule("review"), async (req, res) => {
   const days = Math.min(365, Math.max(28, Number(req.query.days) || 90));
   res.json(await findPatterns(req.userId!, days));
 });
 
-router.get("/weekly-summary", async (req, res) => {
+router.get("/weekly-summary", requireModule("review"), async (req, res) => {
   res.json(await compileWeek(req.userId!, weekParam(req.query.week)));
 });
 
@@ -172,6 +173,7 @@ router.post("/weekly-review", async (req, res) => {
     const source = req.body?.source === "MCP" ? "MCP" : "MANUAL";
     res.json(await withAiQuota(req.userId!, "weekly-review", () => runWeeklyReview(req.userId!, weekParam(req.body?.week), source)));
   } catch (err: any) {
+    if (err instanceof PlanError) return sendPlanError(res, err);
     res.status(err.status ?? 502).json({ error: err.message });
   }
 });
@@ -182,6 +184,7 @@ router.post("/insights", async (req, res) => {
     const insights = await withAiQuota(req.userId!, "insights", () => generateInsights(overview));
     res.json({ generatedAt: overview.generatedAt, ...insights });
   } catch (err: any) {
+    if (err instanceof PlanError) return sendPlanError(res, err);
     res.status(err.status ?? 502).json({ error: err.message });
   }
 });

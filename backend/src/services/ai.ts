@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { PlanError, cheapestPlanWith, entitlementsOf } from "./plans";
 
 export class AiError extends Error {
   constructor(message: string, public status: number) {
@@ -10,22 +11,23 @@ export class AiError extends Error {
 const BASE_URL = (process.env.AI_BASE_URL || "https://lumo.proton.me/api/ai/v1").replace(/\/$/, "");
 const MODEL = process.env.AI_MODEL || "lumo";
 
-const DAILY_LIMITS: Record<string, number> = {
-  insights: Number(process.env.AI_INSIGHTS_DAILY_LIMIT) || 5,
-  "weekly-review": Number(process.env.AI_REVIEW_DAILY_LIMIT) || 3,
-};
-
 function todayUtcDate() {
   const now = new Date();
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 }
 
 /**
- * Run a paid AI call only if the user is under today's limit for that feature, and count it
+ * Run a paid AI call only if the user's plan includes it and they're under today's limit, and count it
  * once it succeeds (failed calls don't use up the allowance).
  */
 export async function withAiQuota<T>(userId: string, feature: "insights" | "weekly-review", call: () => Promise<T>): Promise<T> {
-  const limit = DAILY_LIMITS[feature];
+  // The daily allowance comes with the plan (services/plans.ts); 0 means the plan doesn't include it.
+  const { entitlements } = await entitlementsOf(userId);
+  const limit = feature === "insights" ? entitlements.aiInsightsPerDay : entitlements.aiReviewsPerDay;
+  if (limit === 0) {
+    const required = cheapestPlanWith((e) => (feature === "insights" ? e.aiInsightsPerDay : e.aiReviewsPerDay) > 0);
+    throw new PlanError(`AI ${feature === "insights" ? "next moves are" : "weekly reviews are"} part of Hive ${required === "PLUS" ? "Plus" : "Pro"}.`, required);
+  }
   const day = todayUtcDate();
   const key = { userId_day_feature: { userId, day, feature } };
   const used = (await prisma.aiUsage.findUnique({ where: key }))?.count ?? 0;

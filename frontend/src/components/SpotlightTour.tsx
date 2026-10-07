@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Pointer, X } from "lucide-react";
 import { usePreferences } from "@/components/PreferencesProvider";
 import { lifeItems } from "@/lib/nav";
+import type { Entitlements } from "@/lib/plans";
 
 interface Step {
   /** Matches `data-tour` on the element to point at; the first visible match wins (phone or desktop layout). */
@@ -13,8 +14,8 @@ interface Step {
   text: string;
   /** Page to open first when the element lives there. */
   path?: string;
-  /** Only shown when this is true for the user's choices. */
-  when?: (modules: string[]) => boolean;
+  /** Only shown when this is true for the user's modules and plan. */
+  when?: (modules: string[], entitlements: Entitlements) => boolean;
 }
 
 // Ordered so the tour changes page once (Home, then Transactions); the shell's buttons are on every page.
@@ -30,6 +31,7 @@ const STEPS: Step[] = [
     path: "/",
     title: "Next moves",
     text: "Ask the AI for the three things most worth doing now, based on your own data.",
+    when: (_, e) => e.aiInsightsPerDay > 0,
   },
   {
     target: "money",
@@ -88,10 +90,10 @@ const same = (a: Box, b: Box) =>
  * button is found, so nothing flashes between steps.
  */
 export function SpotlightTour() {
-  const { tourOpen, endTour, modules } = usePreferences();
+  const { tourOpen, endTour, modules, entitlements } = usePreferences();
   const router = useRouter();
   const pathname = usePathname();
-  const steps = STEPS.filter((s) => !s.when || s.when(modules));
+  const steps = STEPS.filter((s) => !s.when || s.when(modules, entitlements));
 
   const [index, setIndex] = useState(0);
   const [box, setBox] = useState<Box | null>(null);

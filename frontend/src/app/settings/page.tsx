@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Sun, Moon, Monitor, Check, ChevronRight, Play } from "lucide-react";
 import { usePreferences } from "@/components/PreferencesProvider";
 import { Switch } from "@/components/Welcome";
+import { PlanChip } from "@/components/PlanGate";
+import { MODULE_PLAN, PLAN_NAMES } from "@/lib/plans";
 import { moduleItems, setupItems, ALL_MODULES, ModuleId } from "@/lib/nav";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useAppearance } from "@/components/AppearanceProvider";
@@ -18,7 +20,7 @@ const THEME_OPTIONS: { id: ThemePref; label: string; hint: string; icon: typeof 
 
 export default function SettingsPage() {
   const { theme, setTheme, accent, setAccent, resolvedTheme } = useAppearance();
-  const { modules, save, replayWelcome } = usePreferences();
+  const { chosenModules: modules, canUse, save, replayWelcome } = usePreferences();
 
   function toggle(id: ModuleId) {
     const next = modules.includes(id) ? modules.filter((m) => m !== id) : ALL_MODULES.filter((m) => m === id || modules.includes(m));
@@ -28,6 +30,8 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader title="Settings" />
+
+      <PlanSection />
 
       <section aria-labelledby="setup-heading" className="bg-surface border border-line rounded-2xl overflow-hidden">
         <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3">
@@ -80,7 +84,10 @@ export default function SettingsPage() {
                 >
                   <Icon size={18} className={on ? "text-accent shrink-0" : "text-faint shrink-0"} aria-hidden="true" />
                   <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-semibold text-fg">{label}</span>
+                    <span className="flex items-center gap-2 text-sm font-semibold text-fg">
+                      {label}
+                      {!canUse(module!) && <PlanChip plan={MODULE_PLAN} />}
+                    </span>
                     <span className="block text-xs text-muted">{description}</span>
                   </span>
                   <Switch on={on} />
@@ -155,5 +162,63 @@ export default function SettingsPage() {
 
       <AiAssistantsSettings />
     </div>
+  );
+}
+
+function PlanSection() {
+  const { plan, planExpiresAt, planSource, expiredPlan, entitlements, upgradeUrl, loaded } = usePreferences();
+  if (!loaded) return null;
+  const until = planExpiresAt ? new Date(planExpiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : null;
+  const ai =
+    entitlements.aiInsightsPerDay > 0
+      ? `AI next moves ${entitlements.aiInsightsPerDay}/day, weekly review ${entitlements.aiReviewsPerDay}/day`
+      : "No AI features";
+  const included = [
+    entitlements.modules.length ? "Every module (investments, habits, fitness, goals, notes, weekly review)" : "Money: accounts, transactions, reports",
+    entitlements.budgetTemplates === null ? "Unlimited budget templates" : `${entitlements.budgetTemplates} budget template`,
+    ai,
+    entitlements.mcp ? (entitlements.apiTokens ? "AI assistants and personal tokens" : "Connect AI assistants") : null,
+  ].filter(Boolean);
+
+  return (
+    <section aria-labelledby="plan-heading" className="bg-surface border border-line rounded-2xl p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">Your plan</p>
+          <h2 id="plan-heading" className="mt-1 text-2xl font-semibold tracking-tight text-fg">
+            Hive {PLAN_NAMES[plan]}
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            {plan === "FREE"
+              ? expiredPlan
+                ? `Your ${PLAN_NAMES[expiredPlan]} plan has ended. Your data is kept; upgrade to use everything again.`
+                : "Free forever for tracking your money."
+              : until
+              ? `Active until ${until}.`
+              : planSource === "grandfathered"
+              ? "Included for early users, with no end date."
+              : "No end date."}
+          </p>
+        </div>
+        {plan !== "PRO" && (
+          <a
+            href={upgradeUrl}
+            target="_blank"
+            rel="noopener"
+            className="h-10 px-4 inline-flex items-center rounded-xl bg-accent text-accent-ink text-sm font-semibold hover:bg-accent-hover"
+          >
+            {plan === "FREE" ? "Upgrade" : "See plans"}
+          </a>
+        )}
+      </div>
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+        {included.map((f) => (
+          <li key={f} className="flex items-start gap-2 text-sm text-fg-2">
+            <Check size={15} className="text-accent mt-0.5 shrink-0" aria-hidden="true" />
+            {f}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

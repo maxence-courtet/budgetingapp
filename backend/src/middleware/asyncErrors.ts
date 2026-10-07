@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import { Prisma } from "@prisma/client";
+import { PlanError, sendPlanError } from "../services/plans";
 
 // Express 4 ignores rejected promises from async handlers, so a thrown error
 // (e.g. Prisma rejecting NaN or an invalid date) became an unhandled rejection
@@ -30,6 +31,7 @@ for (const method of METHODS) {
 /** Last middleware: turn errors into JSON responses instead of crashing. */
 export function errorHandler(err: any, _req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) return next(err);
+  if (err instanceof PlanError) return sendPlanError(res, err);
   if (err instanceof Prisma.PrismaClientValidationError) {
     return res.status(400).json({ error: "Invalid input: check numbers and dates" });
   }

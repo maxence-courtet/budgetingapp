@@ -1,13 +1,25 @@
 import { Router } from "express";
 import prisma from "../services/prisma";
+import { planSummary } from "../services/plans";
 
 /** Optional areas of the app. Money (accounts, transactions, budgets, reports) is always on. */
 export const MODULES = ["investments", "habits", "fitness", "goals", "notes", "review"] as const;
 
 const router = Router();
 
-function preferences(user: { email: string; name: string; modules: string[]; onboardedAt: Date | null }) {
+function preferences(user: {
+  email: string;
+  name: string;
+  modules: string[];
+  onboardedAt: Date | null;
+  plan: string;
+  planExpiresAt: Date | null;
+  planSource: string | null;
+}) {
   return {
+    ...planSummary(user),
+    // Where "Upgrade" points until payments live in the app.
+    upgradeUrl: process.env.PRICING_URL || null,
     email: user.email,
     name: user.name,
     modules: user.modules.filter((m) => (MODULES as readonly string[]).includes(m)),

@@ -50,6 +50,8 @@ async function findOrCreateUser(payload: AuthPayload) {
 }
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Already authenticated by an earlier authMiddleware on this request (a plan guard in front of a router).
+  if (req.userId) return next();
   // Every request acts as one signed-in user: the web app and the hosted MCP server both send a short-lived
   // JWT signed by the frontend. There is no shared or service token.
   const authHeader = req.headers.authorization;

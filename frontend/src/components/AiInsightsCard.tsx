@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { getLifeInsights } from "@/lib/api";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { usePreferences } from "@/components/PreferencesProvider";
+import { UpgradeCard } from "@/components/PlanGate";
 import { Sparkles, RefreshCw, CircleCheck, Info, TriangleAlert, OctagonAlert } from "lucide-react";
 
 interface Insights {
@@ -23,6 +25,7 @@ export function AiInsightsCard() {
   const [insights, setInsights] = useState<Insights | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { entitlements, loaded } = usePreferences();
 
   async function analyse() {
     setLoading(true);
@@ -34,6 +37,19 @@ export function AiInsightsCard() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (loaded && entitlements.aiInsightsPerDay === 0) {
+    return (
+      <section aria-labelledby="insights-heading" className="space-y-3">
+        <h2 id="insights-heading" className="text-[15px] font-semibold text-fg">Next moves</h2>
+        <UpgradeCard
+          compact
+          title="Let AI rank your next moves"
+          text="AI reads your month, habits and goals and picks the three things most worth doing now."
+        />
+      </section>
+    );
   }
 
   const moves = insights?.suggestions ?? [];

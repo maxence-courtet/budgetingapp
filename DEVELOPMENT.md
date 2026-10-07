@@ -106,6 +106,24 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
 - Phones: bottom tab bar (Home, Money, +, Life, More), full-screen search, transaction add/edit as a bottom sheet, list layouts instead of tables (`TransactionList`, `stack-sm` table utility in `globals.css`).
 - First-run walkthrough (`components/Welcome.tsx`) ending with a module choice. Stored per user: `User.modules` / `User.onboardedAt`, read and written through `GET` / `PATCH /api/me`. Changeable in Settings → Your Hive, which can also replay the tour.
 
+### Phase 8 — Plans and access control ✅
+- Each user has `plan` (FREE | PLUS | PRO), `planExpiresAt` (null = no end) and `planSource` (grandfathered | manual | later the payment provider). A paid plan past its end date counts as Free; nothing is deleted, the paid parts just lock.
+- What each plan unlocks lives in one place, `backend/src/services/plans.ts` (`ENTITLEMENTS`), mirroring the pricing page (`website/src/lib/plans.ts`):
+  - Free: money (accounts, transactions, months, reports), 1 budget template, no AI, no assistants.
+  - Plus: every module (investments, habits, fitness, goals, notes, weekly review), unlimited templates, AI next moves 5/day and weekly review 3/day, AI assistants over MCP.
+  - Pro: as Plus with AI 20/day and 10/day, plus personal access tokens.
+- Enforced by the backend (403 with `code: "PLAN_REQUIRED"` and `requiredPlan`): module routes, budget template count, AI quotas. `/api/mcp` checks the plan before serving (Plus for assistants, Pro for `hive_` tokens). The app hides or locks the same things and shows upgrade cards; `GET /api/me` returns `plan`, `planExpiresAt`, `expiredPlan`, `entitlements` and `upgradeUrl`.
+- Existing users keep full access: at startup, users created before `GRANDFATHER_BEFORE` (default 2026-10-07T15:30Z) who never had a plan become Pro with no end date.
+- Granting plans by hand until payments exist (backend env `ADMIN_TOKEN`; without it the admin API is off):
+  ```bash
+  # Plus for 30 days (or "expiresAt": "2027-10-07"; neither = no end date)
+  curl -X PUT $API/admin/plan -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{"email":"someone@example.com","plan":"PLUS","days":30}'
+  curl "$API/admin/plan?email=someone@example.com" -H "Authorization: Bearer $ADMIN_TOKEN"
+  ```
+  A payment provider's webhook should call `setPlan(email, plan, expiresAt, "<provider>")` from `services/plans.ts`.
+- Backend env: `ADMIN_TOKEN`, `PRICING_URL` (where "Upgrade" points), `GRANDFATHER_BEFORE`. `AI_INSIGHTS_DAILY_LIMIT` / `AI_REVIEW_DAILY_LIMIT` are no longer used: limits come from the plan.
+
 ### Phase 5 — AI Analytics ✅
 - Backend endpoint `GET /api/stats/life-overview` ✅
 - `POST /api/stats/insights` ✅ — sends the life-overview snapshot to an OpenAI-compatible model (`backend/src/services/ai.ts`; Proton Lumo at `https://lumo.proton.me/api/ai/v1` by default, override with `AI_BASE_URL` / `AI_MODEL`; JSON output) and returns `{ summary, highlights, alerts, suggestions }`. Requires `AI_API_KEY` in `backend/.env`; returns 503 with a clear message if missing.

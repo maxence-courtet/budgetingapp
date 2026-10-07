@@ -8,6 +8,8 @@ import {
   PiggyBank,
 } from "lucide-react";
 import { HiveMark } from "@/components/HiveLogo";
+import { PlanChip } from "@/components/PlanGate";
+import { MODULE_PLAN, PLAN_NAMES } from "@/lib/plans";
 import { usePreferences } from "@/components/PreferencesProvider";
 import { ALL_MODULES, ModuleId, moduleItems } from "@/lib/nav";
 
@@ -24,7 +26,7 @@ const PRESETS: { id: string; label: string; hint: string; modules: ModuleId[] }[
  * Opens once per account (the choice is stored on the backend) and again from Settings.
  */
 export function Welcome() {
-  const { welcomeOpen, closeWelcome, modules: saved, onboarded, name, save, startTour } = usePreferences();
+  const { welcomeOpen, closeWelcome, chosenModules: saved, canUse, plan, onboarded, name, save, startTour } = usePreferences();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState(0);
   const [modules, setModules] = useState<ModuleId[]>(saved);
@@ -124,7 +126,10 @@ export function Welcome() {
                 <h2 id="welcome-title" className="text-[24px] sm:text-[26px] leading-tight font-semibold tracking-tight">
                   What should Hive show?
                 </h2>
-                <p className="mt-2 text-[15px] text-muted">Start small if you like. You can change this any time in Settings.</p>
+                <p className="mt-2 text-[15px] text-muted">
+                  Start small if you like. You can change this any time in Settings.
+                  {plan === "FREE" && ` Modules marked ${PLAN_NAMES[MODULE_PLAN]} turn on when you upgrade; your choice is kept.`}
+                </p>
 
                 <div className="mt-5 grid grid-cols-3 gap-2" role="group" aria-label="Quick choices">
                   {PRESETS.map((p) => {
@@ -170,7 +175,10 @@ export function Welcome() {
                         >
                           <Icon size={18} className={on ? "text-accent shrink-0" : "text-faint shrink-0"} aria-hidden="true" />
                           <span className="flex-1 min-w-0">
-                            <span className="block text-sm font-semibold">{label}</span>
+                            <span className="flex items-center gap-2 text-sm font-semibold">
+                              {label}
+                              {!canUse(module!) && <PlanChip plan={MODULE_PLAN} />}
+                            </span>
                             <span className="block text-xs text-muted">{description}</span>
                           </span>
                           <Switch on={on} />

@@ -18,6 +18,11 @@ model User {
   modules     String[]  @default(["investments", "habits", "fitness", "goals", "notes", "review"])
   // Set when the user finishes or skips the welcome walkthrough; null means show it.
   onboardedAt DateTime?
+  // Subscription: FREE | PLUS | PRO (see services/plans.ts). A paid plan past planExpiresAt counts as FREE;
+  // null means it doesn't expire. planSource says who set it: grandfathered | manual | (later) the payment provider.
+  plan          String    @default("FREE")
+  planExpiresAt DateTime?
+  planSource    String?
 
   accounts          Account[]
   categories        Category[]
