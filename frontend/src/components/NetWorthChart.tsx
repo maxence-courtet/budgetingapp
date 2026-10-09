@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getNetWorthHistory } from "@/lib/api";
-import { fmt } from "@/lib/format";
+import { currencySymbol, fmt } from "@/lib/format";
 import { TRANSACTIONS_CHANGED } from "@/components/QuickAddTransaction";
 
 interface Point {
@@ -22,6 +22,8 @@ const RANGES: { months: number | "all"; label: string }[] = [
 ];
 const HEIGHT = 180;
 const PAD = { top: 12, right: 12, bottom: 24, left: 56 };
+/** Room for the y-axis labels: more for currencies shown as a code, like "CHF 10k". */
+const padLeft = () => (currencySymbol().length > 1 ? 74 : PAD.left);
 
 const signed = (n: number) => (n < 0 ? "−" : "") + fmt(n);
 const monthLabel = (m: string, long = false) =>
@@ -34,7 +36,8 @@ const monthLabel = (m: string, long = false) =>
 function compact(n: number) {
   const a = Math.abs(n);
   const s = a >= 1_000_000 ? `${(a / 1_000_000).toFixed(1)}M` : a >= 1_000 ? `${(a / 1_000).toFixed(a >= 10_000 ? 0 : 1)}k` : a.toFixed(0);
-  return (n < 0 ? "−$" : "$") + s;
+  const sym = currencySymbol();
+  return (n < 0 ? "−" : "") + (sym.length > 1 ? `${sym} ${s}` : sym + s);
 }
 
 /** Round gridline values covering [min, max], about three of them. */
@@ -195,13 +198,14 @@ function Plot({
   hover: number | null;
   setHover: (i: number | null) => void;
 }) {
+  const left = padLeft();
   const values = data.map((p) => p.total);
   const yTicks = ticks(Math.min(...values), Math.max(...values));
   const yMin = yTicks[0];
   const yMax = Math.max(yTicks[yTicks.length - 1], Math.max(...values));
-  const innerW = Math.max(width - PAD.left - PAD.right, 10);
+  const innerW = Math.max(width - left - PAD.right, 10);
   const innerH = HEIGHT - PAD.top - PAD.bottom;
-  const x = (i: number) => PAD.left + (data.length === 1 ? innerW / 2 : (i / (data.length - 1)) * innerW);
+  const x = (i: number) => left + (data.length === 1 ? innerW / 2 : (i / (data.length - 1)) * innerW);
   const y = (v: number) => PAD.top + innerH - ((v - yMin) / (yMax - yMin || 1)) * innerH;
 
   const line = data.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.total).toFixed(1)}`).join(" ");
@@ -255,8 +259,8 @@ function Plot({
       <svg width={width} height={HEIGHT} className="block max-w-full" aria-hidden="true">
         {yTicks.map((t) => (
           <g key={t}>
-            <line x1={PAD.left} x2={PAD.left + innerW} y1={y(t)} y2={y(t)} className="stroke-line" strokeWidth={1} />
-            <text x={PAD.left - 8} y={y(t)} textAnchor="end" dominantBaseline="middle" className="fill-muted font-mono text-[11px]">
+            <line x1={left} x2={left + innerW} y1={y(t)} y2={y(t)} className="stroke-line" strokeWidth={1} />
+            <text x={left - 8} y={y(t)} textAnchor="end" dominantBaseline="middle" className="fill-muted font-mono text-[11px]">
               {compact(t)}
             </text>
           </g>
@@ -279,7 +283,7 @@ function Plot({
         )}
         <circle cx={x(data.length - 1)} cy={y(data[data.length - 1].total)} r={4} className="fill-accent stroke-surface" strokeWidth={2} />
         <rect
-          x={PAD.left}
+          x={left}
           y={0}
           width={innerW}
           height={HEIGHT}

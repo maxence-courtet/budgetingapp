@@ -44,7 +44,7 @@ async function fetchApi(path: string, options?: RequestInit, retried = false): P
 
 // The signed-in user's preferences
 export const getMe = () => fetchApi('/me');
-export const updateMe = (data: { modules?: string[]; onboarded?: true; acceptTerms?: string; healthConsent?: boolean }) =>
+export const updateMe = (data: { modules?: string[]; onboarded?: true; acceptTerms?: string; healthConsent?: boolean; currency?: string }) =>
   fetchApi('/me', { method: 'PATCH', body: JSON.stringify(data) });
 
 // Accounts

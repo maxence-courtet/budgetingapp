@@ -6,6 +6,12 @@ import { planSummary } from "../services/plans";
 /** Optional areas of the app. Money (accounts, transactions, budgets, reports) is always on. */
 export const MODULES = ["investments", "habits", "fitness", "goals", "notes", "review"] as const;
 
+/** Currencies amounts can be shown in. Display only: amounts are stored as entered, never converted. */
+export const CURRENCIES = [
+  "CHF", "EUR", "USD", "GBP", "CAD", "AUD", "NZD", "JPY", "CNY", "HKD", "SGD", "INR",
+  "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "BRL", "MXN", "ZAR",
+] as const;
+
 const router = Router();
 
 function preferences(user: User) {
@@ -17,6 +23,7 @@ function preferences(user: User) {
     websiteUrl,
     email: user.email,
     name: user.name,
+    currency: user.currency,
     modules: user.modules.filter((m) => (MODULES as readonly string[]).includes(m)),
     onboarded: user.onboardedAt !== null,
     termsAcceptedAt: user.termsAcceptedAt,
@@ -31,12 +38,25 @@ router.get("/", async (req, res) => {
 });
 
 /**
- * Body: { modules?: string[], onboarded?: true, acceptTerms?: string (version), healthConsent?: boolean }.
+ * Body: { modules?: string[], onboarded?: true, acceptTerms?: string (version), healthConsent?: boolean, currency?: string }.
  * Withdrawing health consent deletes the fitness data it covered.
  */
 router.patch("/", async (req, res) => {
-  const { modules, onboarded, acceptTerms, healthConsent } = req.body ?? {};
-  const data: { modules?: string[]; onboardedAt?: Date; termsAcceptedAt?: Date; termsVersion?: string; healthConsentAt?: Date | null } = {};
+  const { modules, onboarded, acceptTerms, healthConsent, currency } = req.body ?? {};
+  const data: {
+    modules?: string[];
+    onboardedAt?: Date;
+    termsAcceptedAt?: Date;
+    termsVersion?: string;
+    healthConsentAt?: Date | null;
+    currency?: string;
+  } = {};
+  if (currency !== undefined) {
+    if (!(CURRENCIES as readonly string[]).includes(currency)) {
+      return res.status(400).json({ error: `currency must be one of: ${CURRENCIES.join(", ")}` });
+    }
+    data.currency = currency;
+  }
   if (modules !== undefined) {
     if (!Array.isArray(modules) || modules.some((m) => !(MODULES as readonly string[]).includes(m))) {
       return res.status(400).json({ error: `modules must be a list drawn from: ${MODULES.join(", ")}` });

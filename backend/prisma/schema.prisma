@@ -16,6 +16,8 @@ model User {
   createdAt DateTime @default(now())
   // Optional areas of the app the user chose to show (see MODULES in routes/me.ts). Money is always on.
   modules     String[]  @default(["investments", "habits", "fitness", "goals", "notes", "review"])
+  // ISO 4217 code amounts are shown in (see CURRENCIES in routes/me.ts). Display only: nothing is converted.
+  currency    String    @default("USD")
   // Set when the user finishes or skips the welcome walkthrough; null means show it.
   onboardedAt DateTime?
   // Subscription: PLUS | PRO (see services/plans.ts). New accounts start a free trial (PLUS, planSource "trial").

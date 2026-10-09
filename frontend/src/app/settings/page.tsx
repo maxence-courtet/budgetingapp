@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Sun, Moon, Monitor, Check, ChevronRight, Play } from "lucide-react";
+import { useState } from "react";
+import { Sun, Moon, Monitor, Check, ChevronRight, Play, Coins } from "lucide-react";
 import { usePreferences } from "@/components/PreferencesProvider";
 import { Switch } from "@/components/Welcome";
 import { PlanChip } from "@/components/PlanGate";
@@ -12,6 +13,7 @@ import { useAppearance } from "@/components/AppearanceProvider";
 import { ACCENTS, ThemePref } from "@/lib/appearance";
 import { AiAssistantsSettings } from "@/components/AiAssistantsSettings";
 import { YourData, HelpAndLegal } from "@/components/AccountData";
+import { CURRENCIES } from "@/lib/currencies";
 
 const THEME_OPTIONS: { id: ThemePref; label: string; hint: string; icon: typeof Sun }[] = [
   { id: "light", label: "Light", hint: "Always light", icon: Sun },
@@ -54,6 +56,9 @@ export default function SettingsPage() {
               </Link>
             </li>
           ))}
+          <li>
+            <CurrencyRow />
+          </li>
         </ul>
       </section>
 
@@ -226,5 +231,38 @@ function PlanSection() {
         </ul>
       )}
     </section>
+  );
+}
+
+function CurrencyRow() {
+  const { currency, setCurrency } = usePreferences();
+  const [error, setError] = useState("");
+  return (
+    <div className="flex items-center gap-3.5 px-5 sm:px-6 py-3.5">
+      <span className="w-9 h-9 shrink-0 rounded-xl bg-accent-soft flex items-center justify-center">
+        <Coins size={17} className="text-accent" aria-hidden="true" />
+      </span>
+      <span className="flex-1 min-w-0">
+        <label htmlFor="currency" className="block text-sm font-semibold text-fg">Currency</label>
+        <span className="block text-xs text-muted">
+          {error || "How amounts are shown. Nothing is converted."}
+        </span>
+      </span>
+      <select
+        id="currency"
+        value={currency}
+        onChange={(e) => {
+          setError("");
+          setCurrency(e.target.value).catch((err) => setError(err.message));
+        }}
+        className="h-10 max-w-[45%] rounded-xl border border-line-strong bg-surface px-3 text-sm text-fg"
+      >
+        {CURRENCIES.map((c) => (
+          <option key={c.code} value={c.code}>
+            {c.code} · {c.name}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, Fragment, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { getMe, updateMe } from "@/lib/api";
+import { CURRENCY_STORAGE_KEY, DEFAULT_CURRENCY } from "@/lib/currencies";
+import { setDisplayCurrency } from "@/lib/format";
 import { ALL_MODULES, ModuleId } from "@/lib/nav";
 import { DEFAULT_WEBSITE_URL, Entitlements, PlanId, UNKNOWN_ENTITLEMENTS } from "@/lib/plans";
 
@@ -26,6 +28,9 @@ interface Preferences {
   websiteUrl: string;
   healthConsentAt: string | null;
   setHealthConsent: (given: boolean) => Promise<void>;
+  /** ISO code amounts are shown in. */
+  currency: string;
+  setCurrency: (code: string) => Promise<void>;
   onboarded: boolean;
   name: string;
   save: (changes: { modules?: ModuleId[]; onboarded?: true }) => Promise<void>;
@@ -54,6 +59,16 @@ interface Me {
   upgradeUrl: string | null;
   websiteUrl: string | null;
   healthConsentAt: string | null;
+  currency?: string;
+}
+
+/** Remember the currency on this device, so the next visit paints amounts in it straight away. */
+function rememberCurrency(code: string) {
+  try {
+    localStorage.setItem(CURRENCY_STORAGE_KEY, code);
+  } catch {
+    // Storage can be unavailable (private windows); the server value still applies after loading.
+  }
 }
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
@@ -74,10 +89,30 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     websiteUrl: null,
     healthConsentAt: null,
   });
+  const [currency, setCurrencyState] = useState(DEFAULT_CURRENCY);
   const [replaying, setReplaying] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
 
+  // Formatting reads the currency from a module variable; the app below is keyed on it so every amount re-renders.
+  const showCurrency = useCallback((code: string) => {
+    setDisplayCurrency(code);
+    setCurrencyState(code);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(CURRENCY_STORAGE_KEY);
+      if (cached) showCurrency(cached);
+    } catch {
+      // No storage: wait for the server value.
+    }
+  }, [showCurrency]);
+
   const apply = useCallback((me: Me) => {
+    if (me.currency) {
+      showCurrency(me.currency);
+      rememberCurrency(me.currency);
+    }
     setChosen(me.modules);
     setOnboarded(me.onboarded);
     setPlan({
@@ -91,7 +126,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       websiteUrl: me.websiteUrl,
       healthConsentAt: me.healthConsentAt,
     });
-  }, []);
+  }, [showCurrency]);
 
   useEffect(() => {
     getMe()
@@ -114,6 +149,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   );
 
   const setHealthConsent = useCallback(async (given: boolean) => apply(await updateMe({ healthConsent: given })), [apply]);
+  const setCurrency = useCallback(async (code: string) => apply(await updateMe({ currency: code })), [apply]);
 
   const canUse = useCallback((m: ModuleId) => plan.entitlements.modules.includes(m), [plan.entitlements]);
 
@@ -128,6 +164,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         upgradeUrl: plan.upgradeUrl || `${plan.websiteUrl || DEFAULT_WEBSITE_URL}/pricing/`,
         websiteUrl: plan.websiteUrl || DEFAULT_WEBSITE_URL,
         setHealthConsent,
+        currency,
+        setCurrency,
         onboarded,
         name,
         save,
@@ -139,7 +177,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         endTour: () => setTourOpen(false),
       }}
     >
-      {children}
+      <Fragment key={currency}>{children}</Fragment>
     </PreferencesContext.Provider>
   );
 }

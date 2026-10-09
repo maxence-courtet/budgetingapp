@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RefreshCw, ListOrdered } from "lucide-react";
 import { getPortfolio } from "@/lib/api";
-import { fmt } from "@/lib/format";
+import { fmt, getDisplayCurrency } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -234,7 +234,7 @@ export default function InvestmentsPage() {
                       <div className="mt-1 flex items-baseline justify-between gap-3 text-xs">
                         <span className="text-muted truncate min-w-0">
                           {qty} × {priced ? fmt(h.currentPrice!) : "price n/a"}
-                          {h.currency && h.currency !== "USD" ? ` ${h.currency}` : ""}
+                          {h.currency && h.currency !== getDisplayCurrency() ? ` ${h.currency}` : ""}
                         </span>
                         <span className={`font-mono font-medium shrink-0 ${gainLossColor(h.gainLoss)}`}>{gain}</span>
                       </div>
@@ -257,7 +257,7 @@ export default function InvestmentsPage() {
                           <>
                             <p className="text-fg">
                               {fmt(h.currentPrice!)}
-                              {h.currency && h.currency !== "USD" && <span className="ml-1 text-xs text-muted">{h.currency}</span>}
+                              {h.currency && h.currency !== getDisplayCurrency() && <span className="ml-1 text-xs text-muted">{h.currency}</span>}
                             </p>
                             {h.dayChange != null && h.dayChangePercent != null && (
                               <p className={`text-xs mt-0.5 ${gainLossColor(h.dayChange)}`}>

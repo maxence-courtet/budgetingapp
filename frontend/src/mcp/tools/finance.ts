@@ -12,9 +12,10 @@ export const financeTools = [
     description: "Get an overview of all accounts with balances, and the current month's income/spending/net. Use this for a quick financial health check.",
     inputSchema: z.object({}),
     handler: async () => {
-      const [accounts, months] = await Promise.all([
+      const [accounts, months, me] = await Promise.all([
         api("/accounts") as Promise<any[]>,
         api("/months") as Promise<any[]>,
+        api("/me") as Promise<{ currency?: string }>,
       ]);
       const now = new Date();
       const currentMonth = months.find(
@@ -22,6 +23,7 @@ export const financeTools = [
       );
       const totalBalance = accounts.reduce((s: number, a: any) => s + (a.balance ?? 0), 0);
       return {
+        currency: me.currency ?? "USD",
         totalBalance,
         accounts: accounts.map((a: any) => ({
           id: a.id, name: a.name, type: a.type, balance: a.balance ?? 0,
