@@ -18,11 +18,17 @@ model User {
   modules     String[]  @default(["investments", "habits", "fitness", "goals", "notes", "review"])
   // Set when the user finishes or skips the welcome walkthrough; null means show it.
   onboardedAt DateTime?
-  // Subscription: FREE | PLUS | PRO (see services/plans.ts). A paid plan past planExpiresAt counts as FREE;
-  // null means it doesn't expire. planSource says who set it: grandfathered | manual | (later) the payment provider.
-  plan          String    @default("FREE")
+  // Subscription: PLUS | PRO (see services/plans.ts). New accounts start a free trial (PLUS, planSource "trial").
+  // Past planExpiresAt the account is locked until a plan is chosen (data can still be exported or deleted);
+  // null means no end date. planSource: trial | grandfathered | manual | (later) the payment provider.
+  plan          String    @default("PLUS")
   planExpiresAt DateTime?
   planSource    String?
+  // Legal records: which terms version the user accepted and when, and explicit consent for health data
+  // (fitness module; sensitive data under the nFADP and GDPR art. 9). Null = not given.
+  termsAcceptedAt DateTime?
+  termsVersion    String?
+  healthConsentAt DateTime?
 
   accounts          Account[]
   categories        Category[]

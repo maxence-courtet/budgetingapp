@@ -7,7 +7,7 @@ import { SectionTabs } from "@/components/SectionTabs";
 import { CommandBar } from "@/components/CommandBar";
 import { Welcome } from "@/components/Welcome";
 import { SpotlightTour } from "@/components/SpotlightTour";
-import { PlanGate } from "@/components/PlanGate";
+import { PlanGate, TrialBanner } from "@/components/PlanGate";
 import { PreferencesProvider } from "@/components/PreferencesProvider";
 import { QuickAddButton, QuickAddTransaction } from "@/components/QuickAddTransaction";
 
@@ -37,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <QuickAddButton />
               </div>
             </div>
+            <TrialBanner />
             <SectionTabs />
             <PlanGate>{children}</PlanGate>
           </div>

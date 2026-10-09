@@ -18,6 +18,7 @@ export function SiteFooter() {
             <li><Link href="/#how" className="text-fg-2 hover:text-fg">How it works</Link></li>
             <li><Link href="/#features" className="text-fg-2 hover:text-fg">Features</Link></li>
             <li><Link href="/pricing/" className="text-fg-2 hover:text-fg">Pricing</Link></li>
+            <li><Link href="/connect/" className="text-fg-2 hover:text-fg">Connect your AI assistant</Link></li>
           </ul>
         </div>
         <div>
@@ -28,7 +29,12 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-10 text-xs text-faint">© {new Date().getFullYear()} Hive</div>
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-faint">
+        <span>© {new Date().getFullYear()} Hive</span>
+        <Link href="/legal/terms/" className="hover:text-fg">Terms</Link>
+        <Link href="/legal/privacy/" className="hover:text-fg">Privacy</Link>
+        <Link href="/legal/notice/" className="hover:text-fg">Legal notice</Link>
+      </div>
     </footer>
   );
 }

@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { useAppearance } from "@/components/AppearanceProvider";
 import { ACCENTS, ThemePref } from "@/lib/appearance";
 import { AiAssistantsSettings } from "@/components/AiAssistantsSettings";
+import { YourData, HelpAndLegal } from "@/components/AccountData";
 
 const THEME_OPTIONS: { id: ThemePref; label: string; hint: string; icon: typeof Sun }[] = [
   { id: "light", label: "Light", hint: "Always light", icon: Sun },
@@ -161,19 +162,27 @@ export default function SettingsPage() {
       </section>
 
       <AiAssistantsSettings />
+
+      <YourData />
+
+      <HelpAndLegal />
     </div>
   );
 }
 
 function PlanSection() {
-  const { plan, planExpiresAt, planSource, expiredPlan, entitlements, upgradeUrl, loaded } = usePreferences();
+  const { plan, planExpiresAt, planSource, trial, entitlements, upgradeUrl, loaded } = usePreferences();
   if (!loaded) return null;
   const until = planExpiresAt ? new Date(planExpiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : null;
-  const included = [
-    entitlements.modules.length ? "Every module (investments, habits, fitness, goals, notes, weekly review)" : "Money: accounts, transactions, reports",
-    entitlements.budgetTemplates === null ? "Unlimited budget templates" : `${entitlements.budgetTemplates} budget template`,
-    entitlements.mcp ? (entitlements.apiTokens ? "AI assistants and personal tokens" : "Connect AI assistants") : null,
-  ].filter(Boolean);
+  const daysLeft = planExpiresAt ? Math.max(0, Math.ceil((new Date(planExpiresAt).getTime() - Date.now()) / 86_400_000)) : null;
+  const ended = !entitlements.access;
+  const included = ended
+    ? []
+    : [
+        "Money: accounts, transactions, budget templates, reports",
+        "Every module: investments, habits, fitness, goals, notes, weekly review",
+        entitlements.mcp ? (entitlements.apiTokens ? "AI assistants and personal access tokens" : "Connect your AI assistant") : null,
+      ].filter(Boolean);
 
   return (
     <section aria-labelledby="plan-heading" className="bg-surface border border-line rounded-2xl p-5 sm:p-6">
@@ -181,13 +190,13 @@ function PlanSection() {
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">Your plan</p>
           <h2 id="plan-heading" className="mt-1 text-2xl font-semibold tracking-tight text-fg">
-            Hive {PLAN_NAMES[plan]}
+            {ended ? (trial ? "Free trial ended" : "Plan ended") : trial ? "Free trial" : `Hive ${PLAN_NAMES[plan]}`}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            {plan === "FREE"
-              ? expiredPlan
-                ? `Your ${PLAN_NAMES[expiredPlan]} plan has ended. Your data is kept; upgrade to use everything again.`
-                : "Free forever for tracking your money."
+            {ended
+              ? "Choose a plan to keep using Hive. Your data is kept, and you can export or delete it below."
+              : trial
+              ? `${daysLeft} day${daysLeft === 1 ? "" : "s"} left, until ${until}. Nothing is charged automatically: when it ends, you choose a plan.`
               : until
               ? `Active until ${until}.`
               : planSource === "grandfathered"
@@ -202,18 +211,20 @@ function PlanSection() {
             rel="noopener"
             className="h-10 px-4 inline-flex items-center rounded-xl bg-accent text-accent-ink text-sm font-semibold hover:bg-accent-hover"
           >
-            {plan === "FREE" ? "Upgrade" : "See plans"}
+            {ended || trial ? "Choose a plan" : "See plans"}
           </a>
         )}
       </div>
-      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-        {included.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-sm text-fg-2">
-            <Check size={15} className="text-accent mt-0.5 shrink-0" aria-hidden="true" />
-            {f}
-          </li>
-        ))}
-      </ul>
+      {included.length > 0 && (
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+          {included.map((f) => (
+            <li key={f} className="flex items-start gap-2 text-sm text-fg-2">
+              <Check size={15} className="text-accent mt-0.5 shrink-0" aria-hidden="true" />
+              {f}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

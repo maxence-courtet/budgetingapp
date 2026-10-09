@@ -128,7 +128,6 @@ export function Welcome() {
                 </h2>
                 <p className="mt-2 text-[15px] text-muted">
                   Start small if you like. You can change this any time in Settings.
-                  {plan === "FREE" && ` Modules marked ${PLAN_NAMES[MODULE_PLAN]} turn on when you upgrade; your choice is kept.`}
                 </p>
 
                 <div className="mt-5 grid grid-cols-3 gap-2" role="group" aria-label="Quick choices">

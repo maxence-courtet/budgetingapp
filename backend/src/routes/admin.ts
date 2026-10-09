@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { timingSafeEqual } from "crypto";
 import prisma from "../services/prisma";
-import { PLANS, PlanId, planSummary, setPlan } from "../services/plans";
+import { PLANS, PaidPlan, planSummary, setPlan } from "../services/plans";
 
 const router = Router();
 
@@ -30,7 +30,8 @@ router.get("/plan", async (req, res) => {
 });
 
 /**
- * PUT /api/admin/plan { email, plan: FREE|PLUS|PRO, days?: number, expiresAt?: ISO date, source?: string }
+ * PUT /api/admin/plan { email, plan: PLUS|PRO, days?: number, expiresAt?: ISO date, source?: string }
+ * An expiresAt in the past ends the plan (the account locks until a new plan is set).
  * days (from now) or expiresAt set the end date; neither = no end date.
  */
 router.put("/plan", async (req, res) => {
@@ -45,7 +46,7 @@ router.put("/plan", async (req, res) => {
     end = new Date(expiresAt);
     if (Number.isNaN(end.getTime())) return res.status(400).json({ error: "expiresAt must be a date" });
   }
-  const user = await setPlan(email, plan as PlanId, end, typeof source === "string" && source ? source : "manual");
+  const user = await setPlan(email, plan as PaidPlan, end, typeof source === "string" && source ? source : "manual");
   if (!user) return res.status(404).json({ error: "No user with that email (they must sign in once first)" });
   res.json({ email: user.email, storedPlan: user.plan, ...planSummary(user) });
 });

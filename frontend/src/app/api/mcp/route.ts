@@ -17,7 +17,7 @@ async function planAllows(token: string, viaApiKey: boolean): Promise<string | n
   const res = await fetch(`${API_BASE}/me`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) return "Could not check your Hive plan";
   const me = await res.json();
-  if (!me.entitlements?.mcp) return "Connecting an AI assistant is part of Hive Plus. Upgrade in Settings to use it.";
+  if (!me.entitlements?.mcp) return "Connecting an AI assistant needs an active Hive trial or plan. Choose a plan in Settings.";
   if (viaApiKey && !me.entitlements?.apiTokens) return "Personal access tokens are part of Hive Pro. Sign in with Hive from your assistant instead.";
   return null;
 }

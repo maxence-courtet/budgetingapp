@@ -56,7 +56,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 }
 
 export function AiAssistantsSettings() {
-  const { entitlements } = usePreferences();
+  const { entitlements, websiteUrl } = usePreferences();
   const [mcpUrl, setMcpUrl] = useState("");
   const [tokens, setTokens] = useState<Token[] | null>(null);
   const [apps, setApps] = useState<ConnectedApp[] | null>(null);
@@ -136,7 +136,10 @@ export function AiAssistantsSettings() {
         </div>
         <p className="text-sm text-muted">
           Add it as a custom connector (or remote MCP server) in your assistant. Most assistants then open Hive so you
-          can sign in and approve access. If yours asks for a token instead, create one below.
+          can sign in and approve access. If yours asks for a token instead, create one below.{" "}
+          <a href={`${websiteUrl}/connect/`} target="_blank" rel="noopener" className="text-accent font-medium hover:underline">
+            Step-by-step guide for Claude and ChatGPT
+          </a>
         </p>
       </div>
 

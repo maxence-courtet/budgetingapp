@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
-import { PlanError, assertCanAddBudgetTemplate, sendPlanError } from '../services/plans';
 import { normalizeMoneyFlow, sendError } from '../services/validate';
 import { assertOwnRefs } from '../services/ownership';
 
@@ -82,7 +81,6 @@ router.post('/', async (req: Request, res: Response) => {
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
-    await assertCanAddBudgetTemplate(userId);
 
     const template = await prisma.budgetTemplate.create({
       data: { name, userId },
@@ -90,7 +88,6 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json(template);
   } catch (error) {
-    if (error instanceof PlanError) return sendPlanError(res, error);
     console.error('Error creating budget template:', error);
     res.status(500).json({ error: 'Failed to create budget template' });
   }

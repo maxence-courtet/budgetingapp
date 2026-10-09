@@ -1,7 +1,10 @@
 export type Billing = "monthly" | "yearly";
 
+/** Length of the free trial every new account starts with (backend TRIAL_DAYS). */
+export const TRIAL_DAYS = 30;
+
 export interface Plan {
-  id: "free" | "plus" | "pro";
+  id: "plus" | "pro";
   name: string;
   tagline: string;
   /** CHF per month, billed monthly / per year, billed yearly. */
@@ -14,31 +17,16 @@ export interface Plan {
 
 export const PLANS: Plan[] = [
   {
-    id: "free",
-    name: "Free",
-    tagline: "Everything you need to know where your money goes.",
-    monthly: 0,
-    yearly: 0,
-    cta: "Start free",
-    features: [
-      "Unlimited accounts and transactions",
-      "Month-by-month view with planned vs. paid",
-      "Reports and spending rings",
-      "1 budget template",
-      "Search across everything",
-      "Phone and desktop",
-    ],
-  },
-  {
     id: "plus",
     name: "Plus",
     tagline: "Your whole hive: money, habits, goals and your AI assistant.",
     monthly: 4,
     yearly: 40,
     highlight: true,
-    cta: "Choose Plus",
+    cta: "Start your free month",
     features: [
-      "Everything in Free",
+      "Unlimited accounts and transactions",
+      "Months with planned vs. paid, reports and spending rings",
       "Unlimited budget templates",
       "Investments portfolio and trades",
       "Habits, fitness, goals, notes and journal",
@@ -52,7 +40,7 @@ export const PLANS: Plan[] = [
     tagline: "For tinkerers who automate their money.",
     monthly: 6,
     yearly: 60,
-    cta: "Choose Pro",
+    cta: "Start your free month",
     features: [
       "Everything in Plus",
       "Personal access tokens for your own automations",
@@ -62,40 +50,43 @@ export const PLANS: Plan[] = [
   },
 ];
 
-/** Rows for the comparison table: plan id → included (true), not included (false) or a value. */
-export const COMPARISON: { group: string; rows: { label: string; free: string | boolean; plus: string | boolean; pro: string | boolean }[] }[] = [
+type Cell = string | boolean;
+
+/** Rows for the comparison table: included (true), not included (false) or a value. */
+export const COMPARISON: { group: string; rows: { label: string; plus: Cell; pro: Cell }[] }[] = [
   {
     group: "Money",
     rows: [
-      { label: "Accounts and transactions", free: "Unlimited", plus: "Unlimited", pro: "Unlimited" },
-      { label: "Monthly view, planned vs. paid", free: true, plus: true, pro: true },
-      { label: "Reports and spending rings", free: true, plus: true, pro: true },
-      { label: "Budget templates", free: "1", plus: "Unlimited", pro: "Unlimited" },
-      { label: "Investments portfolio", free: false, plus: true, pro: true },
+      { label: "Accounts and transactions", plus: "Unlimited", pro: "Unlimited" },
+      { label: "Monthly view, planned vs. paid", plus: true, pro: true },
+      { label: "Reports and spending rings", plus: true, pro: true },
+      { label: "Budget templates", plus: "Unlimited", pro: "Unlimited" },
+      { label: "Investments portfolio", plus: true, pro: true },
     ],
   },
   {
     group: "Life",
     rows: [
-      { label: "Habits and streaks", free: false, plus: true, pro: true },
-      { label: "Fitness log and plan", free: false, plus: true, pro: true },
-      { label: "Goals with milestones", free: false, plus: true, pro: true },
-      { label: "Notes and daily journal", free: false, plus: true, pro: true },
-      { label: "Weekly review", free: false, plus: true, pro: true },
+      { label: "Habits and streaks", plus: true, pro: true },
+      { label: "Fitness log and plan", plus: true, pro: true },
+      { label: "Goals with milestones", plus: true, pro: true },
+      { label: "Notes and daily journal", plus: true, pro: true },
+      { label: "Weekly review", plus: true, pro: true },
     ],
   },
   {
     group: "Assistants",
     rows: [
-      { label: "Connect your AI assistant (MCP)", free: false, plus: true, pro: true },
-      { label: "Personal access tokens", free: false, plus: false, pro: true },
+      { label: "Connect your AI assistant (MCP)", plus: true, pro: true },
+      { label: "Personal access tokens", plus: false, pro: true },
     ],
   },
   {
-    group: "Support",
+    group: "Your data",
     rows: [
-      { label: "Help by email", free: "Community", plus: "Email", pro: "Priority" },
-      { label: "Early access to new modules", free: false, plus: false, pro: true },
+      { label: "Export everything, any time", plus: true, pro: true },
+      { label: "Help by email", plus: "Email", pro: "Priority" },
+      { label: "Early access to new modules", plus: false, pro: true },
     ],
   },
 ];

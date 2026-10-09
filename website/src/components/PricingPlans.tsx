@@ -6,10 +6,9 @@ import { Billing, COMPARISON, PLANS } from "@/lib/plans";
 import { SIGN_UP } from "@/lib/links";
 
 function price(monthly: number, yearly: number, billing: Billing) {
-  if (monthly === 0) return { main: "CHF 0", sub: "forever" };
   return billing === "monthly"
-    ? { main: `CHF ${monthly}`, sub: "per month" }
-    : { main: `CHF ${(yearly / 12).toFixed(2).replace(/\.00$/, "")}`, sub: `per month, CHF ${yearly} a year` };
+    ? { main: `CHF ${monthly}`, sub: "per month, after your free month" }
+    : { main: `CHF ${(yearly / 12).toFixed(2).replace(/\.00$/, "")}`, sub: `per month, CHF ${yearly} a year, after your free month` };
 }
 
 export function PricingPlans() {
@@ -39,7 +38,7 @@ export function PricingPlans() {
         </div>
       </div>
 
-      <ul className="mt-10 grid gap-4 lg:grid-cols-3 items-stretch">
+      <ul className="mt-10 grid gap-4 md:grid-cols-2 max-w-4xl mx-auto items-stretch">
         {PLANS.map((p) => {
           const { main, sub } = price(p.monthly, p.yearly, billing);
           return (
@@ -56,12 +55,15 @@ export function PricingPlans() {
               )}
               <h2 className="text-lg font-semibold">{p.name}</h2>
               <p className="mt-1 text-sm text-muted min-h-[2.5rem]">{p.tagline}</p>
-              <p className="mt-5 flex items-baseline gap-2">
+              <p className="mt-5 inline-flex w-fit items-center h-6 px-2 rounded-md bg-accent-soft text-accent-text text-xs font-semibold">
+                First month free
+              </p>
+              <p className="mt-2 flex items-baseline gap-2">
                 <span className="text-5xl font-semibold tracking-tight">{main}</span>
               </p>
               <p className="mt-1 text-sm text-muted">{sub}</p>
               <a
-                href={`${SIGN_UP}${p.id === "free" ? "" : `&plan=${p.id}`}`}
+                href={`${SIGN_UP}&plan=${p.id}`}
                 className={`mt-6 h-12 inline-flex items-center justify-center rounded-xl font-semibold ${
                   p.highlight
                     ? "bg-accent text-accent-ink hover:brightness-95"
@@ -94,14 +96,14 @@ function Cell({ v }: { v: string | boolean }) {
 
 /** Full comparison: a table from md up, one list per plan on phones. */
 export function Comparison() {
-  const ids = ["free", "plus", "pro"] as const;
+  const ids = ["plus", "pro"] as const;
   return (
     <>
       <div className="hidden md:block rounded-3xl border border-line bg-surface overflow-hidden">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-line">
-              <th scope="col" className="p-5 text-sm font-medium text-muted w-[40%]">
+              <th scope="col" className="p-5 text-sm font-medium text-muted w-[50%]">
                 Compare plans
               </th>
               {PLANS.map((p) => (
@@ -114,7 +116,7 @@ export function Comparison() {
           {COMPARISON.map((g) => (
             <tbody key={g.group}>
               <tr>
-                <th colSpan={4} scope="colgroup" className="px-5 pt-6 pb-2 font-mono text-[11px] uppercase tracking-[0.1em] text-faint">
+                <th colSpan={3} scope="colgroup" className="px-5 pt-6 pb-2 font-mono text-[11px] uppercase tracking-[0.1em] text-faint">
                   {g.group}
                 </th>
               </tr>

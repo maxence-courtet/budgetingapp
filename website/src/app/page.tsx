@@ -40,7 +40,7 @@ function Hero() {
             href={SIGN_UP}
             className="inline-flex items-center gap-2 h-8 pl-1.5 pr-3 rounded-full border border-line bg-surface text-xs sm:text-sm font-medium text-fg-2 hover:border-line-strong"
           >
-            <span className="h-5 px-2 inline-flex items-center rounded-full bg-accent text-accent-ink text-[11px] font-semibold">Free</span>
+            <span className="h-5 px-2 inline-flex items-center rounded-full bg-accent text-accent-ink text-[11px] font-semibold">1 month free</span>
             No card needed to start
             <ArrowRight size={14} aria-hidden="true" />
           </a>
@@ -60,7 +60,7 @@ function Hero() {
               href={SIGN_UP}
               className="h-12 px-6 inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-accent-ink font-semibold hover:brightness-95"
             >
-              Start free <ArrowRight size={18} aria-hidden="true" />
+              Start your free month <ArrowRight size={18} aria-hidden="true" />
             </a>
             <Link
               href="/pricing/"
@@ -70,7 +70,7 @@ function Hero() {
             </Link>
           </div>
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
-            {["Free plan, no time limit", "Phone and desktop", "Your data stays yours"].map((t) => (
+            {["First month free, no card", "Phone and desktop", "Your data stays yours"].map((t) => (
               <li key={t} className="flex items-center gap-1.5">
                 <Check size={15} className="text-accent-text" aria-hidden="true" />
                 {t}
@@ -334,7 +334,7 @@ const PRIVACY: { icon: LucideIcon; title: string; text: string }[] = [
   {
     icon: Ban,
     title: "No ads, ever",
-    text: "Hive is paid for by subscriptions, not by your attention or your data. The free plan stays free.",
+    text: "Hive is paid for by subscriptions, not by your attention or your data. Export or delete everything whenever you like.",
   },
 ];
 
@@ -367,13 +367,13 @@ function PricingTeaser() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="max-w-xl">
             <Eyebrow>Pricing</Eyebrow>
-            <h2 className="text-balance mt-3 text-3xl sm:text-5xl font-semibold tracking-[-0.03em]">Free to start. Fair when you grow.</h2>
+            <h2 className="text-balance mt-3 text-3xl sm:text-5xl font-semibold tracking-[-0.03em]">One month free. Then a fair price.</h2>
           </div>
           <Link href="/pricing/" className="inline-flex items-center gap-2 font-medium text-accent-text hover:underline">
             Compare plans <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
-        <ul className="mt-10 grid gap-4 md:grid-cols-3">
+        <ul className="mt-10 grid gap-4 md:grid-cols-2">
           {PLANS.map((p) => (
             <li
               key={p.id}
@@ -381,8 +381,8 @@ function PricingTeaser() {
             >
               <p className="font-semibold">{p.name}</p>
               <p className="mt-3">
-                <span className="text-4xl font-semibold tracking-tight">{p.monthly === 0 ? "CHF 0" : `CHF ${p.monthly}`}</span>
-                <span className="text-muted"> / month</span>
+                <span className="text-4xl font-semibold tracking-tight">CHF {p.monthly}</span>
+                <span className="text-muted"> / month after your free month</span>
               </p>
               <p className="mt-2 text-sm text-muted">{p.tagline}</p>
             </li>
@@ -400,13 +400,13 @@ function FinalCta() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 py-24 sm:py-32 text-center">
         <h2 className="text-4xl sm:text-6xl font-semibold tracking-[-0.035em]">Start your hive today.</h2>
         <p className="mt-5 text-lg text-muted">
-          Create an account in a minute. A short tour shows you around, and you choose what Hive shows.
+          Create an account in a minute and use everything free for a month. No card needed, nothing charged automatically.
         </p>
         <a
           href={SIGN_UP}
           className="mt-8 h-12 px-7 inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-accent-ink font-semibold hover:brightness-95"
         >
-          Start free <ArrowRight size={18} aria-hidden="true" />
+          Start your free month <ArrowRight size={18} aria-hidden="true" />
         </a>
       </div>
     </section>

@@ -10,6 +10,7 @@ const NAV = [
   { href: "/#how", label: "How it works" },
   { href: "/#features", label: "Features" },
   { href: "/#privacy", label: "Privacy" },
+  { href: "/connect/", label: "Connect AI" },
   { href: "/pricing/", label: "Pricing" },
 ];
 
@@ -61,7 +62,7 @@ export function SiteHeader() {
             href={SIGN_UP}
             className="h-10 px-4 inline-flex items-center rounded-xl bg-accent text-accent-ink text-sm font-semibold hover:brightness-95"
           >
-            Start free
+            Try it free
           </a>
         </div>
         <button
@@ -97,7 +98,7 @@ export function SiteHeader() {
               Sign in
             </a>
             <a href={SIGN_UP} className="h-12 inline-flex items-center justify-center rounded-xl bg-accent text-accent-ink font-semibold">
-              Start free
+              Try it free
             </a>
           </div>
         </div>

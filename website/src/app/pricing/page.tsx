@@ -5,47 +5,51 @@ import { SIGN_UP } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Hive is free for tracking your money. Plus adds habits, goals and your AI assistant for CHF 4 a month; Pro adds tokens for automations."
+  description: "Try Hive free for a month. Then Plus is CHF 4 a month for money, habits, goals and your AI assistant; Pro adds tokens for automations."
 };
 
 const WHY = [
   {
     icon: Server,
-    title: "Money tracking is free",
-    text: "Logging transactions and seeing your month costs us little to run, so it stays free with no time limit and no cap on transactions.",
+    title: "Try everything first",
+    text: "Your first month includes every module, with no payment details. Nothing renews or charges on its own: when the month ends, you decide.",
   },
   {
     icon: Sparkles,
-    title: "Plus pays for the rest",
-    text: "Habits, fitness, goals, notes and connecting your assistant are what we build next. Plus keeps that going for the price of a coffee a month.",
+    title: "A fair, flat price",
+    text: "Plus costs about the price of one coffee a month and covers hosting, backups and the modules we build next. Yearly billing gives you two months free.",
   },
   {
     icon: HeartHandshake,
     title: "You're the customer",
-    text: "No ads and no selling data: subscriptions pay for hosting and new modules. Yearly billing gives you two months free.",
+    text: "No ads, no selling data, no free tier paid for by your attention. Your data stays yours: export it or delete it whenever you like.",
   },
 ];
 
 const FAQ = [
   {
-    q: "Can I use Hive for free forever?",
-    a: "Yes. The Free plan has no time limit: unlimited accounts and transactions, monthly view, reports and one budget template.",
+    q: "How does the free month work?",
+    a: "Create an account and use all of Hive Plus for 30 days, with no card needed. You'll see how many days are left in Settings and a reminder in the last week. Nothing is charged automatically.",
   },
   {
-    q: "What happens to my data if I downgrade?",
-    a: "Nothing is deleted. Modules that aren't in your plan are hidden until you upgrade again, with your habits, goals and notes intact.",
+    q: "What happens when the free month ends?",
+    a: "You choose Plus or Pro to keep going. Until you do, the app is paused, but nothing is deleted: you can still download all your data or delete your account from Settings.",
   },
   {
     q: "What is 'connect your AI assistant'?",
-    a: "Hive speaks MCP, the standard AI assistants use for tools. Add Hive as a connector in Claude, ChatGPT or another MCP assistant, sign in, and it can read and add to your Hive, only for your account.",
+    a: "Hive speaks MCP, the standard AI assistants use for tools. Add Hive as a connector in Claude, ChatGPT or another MCP assistant, sign in, and it can read and add to your Hive, only for your account. See the step-by-step guide.",
   },
   {
     q: "Which currency and how do I pay?",
-    a: "Prices are in Swiss francs. Paid plans are opening soon: create a free account now and you can upgrade from the app as soon as they launch.",
+    a: "Prices are in Swiss francs. Online payment is opening soon; until then, start your free month and we'll let you know when you can choose a plan in the app.",
   },
   {
     q: "Can I cancel any time?",
-    a: "Yes. Monthly plans stop at the end of the month; yearly plans run until the end of the year you paid for.",
+    a: "Yes. Monthly plans stop at the end of the month; yearly plans run until the end of the year you paid for. Your data stays available to export.",
+  },
+  {
+    q: "Can I get my data out, or have it deleted?",
+    a: "Yes, any time: Settings → Your data lets you download everything as a file and delete your account and all its data for good.",
   },
 ];
 
@@ -57,16 +61,16 @@ export default function PricingPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24">
           <div className="text-center max-w-2xl mx-auto">
             <p className="font-mono text-[11px] sm:text-xs uppercase tracking-[0.14em] text-accent-text">Pricing</p>
-            <h1 className="text-balance mt-3 text-[40px] leading-[1.05] sm:text-6xl font-semibold tracking-[-0.035em]">Simple plans. Start for free.</h1>
+            <h1 className="text-balance mt-3 text-[40px] leading-[1.05] sm:text-6xl font-semibold tracking-[-0.035em]">One month free. Then two simple plans.</h1>
             <p className="mt-5 text-lg text-muted">
-              Track your money for free. Upgrade when you want your habits, goals and your own AI assistant in the same place.
+              Everything included for your first month, no card needed. Then keep your money, habits, goals and your own AI assistant in one place.
             </p>
           </div>
           <div className="mt-10">
             <PricingPlans />
           </div>
           <p className="mt-6 text-center text-sm text-muted">
-            Paid plans open soon. Start free now and upgrade from the app when they do.
+            No card needed for the free month, and nothing is charged automatically. Online payment is opening soon.
           </p>
         </div>
       </section>
@@ -116,7 +120,7 @@ export default function PricingPage() {
             href={SIGN_UP}
             className="h-12 px-7 inline-flex items-center justify-center rounded-xl bg-accent text-accent-ink font-semibold hover:brightness-95"
           >
-            Start free
+            Start your free month
           </a>
         </div>
       </section>

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { getMe, updateMe } from "@/lib/api";
 import { ALL_MODULES, ModuleId } from "@/lib/nav";
-import { DEFAULT_UPGRADE_URL, Entitlements, PlanId, UNKNOWN_ENTITLEMENTS } from "@/lib/plans";
+import { DEFAULT_WEBSITE_URL, Entitlements, PlanId, UNKNOWN_ENTITLEMENTS } from "@/lib/plans";
 
 interface Preferences {
   /** False until the user's choices have loaded; everything shows in the meantime. */
@@ -17,10 +17,15 @@ interface Preferences {
   plan: PlanId;
   planExpiresAt: string | null;
   planSource: string | null;
-  /** A paid plan that has ended (the account is back on Free). */
-  expiredPlan: PlanId | null;
+  /** The account is in its free trial (until planExpiresAt). */
+  trial: boolean;
+  trialDays: number;
   entitlements: Entitlements;
   upgradeUrl: string;
+  /** The public website: guides and legal pages. */
+  websiteUrl: string;
+  healthConsentAt: string | null;
+  setHealthConsent: (given: boolean) => Promise<void>;
   onboarded: boolean;
   name: string;
   save: (changes: { modules?: ModuleId[]; onboarded?: true }) => Promise<void>;
@@ -43,9 +48,12 @@ interface Me {
   plan: PlanId;
   planExpiresAt: string | null;
   planSource: string | null;
-  expiredPlan: PlanId | null;
+  trial: boolean;
+  trialDays: number;
   entitlements: Entitlements;
   upgradeUrl: string | null;
+  websiteUrl: string | null;
+  healthConsentAt: string | null;
 }
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
@@ -53,13 +61,18 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [chosen, setChosen] = useState<ModuleId[]>(ALL_MODULES);
   const [onboarded, setOnboarded] = useState(true);
   const [name, setName] = useState("");
-  const [plan, setPlan] = useState<Pick<Me, "plan" | "planExpiresAt" | "planSource" | "expiredPlan" | "entitlements" | "upgradeUrl">>({
-    plan: "FREE",
+  const [plan, setPlan] = useState<
+    Pick<Me, "plan" | "planExpiresAt" | "planSource" | "trial" | "trialDays" | "entitlements" | "upgradeUrl" | "websiteUrl" | "healthConsentAt">
+  >({
+    plan: "PLUS",
     planExpiresAt: null,
     planSource: null,
-    expiredPlan: null,
+    trial: false,
+    trialDays: 30,
     entitlements: UNKNOWN_ENTITLEMENTS,
     upgradeUrl: null,
+    websiteUrl: null,
+    healthConsentAt: null,
   });
   const [replaying, setReplaying] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
@@ -71,9 +84,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       plan: me.plan,
       planExpiresAt: me.planExpiresAt,
       planSource: me.planSource,
-      expiredPlan: me.expiredPlan,
+      trial: me.trial,
+      trialDays: me.trialDays,
       entitlements: me.entitlements ?? UNKNOWN_ENTITLEMENTS,
       upgradeUrl: me.upgradeUrl,
+      websiteUrl: me.websiteUrl,
+      healthConsentAt: me.healthConsentAt,
     });
   }, []);
 
@@ -97,6 +113,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     [apply]
   );
 
+  const setHealthConsent = useCallback(async (given: boolean) => apply(await updateMe({ healthConsent: given })), [apply]);
+
   const canUse = useCallback((m: ModuleId) => plan.entitlements.modules.includes(m), [plan.entitlements]);
 
   return (
@@ -107,7 +125,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         chosenModules: chosen,
         canUse,
         ...plan,
-        upgradeUrl: plan.upgradeUrl || DEFAULT_UPGRADE_URL,
+        upgradeUrl: plan.upgradeUrl || `${plan.websiteUrl || DEFAULT_WEBSITE_URL}/pricing/`,
+        websiteUrl: plan.websiteUrl || DEFAULT_WEBSITE_URL,
+        setHealthConsent,
         onboarded,
         name,
         save,

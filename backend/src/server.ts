@@ -18,7 +18,8 @@ import noteRoutes from './routes/notes';
 import statsRoutes from './routes/stats';
 import meRoutes from './routes/me';
 import adminRoutes from './routes/admin';
-import { requireModule } from './services/plans';
+import { requireAccess, requireModule } from './services/plans';
+import { requireHealthConsent } from './routes/me';
 import { runDataFixes } from './services/dataFixes';
 
 const app = express();
@@ -41,21 +42,24 @@ app.get('/api/health', (_req, res) => {
 
 // Finance routes (existing)
 app.use('/api/me', authMiddleware, meRoutes);
-app.use('/api/accounts', authMiddleware, accountRoutes);
-app.use('/api/categories', authMiddleware, categoryRoutes);
-app.use('/api/transactions', authMiddleware, transactionRoutes);
-app.use('/api/budgets', authMiddleware, budgetRoutes);
-app.use('/api/months', authMiddleware, monthRoutes);
-app.use('/api/reports', authMiddleware, reportRoutes);
-app.use('/api/search', authMiddleware, searchRoutes);
+// Everything below needs an active trial or plan; /api/me (settings, export, deletion) never does.
+const active = [authMiddleware, requireAccess()];
+app.use('/api/accounts', active, accountRoutes);
+app.use('/api/categories', active, categoryRoutes);
+app.use('/api/transactions', active, transactionRoutes);
+app.use('/api/budgets', active, budgetRoutes);
+app.use('/api/months', active, monthRoutes);
+app.use('/api/reports', active, reportRoutes);
+app.use('/api/search', active, searchRoutes);
 
 // Paid modules: the plan guard runs before the router (services/plans.ts).
 app.use('/api/investments', authMiddleware, requireModule('investments'), investmentRoutes);
 app.use('/api/habits', authMiddleware, requireModule('habits'), habitRoutes);
-app.use('/api/fitness', authMiddleware, requireModule('fitness'), fitnessRoutes);
+// Fitness holds health data, which needs the user's explicit consent.
+app.use('/api/fitness', authMiddleware, requireModule('fitness'), requireHealthConsent, fitnessRoutes);
 app.use('/api/goals', authMiddleware, requireModule('goals'), goalRoutes);
 app.use('/api/notes', authMiddleware, requireModule('notes'), noteRoutes);
-app.use('/api/stats', statsRoutes);
+app.use('/api/stats', active, statsRoutes);
 
 // Setting plans by hand until the payment provider is wired in (ADMIN_TOKEN).
 app.use('/api/admin', adminRoutes);

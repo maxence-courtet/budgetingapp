@@ -125,3 +125,48 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Long-form legal and guide text. */
+.legal h2 {
+  margin-top: 2.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.legal h3 {
+  margin-top: 1.5rem;
+  font-weight: 600;
+}
+.legal p,
+.legal li {
+  margin-top: 0.75rem;
+  color: var(--fg-2);
+  line-height: 1.7;
+}
+.legal ul {
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.legal a {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+.legal table {
+  margin-top: 1rem;
+  width: 100%;
+  font-size: 0.9rem;
+  border-collapse: collapse;
+}
+.legal th,
+.legal td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--fg-2);
+}
+.legal th {
+  color: var(--fg);
+  font-weight: 600;
+}
