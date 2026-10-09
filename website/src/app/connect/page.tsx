@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, Check, ChevronRight, Copy, KeyRound, Plug, Plus, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, Copy, KeyRound, MessageSquare, Plug, Plus, ShieldCheck } from "lucide-react";
 import { APP_URL, SIGN_UP } from "@/lib/links";
 
 export const metadata: Metadata = {
@@ -80,6 +80,35 @@ function CopyAddress() {
   );
 }
 
+/** One row of a connector's permission list, as drawn in the sketches. */
+function PermissionRow({ label, tools, value }: { label: string; tools: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2.5">
+      <div className="min-w-0">
+        <p className="font-medium">{label}</p>
+        <p className="text-xs text-muted truncate">{tools}</p>
+      </div>
+      <span className="shrink-0 h-8 px-3 inline-flex items-center gap-1 rounded-lg border border-line-strong bg-canvas text-xs">
+        {value} <ChevronRight size={12} className="rotate-90" aria-hidden="true" />
+      </span>
+    </div>
+  );
+}
+
+const EXAMPLES = [
+  {
+    title: "Plan next year's budget",
+    prompt:
+      "Look at what I spent and saved in Hive last year, then create a monthly budget template that saves 10% more than last year. Cut first where I overspent most, keep rent and insurance as they are, and show me the plan before you save it.",
+    note: "Reads last year's months, then creates a template with its lines (two write steps you approve).",
+  },
+  { title: "Check a category", prompt: "How much did I spend on dining out in the last three months, and is it more than my budget?" },
+  { title: "Log on the go", prompt: "Log CHF 18 for lunch today on my main account, category Restaurants." },
+  { title: "Monthly review", prompt: "Summarise last month: income, spending by category, savings rate, and the three biggest surprises." },
+  { title: "Import a statement", prompt: "Here is my bank statement (pasted below). Add these transactions to Hive and pick the closest category for each." },
+  { title: "Money and habits", prompt: "Did my spending change in the weeks I kept my workout habit? Look at the last two months." },
+];
+
 function Approve({ n }: { n: number }) {
   return (
     <Step n={n} title="Sign in to Hive and allow access" visual={<HiveShot name="consent" alt="Hive asking: Connect My AI assistant to Hive? with Cancel and Allow" className="max-w-sm mx-auto" />}>
@@ -109,6 +138,7 @@ export default function ConnectPage() {
             {[
               ["#claude", "Claude"],
               ["#chatgpt", "ChatGPT"],
+              ["#examples", "Examples"],
               ["#other", "Other assistants"],
               ["#help", "Troubleshooting"],
             ].map(([href, label]) => (
@@ -204,7 +234,30 @@ export default function ConnectPage() {
           >
             <p>
               In a chat, make sure Hive is switched on in the tools menu (the <Plus size={13} className="inline -mt-0.5" aria-label="plus" /> or
-              tools button), then ask. Claude asks before it changes anything in your Hive.
+              tools button), then ask. Try the <a href="#examples" className="text-accent-text underline">examples below</a>.
+            </p>
+          </Step>
+          <Step
+            n={6}
+            title="Choose what Claude may do on its own"
+            visual={
+              <Sketch path={["Settings", "Connectors", "Hive", "Tool permissions"]}>
+                <div className="space-y-2.5 text-sm">
+                  <PermissionRow label="Read-only tools" tools="get accounts, get month detail, search transactions…" value="Always allow" />
+                  <PermissionRow label="Write tools" tools="create transaction, create budget template, log habit…" value="Needs approval" />
+                </div>
+              </Sketch>
+            }
+          >
+            <p>
+              Optional. In <strong className="text-fg">Settings → Connectors</strong>, open Hive to see its tools. Hive marks every
+              tool as either <strong className="text-fg">read-only</strong> (it only looks at your data) or a{" "}
+              <strong className="text-fg">write</strong> tool (it adds or changes something), so Claude lists them in two groups.
+            </p>
+            <p>
+              A good setup: read-only tools on <strong className="text-fg">Always allow</strong>, so questions get answered without
+              interruptions, and write tools on <strong className="text-fg">Needs approval</strong>, so Claude asks you before it
+              saves anything. You can also set single tools differently, or block one entirely. None of Hive&apos;s tools delete data.
             </p>
           </Step>
         </ol>
@@ -278,11 +331,28 @@ export default function ConnectPage() {
               }
             >
               <p>
-                Start a chat, choose Developer mode from the tools menu and select Hive. ChatGPT asks you to confirm before it
-                adds or changes anything.
+                Start a chat, choose Developer mode from the tools menu and select Hive. Read-only tools run straight away; for
+                write tools ChatGPT shows what it is about to send and asks you to confirm, and you can let it remember your
+                choice for the rest of the chat.
               </p>
             </Step>
           </ol>
+        </div>
+      </section>
+
+      <section id="examples" className="scroll-mt-20 mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20">
+        <h2 className="text-3xl sm:text-4xl font-semibold tracking-[-0.025em]">Things to ask</h2>
+        <p className="mt-2 text-muted">Copy one into a chat with Hive switched on. Your assistant picks the right Hive tools by itself.</p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {EXAMPLES.map(({ title, prompt, note }, i) => (
+            <div key={title} className={`min-w-0 rounded-2xl border bg-surface p-5 ${i === 0 ? "border-accent sm:col-span-2 lg:col-span-3" : "border-line"}`}>
+              <p className="flex items-center gap-2 font-semibold">
+                <MessageSquare size={16} className="text-accent-text" aria-hidden="true" /> {title}
+              </p>
+              <p className="mt-3 rounded-2xl rounded-br-md bg-accent-soft px-3 py-2 text-[15px] leading-relaxed">&ldquo;{prompt}&rdquo;</p>
+              {note && <p className="mt-2 text-xs text-muted">{note}</p>}
+            </div>
+          ))}
         </div>
       </section>
 
