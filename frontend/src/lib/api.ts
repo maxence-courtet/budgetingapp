@@ -216,6 +216,6 @@ export const deleteNote = (id: string) =>
 
 // Stats
 export const getLifeOverview = () => fetchApi('/stats/life-overview');
-export const getNetWorthHistory = (months: number) => fetchApi(`/stats/net-worth?months=${months}`);
+export const getNetWorthHistory = (months: number | "all") => fetchApi(`/stats/net-worth?months=${months}`);
 export const getPatterns = (days = 90) => fetchApi(`/stats/patterns?days=${days}`);
 export const getWeeklySummary = (week: "current" | "previous") => fetchApi(`/stats/weekly-summary?week=${week}`);

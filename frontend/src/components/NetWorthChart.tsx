@@ -13,10 +13,12 @@ interface Point {
   investmentsSource: "live" | "snapshot" | "cost";
 }
 
-const RANGES = [
+const RANGES: { months: number | "all"; label: string }[] = [
   { months: 6, label: "6M" },
   { months: 12, label: "1Y" },
   { months: 24, label: "2Y" },
+  { months: 60, label: "5Y" },
+  { months: "all", label: "All" },
 ];
 const HEIGHT = 180;
 const PAD = { top: 12, right: 12, bottom: 24, left: 56 };
@@ -49,7 +51,7 @@ function ticks(min: number, max: number) {
 }
 
 export function NetWorthChart() {
-  const [range, setRange] = useState(12);
+  const [range, setRange] = useState<number | "all">(12);
   const [data, setData] = useState<Point[] | null>(null);
   const [error, setError] = useState("");
   const [hover, setHover] = useState<number | null>(null);
@@ -205,13 +207,20 @@ function Plot({
   const line = data.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.total).toFixed(1)}`).join(" ");
   const area = `${line} L${x(data.length - 1).toFixed(1)},${PAD.top + innerH} L${x(0).toFixed(1)},${PAD.top + innerH} Z`;
   const labelEvery = Math.ceil(data.length / Math.max(2, Math.floor(innerW / 64)));
+  // Beyond three years, label only Januaries (as years), every n-th year so they fit.
+  const yearly = data.length > 36;
+  const yearEvery = Math.max(1, Math.ceil(data.length / 12 / Math.max(2, Math.floor(innerW / 48))));
   // Which months get an axis label: every n-th, plus the last; drop a regular one that would crowd the last.
   const shown = data
     .map((_, i) => i)
-    .filter((i) => i === data.length - 1 || (i % labelEvery === 0 && x(data.length - 1) - x(i) >= 64));
+    .filter((i) =>
+      yearly
+        ? data[i].month.endsWith("-01") && Number(data[i].month.slice(0, 4)) % yearEvery === 0
+        : i === data.length - 1 || (i % labelEvery === 0 && x(data.length - 1) - x(i) >= 64)
+    );
   // On ranges longer than a year, the first label and every change of year carry the year.
   const withYear = new Set(
-    data.length > 12 ? shown.filter((i, k) => k === 0 || data[i].month.slice(0, 4) !== data[shown[k - 1]].month.slice(0, 4)) : []
+    data.length > 12 && !yearly ? shown.filter((i, k) => k === 0 || data[i].month.slice(0, 4) !== data[shown[k - 1]].month.slice(0, 4)) : []
   );
   // Guard against an index from a previous, longer range.
   if (hover !== null && hover >= data.length) hover = null;
@@ -255,7 +264,7 @@ function Plot({
         {data.map((p, i) =>
           shown.includes(i) ? (
             <text key={p.month} x={x(i)} y={HEIGHT - 6} textAnchor="middle" className="fill-muted font-mono text-[11px]">
-              {monthLabel(p.month)}
+              {yearly ? p.month.slice(0, 4) : monthLabel(p.month)}
               {withYear.has(i) ? ` ’${p.month.slice(2, 4)}` : ""}
             </text>
           ) : null

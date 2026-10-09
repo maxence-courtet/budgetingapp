@@ -147,7 +147,8 @@ router.get("/life-overview", async (req, res) => {
 });
 
 router.get("/net-worth", async (req, res) => {
-  const months = Math.min(60, Math.max(2, Number(req.query.months) || 12));
+  // "all" goes back to the first recorded transaction, trade or snapshot.
+  const months = req.query.months === "all" ? "all" : Math.min(120, Math.max(2, Number(req.query.months) || 12));
   try {
     res.json(await netWorthHistory(req.userId!, months));
   } catch (err: any) {
