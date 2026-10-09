@@ -107,12 +107,11 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
 - First-run walkthrough (`components/Welcome.tsx`) ending with a module choice. Stored per user: `User.modules` / `User.onboardedAt`, read and written through `GET` / `PATCH /api/me`. Changeable in Settings → Your Hive, which can also replay the tour.
 
 ### Phase 8 — Plans and access control ✅
-- Each user has `plan` (FREE | PLUS | PRO), `planExpiresAt` (null = no end) and `planSource` (grandfathered | manual | later the payment provider). A paid plan past its end date counts as Free; nothing is deleted, the paid parts just lock.
+- Each user has `plan` (PLUS | PRO), `planExpiresAt` (null = no end) and `planSource` (grandfathered | manual | later the payment provider). A plan or trial past its end date pauses the account; nothing is deleted.
 - What each plan unlocks lives in one place, `backend/src/services/plans.ts` (`ENTITLEMENTS`), mirroring the pricing page (`website/src/lib/plans.ts`):
-  - Free: money (accounts, transactions, months, reports), 1 budget template, no AI assistants.
-  - Plus: every module (investments, habits, fitness, goals, notes, weekly review), unlimited templates, AI assistants over MCP.
+  - Plus (also the 30-day trial): money, every module (investments, habits, fitness, goals, notes, weekly review), AI assistants over MCP.
   - Pro: as Plus, plus personal access tokens.
-- Enforced by the backend (403 with `code: "PLAN_REQUIRED"` and `requiredPlan`): module routes and the budget template count. `/api/mcp` checks the plan before serving (Plus for assistants, Pro for `hive_` tokens). The app hides or locks the same things and shows upgrade cards; `GET /api/me` returns `plan`, `planExpiresAt`, `expiredPlan`, `entitlements` and `upgradeUrl`.
+- Enforced by the backend (403 with `code: "PLAN_REQUIRED"` and `requiredPlan`): module routes, and an active trial or plan for all data routes. `/api/mcp` checks the plan before serving (Plus for assistants, Pro for `hive_` tokens). The app hides or locks the same things and shows upgrade cards; `GET /api/me` returns `plan`, `planExpiresAt`, `expiredPlan`, `entitlements` and `upgradeUrl`.
 - Existing users keep full access: at startup, users created before `GRANDFATHER_BEFORE` (default 2026-10-07T15:30Z) who never had a plan become Pro with no end date.
 - Granting plans by hand until payments exist (backend env `ADMIN_TOKEN`; without it the admin API is off):
   ```bash
@@ -127,6 +126,12 @@ All feature work is on `feature/life-hub-expansion`. **Never merge or push direc
 ### Phase 9 — In-app AI removed ✅
 - The built-in AI (Next moves card, AI-written weekly review, `POST /api/stats/insights` and `/weekly-review`, `services/ai.ts`) is gone; it is kept on the `claude/with-ai-agent` branch to bring back if needed. The `AiUsage` table stays in the schema so `prisma db push` doesn't drop it.
 - The MCP server stays: assistants use `get_weekly_summary` and write the review themselves, saving it with `add_note` (noteType REVIEW) so it appears under Past reviews.
+
+### Phase 10 — Free trial, data rights, legal ✅
+- No Free plan: new accounts get a 30-day trial of Plus (`TRIAL_DAYS`); afterwards the app pauses until a plan is chosen, with export and deletion still available. Admin can end a plan with an `expiresAt` in the past.
+- Settings → Your data: full JSON export (`/api/account/export`), account deletion (`/api/account/delete`), health-data consent for Fitness (withdrawal deletes fitness data).
+- Sign-up records the accepted terms version. Website has `/legal/terms`, `/legal/privacy`, `/legal/notice` (operator details in `website/src/lib/company.ts`) and the `/connect` guide.
+- Architecture, compliance checklist and strategy docs: [docs/](docs/README.md).
 
 ### Phase 5 — AI Analytics (removed in Phase 9)
 - Backend endpoint `GET /api/stats/life-overview` ✅
