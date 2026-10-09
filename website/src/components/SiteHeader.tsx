@@ -7,9 +7,9 @@ import { HiveLogo } from "@/components/HiveLogo";
 import { SIGN_IN, SIGN_UP } from "@/lib/links";
 
 const NAV = [
-  { href: "/#how", label: "How it works" },
-  { href: "/#features", label: "Features" },
-  { href: "/#privacy", label: "Privacy" },
+  { href: "/how-it-works/", label: "How it works" },
+  { href: "/features/", label: "Features" },
+  { href: "/privacy/", label: "Privacy" },
   { href: "/connect/", label: "Connect AI" },
   { href: "/pricing/", label: "Pricing" },
 ];

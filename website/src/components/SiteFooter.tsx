@@ -15,8 +15,9 @@ export function SiteFooter() {
         <div>
           <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-faint">Product</h2>
           <ul className="mt-3 space-y-2 text-sm">
-            <li><Link href="/#how" className="text-fg-2 hover:text-fg">How it works</Link></li>
-            <li><Link href="/#features" className="text-fg-2 hover:text-fg">Features</Link></li>
+            <li><Link href="/how-it-works/" className="text-fg-2 hover:text-fg">How it works</Link></li>
+            <li><Link href="/features/" className="text-fg-2 hover:text-fg">Features</Link></li>
+            <li><Link href="/privacy/" className="text-fg-2 hover:text-fg">Privacy</Link></li>
             <li><Link href="/pricing/" className="text-fg-2 hover:text-fg">Pricing</Link></li>
             <li><Link href="/connect/" className="text-fg-2 hover:text-fg">Connect your AI assistant</Link></li>
           </ul>

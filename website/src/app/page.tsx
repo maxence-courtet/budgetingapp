@@ -1,15 +1,7 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  Check,
-  Plus,
-  Lock,
-  Ban,
-  EyeOff,
-  Plug,
-  LucideIcon,
-} from "lucide-react";
+import { ArrowRight, Check, LucideIcon, Lock, PieChart, Plug, Repeat, Sparkles } from "lucide-react";
 import { Browser, Phone } from "@/components/Frames";
+import { Eyebrow, PageEnd } from "@/components/Marketing";
 import { SIGN_UP } from "@/lib/links";
 import { PLANS } from "@/lib/plans";
 
@@ -17,24 +9,18 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <HowItWorks />
-      <Features />
-      <Privacy />
+      <SellingPoints />
       <PricingTeaser />
-      <FinalCta />
+      <PageEnd next={{ href: "/how-it-works/", label: "How it works" }} />
     </>
   );
-}
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <p className="font-mono text-[11px] sm:text-xs uppercase tracking-[0.14em] text-accent-text">{children}</p>;
 }
 
 function Hero() {
   return (
     <section className="relative overflow-hidden">
       <div className="honeycomb absolute inset-0 -z-10" aria-hidden="true" />
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-10 sm:pt-20 pb-16 sm:pb-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 sm:pt-20 pb-12 sm:pb-24">
         <div className="max-w-3xl rise">
           <a
             href={SIGN_UP}
@@ -52,8 +38,7 @@ function Hero() {
             </span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-muted max-w-2xl leading-relaxed">
-            Hive is a calm place to track what you earn, spend and save, month by month. Add habits and goals when
-            you&apos;re ready, and keep everything in one calm place.
+            Track what you earn, spend and save, month by month. Add habits and goals when you&apos;re ready.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <a
@@ -80,7 +65,7 @@ function Hero() {
         </div>
 
         {/* Desktop: the app in a browser with a phone in front. Phones: two phones. */}
-        <div className="relative mt-14 sm:mt-20 rise" style={{ animationDelay: "120ms" }}>
+        <div className="relative mt-10 sm:mt-20 rise" style={{ animationDelay: "120ms" }}>
           <div className="hidden md:block pl-[12%]">
             <Browser name="home" alt="Hive on a computer: net worth, this month in and out, and its chart over the year" priority />
           </div>
@@ -90,9 +75,8 @@ function Hero() {
             priority
             className="hidden md:block absolute left-0 bottom-[-5%] w-[20%] max-w-[230px]"
           />
-          <div className="md:hidden grid grid-cols-2 gap-4 items-start">
-            <Phone name="home" alt="Hive on a phone: net worth and its chart" priority />
-            <Phone name="reports" alt="Hive on a phone: where the month's money went" priority className="mt-10" />
+          <div className="md:hidden mx-auto w-[62%] max-w-[260px]">
+            <Phone name="reports" alt="Hive on a phone: where the month's money went" priority />
           </div>
         </div>
       </div>
@@ -100,259 +84,33 @@ function Hero() {
   );
 }
 
-const STEPS = [
-  {
-    title: "Set it up once",
-    text: "Add your accounts and categories, then describe a typical month as a budget template: salary in, rent and groceries out, savings moved aside.",
-    visual: (
-      <div className="space-y-2" aria-hidden="true">
-        {[
-          ["Salary", "+6,400", "text-accent-text"],
-          ["Rent", "−1,850", "text-fg"],
-          ["To savings", "800", "text-muted"],
-        ].map(([a, b, c]) => (
-          <div key={a} className="flex items-center justify-between h-9 px-3 rounded-lg bg-canvas border border-line text-sm">
-            <span>{a}</span>
-            <span className={`font-mono ${c}`}>{b}</span>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    title: "Log it in seconds",
-    text: "Tap + from anywhere, type the amount, pick a category. Hive files it into the right month, and you tick off planned items as they're paid.",
-    visual: (
-      <div className="flex items-center gap-3" aria-hidden="true">
-        <span className="w-12 h-12 rounded-2xl bg-accent text-accent-ink flex items-center justify-center shadow-lg shadow-black/10">
-          <Plus size={22} strokeWidth={2.4} />
-        </span>
-        <div className="flex-1 h-12 px-3 rounded-xl bg-canvas border border-line flex items-center justify-between text-sm">
-          <span>Dining out</span>
-          <span className="font-mono">−42.50</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    title: "See where it goes",
-    text: "Each month gets a ring of where the money went, spending and transfers alike. Your net worth builds into a chart you'll want to keep growing.",
-    visual: (
-      <svg viewBox="0 0 120 64" className="w-full h-16" aria-hidden="true">
-        <g transform="translate(32 32) rotate(-90)">
-          {[
-            ["#2a78d6", 0, 30],
-            ["#eb6834", 31, 22],
-            ["#1baf7a", 54, 16],
-            ["#eda100", 71, 12],
-            ["#a9a8a2", 84, 15],
-          ].map(([c, start, len]) => (
-            <circle
-              key={String(c)}
-              r="22"
-              fill="none"
-              stroke={String(c)}
-              strokeWidth="9"
-              pathLength="100"
-              strokeDasharray={`${len} ${100 - Number(len)}`}
-              strokeDashoffset={-Number(start)}
-            />
-          ))}
-        </g>
-        <polyline points="68,50 78,42 88,44 98,30 108,24 116,14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-text" />
-      </svg>
-    ),
-  },
+const POINTS: { icon: LucideIcon; title: string; text: string; href: string }[] = [
+  { icon: Repeat, title: "Plan once", text: "Describe a typical month, then see every month against it.", href: "/features/#budget-templates" },
+  { icon: PieChart, title: "See where it went", text: "A ring per month, savings and investments included.", href: "/features/#reports" },
+  { icon: Sparkles, title: "More than money", text: "Habits, goals, fitness and notes, only if you want them.", href: "/features/#life" },
+  { icon: Plug, title: "Works with your AI", text: "Ask Claude or ChatGPT about your money.", href: "/connect/" },
+  { icon: Lock, title: "Private by design", text: "No ads, no trackers. Export or delete any time.", href: "/privacy/" },
 ];
 
-function HowItWorks() {
+function SellingPoints() {
   return (
-    <section id="how" className="scroll-mt-20 mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28">
-      <div className="max-w-2xl">
-        <Eyebrow>How it works</Eyebrow>
-        <h2 className="text-balance mt-3 text-3xl sm:text-5xl font-semibold tracking-[-0.03em]">Three habits, and the numbers take care of themselves.</h2>
-      </div>
-      <ol className="mt-12 grid gap-4 md:grid-cols-3">
-        {STEPS.map((s, i) => (
-          <li key={s.title} className="rounded-3xl border border-line bg-surface p-6 sm:p-7 flex flex-col">
-            <span className="font-mono text-sm text-faint">0{i + 1}</span>
-            <h3 className="mt-2 text-xl font-semibold tracking-tight">{s.title}</h3>
-            <p className="mt-2 text-[15px] text-muted leading-relaxed">{s.text}</p>
-            <div className="mt-auto pt-6">{s.visual}</div>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-function FeatureRow({
-  eyebrow,
-  title,
-  text,
-  points,
-  visual,
-  flip,
-}: {
-  eyebrow: string;
-  title: string;
-  text: string;
-  points: string[];
-  visual: React.ReactNode;
-  flip?: boolean;
-}) {
-  return (
-    <div className="grid items-center gap-10 md:gap-16 md:grid-cols-2">
-      <div className={flip ? "md:order-2" : ""}>
-        <Eyebrow>{eyebrow}</Eyebrow>
-        <h3 className="mt-3 text-2xl sm:text-4xl font-semibold tracking-[-0.025em]">{title}</h3>
-        <p className="mt-4 text-[17px] text-muted leading-relaxed">{text}</p>
-        <ul className="mt-6 space-y-3">
-          {points.map((p) => (
-            <li key={p} className="flex gap-3 text-[15px] text-fg-2">
-              <span className="mt-0.5 w-5 h-5 shrink-0 rounded-full bg-accent-soft flex items-center justify-center">
-                <Check size={12} strokeWidth={3} className="text-accent-text" aria-hidden="true" />
+    <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-16 sm:pb-24">
+      <Eyebrow>Why Hive</Eyebrow>
+      <ul className="mt-5 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        {POINTS.map(({ icon: Icon, title, text, href }) => (
+          <li key={title}>
+            <Link href={href} className="group h-full flex sm:flex-col gap-4 sm:gap-3 rounded-2xl border border-line bg-surface p-4 sm:p-5 hover:border-line-strong">
+              <span className="w-10 h-10 shrink-0 rounded-xl bg-accent-soft flex items-center justify-center">
+                <Icon size={18} className="text-accent-text" aria-hidden="true" />
               </span>
-              {p}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className={flip ? "md:order-1" : ""}>{visual}</div>
-    </div>
-  );
-}
-
-function Features() {
-  return (
-    <section id="features" className="scroll-mt-20 bg-surface border-y border-line">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28 space-y-24 sm:space-y-32">
-        <FeatureRow
-          eyebrow="Months"
-          title="Every month, at a glance"
-          text="Money in, money out and what's left, against what you planned. Tap any transaction to fix it; the month keeps itself tidy."
-          points={["Planned vs. paid for income and spending", "Budget lines and one-off spending, side by side", "Search every transaction you've ever logged"]}
-          visual={
-            <div className="mx-auto w-[72%] max-w-[300px]">
-              <Phone name="month" alt="A month in Hive: money in, out and net, then the month's transactions" />
-            </div>
-          }
-        />
-        <FeatureRow
-          flip
-          eyebrow="Reports"
-          title="See where it actually went"
-          text="A ring for every month shows the categories that took the most, and the money you moved to savings or investments, so a good month looks like one."
-          points={["Top categories at a glance, the rest one tap away", "Transfers to savings and investments, not just spending", "Balances per account and category"]}
-          visual={
-            <div className="mx-auto w-[72%] max-w-[300px]">
-              <Phone name="reports" alt="The spending ring in Hive's monthly report" />
-            </div>
-          }
-        />
-        <FeatureRow
-          eyebrow="Budget templates"
-          title="Plan a typical month once"
-          text="Describe your usual month (salary, rent, insurance, what you put aside) and apply it to any month in one tap. The plan's own ring shows where it sends your money."
-          points={["Income, spending and transfers between accounts", "See each account's monthly impact", "Apply to a month and tick items off as they're paid"]}
-          visual={<Browser name="budget" alt="A budget template in Hive with its planned-spending ring" />}
-        />
-        <FeatureRow
-          flip
-          eyebrow="Life"
-          title="More than money, when you want it"
-          text="Turn on the modules that matter to you: habits with streaks, a fitness log, goals with milestones, notes and a daily journal. Hide the rest; Hive stays as simple as you need."
-          points={["Choose your modules in a short welcome tour", "Check in a habit from your phone in one tap", "A weekly review that ties money and habits together"]}
-          visual={
-            <div className="mx-auto grid grid-cols-2 gap-4 max-w-[480px]">
-              <Phone name="habits" alt="Habits in Hive with streaks and the last seven days" />
-              <Phone name="goals" alt="Goals in Hive with progress and milestones" className="mt-12" />
-            </div>
-          }
-        />
-        <FeatureRow
-          eyebrow="Assistants"
-          title="Works with the AI you already use"
-          text="Connect Claude, ChatGPT or any assistant that supports MCP, and ask it about your money in plain words. It reads and adds to your Hive, and only ever sees your own data."
-          points={["Ask questions about any month, category or goal", "Add transactions or log a habit from a chat", "Revoke an assistant's access any time in Settings"]}
-          visual={<AssistantMock />}
-        />
-      </div>
-    </section>
-  );
-}
-
-function AssistantMock() {
-  return (
-    <div
-      className="rounded-3xl border border-line bg-canvas p-4 sm:p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)]"
-      aria-label="Example of a conversation with an AI assistant connected to Hive"
-    >
-      <div className="flex items-center gap-2 pb-4 border-b border-line">
-        <span className="w-8 h-8 rounded-lg bg-accent-soft flex items-center justify-center">
-          <Plug size={15} className="text-accent-text" aria-hidden="true" />
-        </span>
-        <p className="text-sm font-semibold">Your assistant</p>
-        <span className="ml-auto h-6 px-2 inline-flex items-center rounded-md bg-surface border border-line text-[11px] font-mono text-muted">
-          Hive connected
-        </span>
-      </div>
-      <div className="mt-4 space-y-3 text-[15px]">
-        <p className="ml-auto max-w-[85%] w-fit rounded-2xl rounded-br-md bg-accent text-accent-ink px-4 py-2.5">
-          How much did I spend eating out last month?
-        </p>
-        <div className="max-w-[90%] rounded-2xl rounded-bl-md bg-surface border border-line px-4 py-3 text-fg-2">
-          <p>
-            <span className="font-semibold text-fg">$570</span> across 6 visits in September, $330 over your plan of $240. Pizza
-            night and sushi were the biggest.
-          </p>
-        </div>
-        <p className="ml-auto max-w-[85%] w-fit rounded-2xl rounded-br-md bg-accent text-accent-ink px-4 py-2.5">
-          Log $18 for lunch today.
-        </p>
-        <div className="max-w-[90%] rounded-2xl rounded-bl-md bg-surface border border-line px-4 py-3 text-fg-2 flex items-center gap-2">
-          <Check size={16} className="text-accent-text shrink-0" aria-hidden="true" />
-          Added to October under Dining out.
-        </div>
-      </div>
-      <p className="mt-4 text-[11px] text-faint">An example conversation; answers come from your own Hive data.</p>
-    </div>
-  );
-}
-
-const PRIVACY: { icon: LucideIcon; title: string; text: string }[] = [
-  {
-    icon: Lock,
-    title: "Only yours",
-    text: "Every request is tied to your account. Connected assistants get their own revocable access and can only see your data.",
-  },
-  {
-    icon: EyeOff,
-    title: "Nothing in the background",
-    text: "Hive doesn't send your data anywhere on its own. An assistant only sees it when you connect one, and you can disconnect it any time.",
-  },
-  {
-    icon: Ban,
-    title: "No ads, ever",
-    text: "Hive is paid for by subscriptions, not by your attention or your data. Export or delete everything whenever you like.",
-  },
-];
-
-function Privacy() {
-  return (
-    <section id="privacy" className="scroll-mt-20 mx-auto max-w-6xl px-4 sm:px-6 py-20 sm:py-28">
-      <div className="max-w-2xl">
-        <Eyebrow>Privacy</Eyebrow>
-        <h2 className="text-balance mt-3 text-3xl sm:text-5xl font-semibold tracking-[-0.03em]">Your finances are personal. Hive treats them that way.</h2>
-      </div>
-      <ul className="mt-12 grid gap-4 md:grid-cols-3">
-        {PRIVACY.map(({ icon: Icon, title, text }) => (
-          <li key={title} className="rounded-3xl border border-line bg-surface p-6 sm:p-7">
-            <span className="w-11 h-11 rounded-2xl bg-accent-soft flex items-center justify-center">
-              <Icon size={20} className="text-accent-text" aria-hidden="true" />
-            </span>
-            <h3 className="mt-5 text-lg font-semibold tracking-tight">{title}</h3>
-            <p className="mt-2 text-[15px] text-muted leading-relaxed">{text}</p>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1 font-semibold">
+                  {title}
+                  <ArrowRight size={14} className="text-faint group-hover:text-accent-text transition-colors" aria-hidden="true" />
+                </span>
+                <span className="mt-1 block text-sm text-muted leading-relaxed">{text}</span>
+              </span>
+            </Link>
           </li>
         ))}
       </ul>
@@ -393,22 +151,3 @@ function PricingTeaser() {
   );
 }
 
-function FinalCta() {
-  return (
-    <section className="relative overflow-hidden">
-      <div className="honeycomb absolute inset-0 -z-10" aria-hidden="true" />
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 py-24 sm:py-32 text-center">
-        <h2 className="text-4xl sm:text-6xl font-semibold tracking-[-0.035em]">Start your hive today.</h2>
-        <p className="mt-5 text-lg text-muted">
-          Create an account in a minute and use everything free for a month. No card needed, nothing charged automatically.
-        </p>
-        <a
-          href={SIGN_UP}
-          className="mt-8 h-12 px-7 inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-accent-ink font-semibold hover:brightness-95"
-        >
-          Start your free month <ArrowRight size={18} aria-hidden="true" />
-        </a>
-      </div>
-    </section>
-  );
-}
