@@ -4,13 +4,18 @@ import { api } from "../client";
 export const investmentTools = [
   {
     name: "get_portfolio",
-    description: "Get current investment portfolio with live market prices, holdings, cost basis, and gain/loss per position.",
+    description:
+      "Get current investment portfolio with live market prices, holdings, cost basis, and gain/loss per position, " +
+      "plus each investment account with its cash, holdings value and total.",
     inputSchema: z.object({}),
     handler: async () => api("/investments/portfolio"),
   },
   {
     name: "log_trade",
-    description: "Record an investment trade (buy or sell). Creates a pending trade for user validation.",
+    description:
+      "Record an investment trade (buy or sell) in an investment account (account type 'investment'). " +
+      "A buy takes quantity × price + fees from that account's cash; a sell adds quantity × price − fees. " +
+      "Money moved to the broker should be logged first as a TRANSFER into the account.",
     inputSchema: z.object({
       ticker: z.string().describe("Stock/crypto ticker symbol, e.g. AAPL, BTC-USD"),
       assetType: z.enum(["STOCK", "ETF", "CRYPTO", "OTHER"]),
@@ -25,6 +30,19 @@ export const investmentTools = [
     handler: async (data: any) => {
       return api("/investments/trades", { method: "POST", body: data });
     },
+  },
+  {
+    name: "add_investment_fee",
+    description:
+      "Record a fee an investment account charges on its own (custody, management, account fee). It is taken from " +
+      "that account's cash as paid spending under the 'Investment fees' category. Fees of a single trade go on the trade.",
+    inputSchema: z.object({
+      accountId: z.string().describe("Investment account ID"),
+      amount: z.number().positive(),
+      date: z.string().optional().describe("ISO date YYYY-MM-DD, default today"),
+      description: z.string().optional().describe("e.g. 'Custody fee Q3'"),
+    }),
+    handler: async (data: any) => api("/investments/fees", { method: "POST", body: data }),
   },
   {
     name: "get_market_price",

@@ -2,6 +2,7 @@
 
 import { localISO } from "@/lib/date";
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
   getTrades,
@@ -206,7 +207,9 @@ function TradeFields({
         </select>
         {showAccountTip && (
           <p className="mt-1 text-xs text-muted">
-            Tip: add an account of type “Investment” on the Accounts page to keep trades separate.
+            Trades go in an investment account. Set an account&apos;s type to Investment on the{" "}
+            <Link href="/accounts" className="text-accent-text underline">Accounts page</Link>, or create one on the{" "}
+            <Link href="/investments" className="text-accent-text underline">Investments page</Link>.
           </p>
         )}
       </div>
@@ -226,7 +229,7 @@ function TradeFields({
       </div>
 
       <p className="sm:col-span-2 lg:col-span-3 text-sm text-muted" aria-live="polite">
-        {form.tradeType === "SELL" ? "You receive" : "Total cost"}{" "}
+        {form.tradeType === "SELL" ? "Added to the account's cash" : "Taken from the account's cash"}{" "}
         <span className="font-mono font-semibold text-fg">{total == null || isNaN(total) ? "—" : fmt(total)}</span>
       </p>
     </div>
@@ -277,9 +280,20 @@ export default function TradesPage() {
     loadData();
   }, [loadData]);
 
-  // Prefer investment accounts; with none yet, any account can hold trades.
+  // Trades go in investment accounts only.
   const investmentOnly = accounts.filter((a) => String(a.type).toLowerCase() === "investment");
-  const investmentAccounts = investmentOnly.length ? investmentOnly : accounts;
+  const investmentAccounts = investmentOnly;
+
+  // Opened from an account on the Investments page (?account=…): start a trade in that account.
+  // With a single investment account, preselect it.
+  useEffect(() => {
+    if (!investmentOnly.length) return;
+    const wanted = new URLSearchParams(window.location.search).get("account");
+    const pick = investmentOnly.find((a) => a.id === wanted)?.id ?? (investmentOnly.length === 1 ? investmentOnly[0].id : "");
+    if (wanted) setShowCreate(true);
+    if (pick) setForm((f) => (f.accountId ? f : { ...f, accountId: pick }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts]);
 
   // ── Create ────────────────────────────────────────────────────────────────
 

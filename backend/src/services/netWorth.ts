@@ -1,5 +1,5 @@
 import prisma from "./prisma";
-import { aggregateHoldings } from "./portfolio";
+import { aggregateHoldings, tradeCash } from "./portfolio";
 import { getQuotes } from "./marketPrice";
 import { endOfTodayUtc } from "./validate";
 
@@ -53,15 +53,19 @@ export async function netWorthHistory(userId: string, months: number | "all"): P
   const snapshots = allSnapshots.filter((s) => s.month >= ends[0].start);
 
   // Money into an account counts +, out of an account −; transfers between own accounts cancel out.
-  const signed = (t: (typeof txns)[number]) => (t.toAccountId ? t.amount : 0) - (t.fromAccountId ? t.amount : 0);
-  // Running balance after each transaction (sorted by date), so each month-end is a binary search.
+  // Trades move their account's cash too (a buy turns cash into holdings, fees are spent).
+  const moves = [
+    ...txns.map((t) => ({ date: t.date, delta: (t.toAccountId ? t.amount : 0) - (t.fromAccountId ? t.amount : 0) })),
+    ...trades.map((t) => ({ date: t.date, delta: tradeCash(t) })),
+  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+  // Running cash after each move (sorted by date), so each month-end is a binary search.
   const running: number[] = [];
-  txns.forEach((t, i) => running.push((i ? running[i - 1] : 0) + signed(t)));
+  moves.forEach((m, i) => running.push((i ? running[i - 1] : 0) + m.delta));
   const cashAt = (end: Date) => {
-    let lo = 0, hi = txns.length;
+    let lo = 0, hi = moves.length;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (txns[mid].date <= end) lo = mid + 1;
+      if (moves[mid].date <= end) lo = mid + 1;
       else hi = mid;
     }
     return lo ? running[lo - 1] : 0;

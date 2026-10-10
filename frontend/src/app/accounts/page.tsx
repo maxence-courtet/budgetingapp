@@ -190,6 +190,9 @@ export default function AccountsPage() {
                   </option>
                 ))}
               </select>
+              {formType === "investment" && (
+                <p className="mt-1 text-xs text-muted">Shows on the Investments page, where you log its trades and fees.</p>
+              )}
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="account-notes" className="block text-sm font-medium text-fg-2 mb-1">

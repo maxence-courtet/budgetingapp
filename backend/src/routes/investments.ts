@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
-import { aggregateHoldings, findOversell } from "../services/portfolio";
+import { aggregateHoldings, findOversell, tradeCashByAccount } from "../services/portfolio";
 import { getQuote, getQuotes, clearCache } from "../services/marketPrice";
 import { BadRequest, date as parseDate, num, oneOf, text, endOfTodayUtc } from "../services/validate";
 
@@ -32,6 +32,9 @@ async function assertNoOversell(userId: string, candidate: ReturnType<typeof che
     throw new BadRequest(`This would sell more ${candidate.ticker} than you held on that date`);
   }
 }
+
+const NOT_INVESTMENT = "Trades go in an investment account. Set the account's type to Investment first (Settings → Accounts).";
+export const FEES_CATEGORY = "Investment fees";
 
 const router = Router();
 router.use(authMiddleware);
@@ -71,6 +74,7 @@ router.post("/trades", async (req, res) => {
 
   const account = await prisma.account.findFirst({ where: { id: accountId, userId } });
   if (!account) return res.status(404).json({ error: "Account not found" });
+  if (account.type !== "investment") return res.status(400).json({ error: NOT_INVESTMENT });
   await assertNoOversell(userId, fields);
 
   const trade = await prisma.investmentTrade.create({
@@ -115,6 +119,7 @@ router.put("/trades/:id", async (req, res) => {
   if (body.accountId !== undefined && body.accountId !== trade.accountId) {
     const account = await prisma.account.findFirst({ where: { id: body.accountId, userId } });
     if (!account) return res.status(404).json({ error: "Account not found" });
+    if (account.type !== "investment") return res.status(400).json({ error: NOT_INVESTMENT });
     accountId = account.id;
   }
 
@@ -148,6 +153,51 @@ router.delete("/trades/:id", async (req, res) => {
   }
   await prisma.investmentTrade.delete({ where: { id } });
   res.status(204).send();
+});
+
+/**
+ * Record a fee charged by the investment account itself (custody, management, account fees):
+ * a paid spending from that account under the "Investment fees" category, in the month of its date.
+ * Fees of a single trade belong on the trade instead.
+ */
+router.post("/fees", async (req, res) => {
+  const userId = req.userId!;
+  try {
+    const { accountId } = req.body ?? {};
+    const account = accountId ? await prisma.account.findFirst({ where: { id: String(accountId), userId } }) : null;
+    if (!account) return res.status(404).json({ error: "Account not found" });
+    if (account.type !== "investment") return res.status(400).json({ error: NOT_INVESTMENT });
+    const amount = num(req.body.amount, "amount", { positive: true })!;
+    const date = parseDate(req.body.date ?? new Date().toISOString().slice(0, 10), "date")!;
+    const description = text(req.body.description, "description", { optional: true, max: 200 }) ?? "Account fee";
+
+    const transaction = await prisma.$transaction(async (tx) => {
+      const category =
+        (await tx.category.findFirst({ where: { userId, name: { equals: FEES_CATEGORY, mode: "insensitive" } } })) ??
+        (await tx.category.create({ data: { userId, name: FEES_CATEGORY } }));
+      const year = date.getUTCFullYear();
+      const month = date.getUTCMonth() + 1;
+      const m =
+        (await tx.month.findFirst({ where: { userId, year, month } })) ?? (await tx.month.create({ data: { userId, year, month } }));
+      return tx.transaction.create({
+        data: {
+          userId,
+          type: "SPENDING",
+          status: "PAID",
+          amount,
+          date,
+          description,
+          fromAccountId: account.id,
+          categoryId: category.id,
+          monthId: m.id,
+        },
+      });
+    });
+    res.status(201).json(transaction);
+  } catch (e) {
+    if (e instanceof BadRequest) return res.status(400).json({ error: e.message });
+    throw e;
+  }
 });
 
 // Portfolio — aggregate trades into holdings with live prices
@@ -201,7 +251,44 @@ router.get("/portfolio", async (req, res) => {
   const pricedCost = priced.reduce((s, h) => s + h.costBasisTotal, 0);
   const currencies = [...new Set(priced.map((h) => h.currency).filter(Boolean))];
 
+  // Investment accounts (and any other account holding trades), each with its cash and its own holdings.
+  const valueOf = (ticker: string, quantity: number, cost: number) => {
+    const q = prices.get(ticker);
+    return q?.price ? quantity * q.price : cost;
+  };
+  const [accounts, txnSums, cashFromTrades] = await Promise.all([
+    prisma.account.findMany({
+      where: { userId, OR: [{ type: "investment" }, { investmentTrades: { some: {} } }] },
+      orderBy: { name: "asc" },
+    }),
+    Promise.all([
+      prisma.transaction.groupBy({
+        by: ["toAccountId"],
+        where: { userId, status: "PAID", date: { lte: endOfTodayUtc() }, toAccountId: { not: null } },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.groupBy({
+        by: ["fromAccountId"],
+        where: { userId, status: "PAID", date: { lte: endOfTodayUtc() }, fromAccountId: { not: null } },
+        _sum: { amount: true },
+      }),
+    ]),
+    tradeCashByAccount(userId),
+  ]);
+  const inBy = new Map(txnSums[0].map((g) => [g.toAccountId, g._sum.amount ?? 0]));
+  const outBy = new Map(txnSums[1].map((g) => [g.fromAccountId, g._sum.amount ?? 0]));
+  const byAccount = accounts.map((a) => {
+    const own = aggregateHoldings(trades.filter((t) => t.accountId === a.id)).map((h) => {
+      const value = valueOf(h.ticker, h.quantity, h.totalCost);
+      return { ticker: h.ticker, assetType: h.assetType, quantity: h.quantity, costBasisTotal: h.totalCost, currentValue: value };
+    });
+    const cash = (inBy.get(a.id) ?? 0) - (outBy.get(a.id) ?? 0) + (cashFromTrades.get(a.id) ?? 0);
+    const holdingsValue = own.reduce((s, h) => s + h.currentValue, 0);
+    return { id: a.id, name: a.name, type: a.type, cash, holdingsValue, total: cash + holdingsValue, holdings: own };
+  });
+
   res.json({
+    accounts: byAccount,
     holdings: portfolio,
     summary: {
       totalValue,

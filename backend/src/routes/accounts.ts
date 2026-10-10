@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
 import { text, normalizeAccountType, sendError, endOfTodayUtc } from '../services/validate';
+import { tradeCashByAccount } from '../services/portfolio';
 
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
@@ -18,15 +19,17 @@ router.get('/', async (req: Request, res: Response) => {
     // Balances as of today in two grouped queries (not two per account):
     // PAID transactions dated in the future don't count yet.
     const asOfToday = { userId, status: 'PAID', date: { lte: endOfTodayUtc() } };
-    const [incoming, outgoing] = await Promise.all([
+    const [incoming, outgoing, trades] = await Promise.all([
       prisma.transaction.groupBy({ by: ['toAccountId'], where: { ...asOfToday, toAccountId: { not: null } }, _sum: { amount: true } }),
       prisma.transaction.groupBy({ by: ['fromAccountId'], where: { ...asOfToday, fromAccountId: { not: null } }, _sum: { amount: true } }),
+      tradeCashByAccount(userId),
     ]);
     const inBy = new Map(incoming.map((g) => [g.toAccountId, g._sum.amount ?? 0]));
     const outBy = new Map(outgoing.map((g) => [g.fromAccountId, g._sum.amount ?? 0]));
     const result = accounts.map((account) => ({
       ...account,
-      balance: (inBy.get(account.id) ?? 0) - (outBy.get(account.id) ?? 0),
+      // Buys and sells move the account's cash (see tradeCash).
+      balance: (inBy.get(account.id) ?? 0) - (outBy.get(account.id) ?? 0) + (trades.get(account.id) ?? 0),
     }));
 
     res.json(result.sort(byName));
@@ -121,9 +124,13 @@ router.get('/:id', async (req: Request, res: Response) => {
       .filter((t) => t.fromAccountId === id)
       .reduce((sum, t) => sum + t.amount, 0);
 
+    const tradesNet = (await tradeCashByAccount(userId, id)).get(id) ?? 0;
+
     res.json({
       ...account,
-      balance: incoming - outgoing,
+      balance: incoming - outgoing + tradesNet,
+      // Cash spent on buys (negative) or received from sells, fees included; not part of categoryBalances.
+      tradesNet,
       categoryBalances,
       transactions,
     });

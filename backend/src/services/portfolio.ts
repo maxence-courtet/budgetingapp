@@ -1,4 +1,29 @@
 import { InvestmentTrade } from "@prisma/client";
+import prisma from "./prisma";
+import { endOfTodayUtc } from "./validate";
+
+type CashTrade = Pick<InvestmentTrade, "tradeType" | "quantity" | "pricePerUnit" | "fees">;
+
+/**
+ * What a trade does to the cash of its account: a buy spends price × quantity plus fees,
+ * a sell brings in price × quantity minus fees. So moving money to a broker and buying with it
+ * leaves net worth unchanged, and fees lower it.
+ */
+export function tradeCash(t: CashTrade): number {
+  const gross = t.quantity * t.pricePerUnit;
+  return t.tradeType === "BUY" ? -(gross + t.fees) : gross - t.fees;
+}
+
+/** Cash effect of each account's trades up to today, by account id. */
+export async function tradeCashByAccount(userId: string, accountId?: string): Promise<Map<string, number>> {
+  const trades = await prisma.investmentTrade.findMany({
+    where: { userId, date: { lte: endOfTodayUtc() }, ...(accountId ? { accountId } : {}) },
+    select: { accountId: true, tradeType: true, quantity: true, pricePerUnit: true, fees: true },
+  });
+  const out = new Map<string, number>();
+  for (const t of trades) out.set(t.accountId, (out.get(t.accountId) ?? 0) + tradeCash(t));
+  return out;
+}
 
 export interface Holding {
   ticker: string;

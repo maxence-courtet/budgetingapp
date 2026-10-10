@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
 import { endOfTodayUtc } from '../services/validate';
+import { tradeCashByAccount } from '../services/portfolio';
 
 const router = Router();
 
@@ -13,6 +14,7 @@ router.get('/account-summary', async (req: Request, res: Response) => {
       orderBy: { name: 'asc' },
     });
 
+    const trades = await tradeCashByAccount(userId);
     const result = await Promise.all(
       accounts.map(async (account) => {
         const paidTransactions = await prisma.transaction.findMany({
@@ -64,9 +66,11 @@ router.get('/account-summary', async (req: Request, res: Response) => {
           name: account.name,
           type: account.type,
           notes: account.notes,
-          balance: totalIn - totalOut,
+          balance: totalIn - totalOut + (trades.get(account.id) ?? 0),
           totalIn,
           totalOut,
+          // Cash spent on buys or received from sells (fees included), outside the categories.
+          tradesNet: trades.get(account.id) ?? 0,
           categories,
         };
       })

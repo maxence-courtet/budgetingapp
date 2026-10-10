@@ -10,6 +10,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { InvestmentAccounts, InvestmentAccount } from "@/components/InvestmentAccounts";
 
 interface Holding {
   ticker: string;
@@ -85,6 +86,7 @@ export default function InvestmentsPage() {
   const router = useRouter();
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
+  const [accounts, setAccounts] = useState<InvestmentAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -100,6 +102,7 @@ export default function InvestmentsPage() {
       const data = await getPortfolio(isRefresh);
       setHoldings(data.holdings ?? []);
       setSummary(data.summary ?? null);
+      setAccounts(data.accounts ?? []);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -170,6 +173,8 @@ export default function InvestmentsPage() {
         </section>
       )}
 
+      <InvestmentAccounts accounts={accounts} onChange={() => loadPortfolio()} />
+
       {summary && summary.unpricedCount > 0 && (
         <p role="status" className="text-sm rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-800 px-4 py-3">
           Live prices are unavailable for {summary.unpricedCount} of {summary.holdingsCount} holdings right now, so{" "}
@@ -183,7 +188,7 @@ export default function InvestmentsPage() {
       )}
 
       {holdings.length === 0 ? (
-        <EmptyState
+        accounts.length > 0 && <EmptyState
           message="No trades recorded yet."
           cta={{
             label: "Add your first trade",
