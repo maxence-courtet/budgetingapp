@@ -1,17 +1,21 @@
 "use client";
 
 import { localISO } from "@/lib/date";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
+  getFxRate,
+  getMarketPrice,
   getTrades,
   getAccounts,
   createTrade,
   updateTrade,
   deleteTrade,
 } from "@/lib/api";
-import { fmt } from "@/lib/format";
+import { fmt, fmtIn } from "@/lib/format";
+import { CURRENCIES } from "@/lib/currencies";
+import { usePreferences } from "@/components/PreferencesProvider";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -34,6 +38,10 @@ interface Trade {
   quantity: number;
   pricePerUnit: number;
   fees: number;
+  /** Currency of price and fees; null = the user's currency. */
+  currency: string | null;
+  /** 1 unit of `currency` in the user's currency on the trade date. */
+  fxRate: number | null;
   date: string;
   notes?: string;
   account: { id: string; name: string };
@@ -54,6 +62,9 @@ const blankForm = () => ({
   quantity: "",
   pricePerUnit: "",
   fees: "",
+  /** "" = the user's own currency. */
+  currency: "",
+  fxRate: "",
   notes: "",
 });
 
@@ -71,7 +82,14 @@ const inputCls =
 const labelCls = "block text-sm font-medium text-muted mb-1";
 
 function formValid(f: TradeForm) {
-  return Boolean(f.ticker.trim() && f.quantity && f.pricePerUnit);
+  return Boolean(f.ticker.trim() && f.quantity && f.pricePerUnit && (!f.currency || parseFloat(f.fxRate) > 0));
+}
+
+/** Currency fields for the API: the user's own currency is sent as is, a foreign one with its rate. */
+function moneyFields(f: TradeForm, base: string) {
+  return f.currency && f.currency !== base
+    ? { currency: f.currency, fxRate: parseFloat(f.fxRate) }
+    : { currency: base, fxRate: null };
 }
 
 /** The fields of a trade, shared by the new-trade card and the edit card. One column on phones. */
@@ -90,6 +108,46 @@ function TradeFields({
 }) {
   const set = (key: keyof TradeForm) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
+  const { currency: base } = usePreferences();
+  const tradeCurrency = form.currency || base;
+  const foreign = tradeCurrency !== base;
+  const [fxNote, setFxNote] = useState("");
+  // An existing trade opens with its saved rate; only a change of currency or date looks it up again.
+  const keepSavedRate = useRef(Boolean(form.fxRate));
+
+  // Look up the exchange rate for the trade date whenever the currency or the date changes.
+  useEffect(() => {
+    if (!foreign || !form.date) return;
+    if (keepSavedRate.current) {
+      keepSavedRate.current = false;
+      return;
+    }
+    let cancelled = false;
+    setFxNote("Looking up the rate…");
+    getFxRate(tradeCurrency, form.date)
+      .then((r: { rate: number }) => {
+        if (cancelled) return;
+        setForm((f) => ({ ...f, fxRate: String(Number(r.rate.toFixed(6))) }));
+        setFxNote(`Rate on ${form.date}. Change it to match your broker's.`);
+      })
+      .catch(() => !cancelled && setFxNote("No rate found automatically: enter your broker's rate."));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tradeCurrency, form.date, foreign]);
+
+  // A ticker's own currency (e.g. USD for AAPL) becomes the trade's currency, unless one was picked.
+  function guessCurrency() {
+    const ticker = form.ticker.trim();
+    if (!ticker || form.currency) return;
+    getMarketPrice(ticker)
+      .then((q: { currency?: string }) => {
+        const c = q.currency === "GBp" || q.currency === "GBX" ? "GBP" : q.currency?.toUpperCase();
+        if (c && /^[A-Z]{3}$/.test(c)) setForm((f) => (f.currency ? f : { ...f, currency: c === base ? "" : c }));
+      })
+      .catch(() => undefined);
+  }
   const total =
     form.quantity && form.pricePerUnit
       ? totalCost(parseFloat(form.quantity), parseFloat(form.pricePerUnit), parseFloat(form.fees || "0"), form.tradeType)
@@ -131,6 +189,7 @@ function TradeFields({
           autoCapitalize="characters"
           value={form.ticker}
           onChange={(e) => setForm((f) => ({ ...f, ticker: e.target.value.toUpperCase() }))}
+          onBlur={guessCurrency}
           className={inputCls}
           placeholder="e.g. AAPL"
         />
@@ -174,6 +233,43 @@ function TradeFields({
           placeholder="0.00"
         />
       </div>
+
+      <div>
+        <label htmlFor={`${idPrefix}-currency`} className={labelCls}>Currency</label>
+        <select
+          id={`${idPrefix}-currency`}
+          value={tradeCurrency}
+          onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value === base ? "" : e.target.value, fxRate: "" }))}
+          className={inputCls}
+        >
+          {(CURRENCIES.some((c) => c.code === tradeCurrency) ? CURRENCIES : [{ code: tradeCurrency, name: "" }, ...CURRENCIES]).map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.code}
+              {c.code === base ? " (yours)" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {foreign && (
+        <div>
+          <label htmlFor={`${idPrefix}-fx`} className={labelCls}>
+            1 {tradeCurrency} in {base}
+          </label>
+          <input
+            id={`${idPrefix}-fx`}
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            value={form.fxRate}
+            onChange={set("fxRate")}
+            className={inputCls}
+            placeholder="Exchange rate"
+          />
+          {fxNote && <p className="mt-1 text-xs text-muted">{fxNote}</p>}
+        </div>
+      )}
 
       <div>
         <label htmlFor={`${idPrefix}-fees`} className={labelCls}>
@@ -230,7 +326,10 @@ function TradeFields({
 
       <p className="sm:col-span-2 lg:col-span-3 text-sm text-muted" aria-live="polite">
         {form.tradeType === "SELL" ? "Added to the account's cash" : "Taken from the account's cash"}{" "}
-        <span className="font-mono font-semibold text-fg">{total == null || isNaN(total) ? "—" : fmt(total)}</span>
+        <span className="font-mono font-semibold text-fg">{total == null || isNaN(total) ? "—" : fmtIn(total, tradeCurrency)}</span>
+        {foreign && total != null && !isNaN(total) && parseFloat(form.fxRate) > 0 && (
+          <span className="font-mono text-fg-2"> = {fmt(total * parseFloat(form.fxRate))}</span>
+        )}
       </p>
     </div>
   );
@@ -239,6 +338,7 @@ function TradeFields({
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function TradesPage() {
+  const { currency: baseCurrency } = usePreferences();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [filterTicker, setFilterTicker] = useState("");
   const [filterAccount, setFilterAccount] = useState("");
@@ -316,6 +416,7 @@ export default function TradesPage() {
         quantity: parseFloat(form.quantity),
         pricePerUnit: parseFloat(form.pricePerUnit),
         fees: parseFloat(form.fees || "0"),
+        ...moneyFields(form, baseCurrency),
         notes: form.notes.trim() || undefined,
       });
       resetCreateForm();
@@ -340,6 +441,8 @@ export default function TradesPage() {
       quantity: String(trade.quantity),
       pricePerUnit: String(trade.pricePerUnit),
       fees: String(trade.fees ?? 0),
+      currency: trade.currency && trade.currency !== baseCurrency ? trade.currency : "",
+      fxRate: trade.fxRate != null ? String(trade.fxRate) : "",
       notes: trade.notes ?? "",
     });
     setShowCreate(false);
@@ -364,6 +467,7 @@ export default function TradesPage() {
         quantity: parseFloat(editForm.quantity),
         pricePerUnit: parseFloat(editForm.pricePerUnit),
         fees: parseFloat(editForm.fees || "0"),
+        ...moneyFields(editForm, baseCurrency),
         notes: editForm.notes.trim() || null, // null clears the note
       });
       cancelEdit();
@@ -586,8 +690,11 @@ export default function TradesPage() {
                             <span className="hidden sm:inline text-xs text-faint">{trade.assetType}</span>
                           </span>
                           <span className="block mt-0.5 text-xs text-muted truncate">
-                            {trade.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })} × {fmt(trade.pricePerUnit)}
-                            {trade.fees ? <span className="hidden sm:inline"> + {fmt(trade.fees)} fees</span> : null}
+                            {trade.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })} × {fmtIn(trade.pricePerUnit, trade.currency)}
+                            {trade.fees ? <span className="hidden sm:inline"> + {fmtIn(trade.fees, trade.currency)} fees</span> : null}
+                            {trade.currency && trade.currency !== baseCurrency && trade.fxRate ? (
+                              <span className="hidden sm:inline"> · 1 {trade.currency} = {fmt(trade.fxRate)}</span>
+                            ) : null}
                             {trade.account?.name ? ` · ${trade.account.name}` : ""}
                             {trade.notes ? <span className="hidden sm:inline"> · {trade.notes}</span> : null}
                           </span>
@@ -597,7 +704,7 @@ export default function TradesPage() {
                           title={isBuy ? "Total cost" : "Proceeds"}
                         >
                           {isBuy ? "−" : "+"}
-                          {fmt(total)}
+                          {fmt(total * (trade.fxRate ?? 1))}
                         </span>
                         <Pencil size={14} className="hidden sm:block shrink-0 text-faint" aria-hidden="true" />
                       </button>

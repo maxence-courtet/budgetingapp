@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RefreshCw, ListOrdered } from "lucide-react";
 import { getPortfolio } from "@/lib/api";
-import { fmt, getDisplayCurrency } from "@/lib/format";
+import { fmt, fmtIn, getDisplayCurrency } from "@/lib/format";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -181,9 +181,10 @@ export default function InvestmentsPage() {
           {summary.unpricedCount === 1 ? "it is" : "they are"} valued at what you paid. Try Refresh in a few minutes.
         </p>
       )}
-      {summary && summary.currencies?.length > 1 && (
+      {summary && summary.currencies?.length > 0 && (
         <p className="text-xs text-muted">
-          Holdings are priced in {summary.currencies.join(" and ")}; totals add them without currency conversion.
+          Prices in {summary.currencies.join(", ")} are converted to {getDisplayCurrency()} at today&apos;s rates; what you paid
+          uses each trade&apos;s own rate.
         </p>
       )}
 
@@ -238,7 +239,7 @@ export default function InvestmentsPage() {
                       </div>
                       <div className="mt-1 flex items-baseline justify-between gap-3 text-xs">
                         <span className="text-muted truncate min-w-0">
-                          {qty} × {priced ? fmt(h.currentPrice!) : "price n/a"}
+                          {qty} × {h.currentPrice != null ? fmtIn(h.currentPrice, h.currency) : "price n/a"}
                           {h.currency && h.currency !== getDisplayCurrency() ? ` ${h.currency}` : ""}
                         </span>
                         <span className={`font-mono font-medium shrink-0 ${gainLossColor(h.gainLoss)}`}>{gain}</span>
@@ -261,7 +262,7 @@ export default function InvestmentsPage() {
                         {priced ? (
                           <>
                             <p className="text-fg">
-                              {fmt(h.currentPrice!)}
+                              {fmtIn(h.currentPrice!, h.currency)}
                               {h.currency && h.currency !== getDisplayCurrency() && <span className="ml-1 text-xs text-muted">{h.currency}</span>}
                             </p>
                             {h.dayChange != null && h.dayChangePercent != null && (

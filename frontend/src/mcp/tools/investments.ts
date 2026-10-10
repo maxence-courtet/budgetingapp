@@ -24,6 +24,12 @@ export const investmentTools = [
       quantity: z.number().positive(),
       pricePerUnit: z.number().positive(),
       fees: z.number().default(0),
+      currency: z.string().optional().describe("Currency of the price and fees, e.g. USD; default the user's currency"),
+      fxRate: z
+        .number()
+        .positive()
+        .optional()
+        .describe("Value of 1 unit of `currency` in the user's currency on the trade date; looked up if omitted"),
       date: z.string().describe("ISO date YYYY-MM-DD"),
       notes: z.string().optional(),
     }),

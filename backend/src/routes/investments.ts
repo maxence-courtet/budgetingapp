@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth";
 import prisma from "../services/prisma";
-import { aggregateHoldings, findOversell, tradeCashByAccount } from "../services/portfolio";
-import { getQuote, getQuotes, clearCache } from "../services/marketPrice";
+import { aggregateHoldings, findOversell, priceHoldings, tradeCashByAccount } from "../services/portfolio";
+import { fxRate } from "../services/fx";
+import { getQuote, clearCache } from "../services/marketPrice";
 import { BadRequest, date as parseDate, num, oneOf, text, endOfTodayUtc } from "../services/validate";
 
 const ASSET_TYPES = ["STOCK", "ETF", "CRYPTO", "OTHER"] as const;
@@ -21,6 +22,28 @@ function checkTrade(t: Record<string, unknown>) {
     fees: num(t.fees, "fees", { optional: true, min: 0 }) ?? 0,
     date: d,
   };
+}
+
+const CURRENCY_CODE = /^[A-Z]{3}$/;
+
+/**
+ * The trade's currency and its exchange rate into the user's currency on the trade date.
+ * In the user's own currency both are stored as null (rate 1). Without a rate given, it is looked up.
+ */
+async function tradeCurrency(userId: string, body: Record<string, unknown>, date: Date, current?: { currency: string | null; fxRate: number | null }) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { currency: true } });
+  const raw = body.currency !== undefined ? body.currency : current?.currency ?? null;
+  const currency = raw == null || raw === "" ? user.currency : String(raw).toUpperCase();
+  if (!CURRENCY_CODE.test(currency)) throw new BadRequest("currency must be a 3-letter code like USD, EUR or CHF");
+  if (currency === user.currency) return { currency: null, fxRate: null };
+
+  const given = body.fxRate ?? (body.currency === undefined && body.date === undefined ? current?.fxRate : undefined);
+  if (given != null && given !== "") return { currency, fxRate: num(given, "fxRate", { positive: true })! };
+  try {
+    return { currency, fxRate: await fxRate(currency, user.currency, date) };
+  } catch {
+    throw new BadRequest(`Couldn't find the ${currency} to ${user.currency} rate for that date; enter it yourself (fxRate)`);
+  }
 }
 
 /** Reject a trade set that sells more of a ticker than was held at that point. */
@@ -76,12 +99,14 @@ router.post("/trades", async (req, res) => {
   if (!account) return res.status(404).json({ error: "Account not found" });
   if (account.type !== "investment") return res.status(400).json({ error: NOT_INVESTMENT });
   await assertNoOversell(userId, fields);
+  const money = await tradeCurrency(userId, req.body, fields.date);
 
   const trade = await prisma.investmentTrade.create({
     data: {
       userId,
       accountId,
       ...fields,
+      ...money,
       notes: text(notes, "notes", { optional: true }),
     },
     include: { account: true },
@@ -123,10 +148,13 @@ router.put("/trades/:id", async (req, res) => {
     accountId = account.id;
   }
 
+  const money = await tradeCurrency(userId, body, fields.date, trade);
+
   const updated = await prisma.investmentTrade.update({
     where: { id },
     data: {
       ...fields,
+      ...money,
       accountId,
       // null or "" clears the note
       ...(body.notes !== undefined ? { notes: text(body.notes, "notes", { optional: true }) } : {}),
@@ -211,37 +239,39 @@ router.get("/portfolio", async (req, res) => {
 
   const holdings = aggregateHoldings(trades);
 
-  // Fetch current prices (?refresh=1 skips the 15-minute cache)
-  const tickers = holdings.map((h) => h.ticker);
-  if (req.query.refresh) clearCache(tickers);
-  const prices = await getQuotes(tickers);
+  // Live prices in each asset's currency, converted to the user's (?refresh=1 skips the price cache).
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { currency: true } });
+  if (req.query.refresh) clearCache(holdings.map((h) => h.ticker));
+  const prices = await priceHoldings(holdings, user.currency);
 
   const portfolio = holdings.map((h) => {
-    const quote = prices.get(h.ticker);
+    const p = prices.get(h.ticker)!;
     const avgCostBasis = h.quantity > 0 ? h.totalCost / h.quantity : 0;
     const costBasisTotal = h.totalCost;
-    // No price: value the position at cost rather than at $0.
-    const priceAvailable = !!quote?.price;
-    const currentPrice = priceAvailable ? quote!.price : null;
-    const currentValue = priceAvailable ? h.quantity * quote!.price : costBasisTotal;
+    // No price or no exchange rate: value the position at cost rather than at 0.
+    const priceAvailable = p.priced;
+    const currentValue = p.value;
     const gainLoss = priceAvailable ? currentValue - costBasisTotal : null;
     const gainLossPct = gainLoss !== null && costBasisTotal > 0 ? (gainLoss / costBasisTotal) * 100 : null;
 
     return {
       ticker: h.ticker,
       assetType: h.assetType,
-      name: quote?.name ?? h.ticker,
+      name: p.name ?? h.ticker,
       quantity: h.quantity,
+      // In the user's currency.
       avgCostBasis,
       costBasisTotal,
-      currentPrice,
       currentValue,
       gainLoss,
       gainLossPct,
+      // In the asset's own currency.
+      currentPrice: p.price,
+      currency: p.currency,
+      fxRate: p.fx,
       priceAvailable,
-      currency: quote?.currency ?? null,
-      dayChange: priceAvailable ? quote!.change * h.quantity : null,
-      dayChangePercent: priceAvailable ? quote!.changePercent : null,
+      dayChange: p.dayChange,
+      dayChangePercent: p.dayChangePercent,
     };
   });
 
@@ -249,12 +279,12 @@ router.get("/portfolio", async (req, res) => {
   const totalValue = portfolio.reduce((s, h) => s + h.currentValue, 0);
   const totalGainLoss = priced.reduce((s, h) => s + (h.gainLoss ?? 0), 0);
   const pricedCost = priced.reduce((s, h) => s + h.costBasisTotal, 0);
-  const currencies = [...new Set(priced.map((h) => h.currency).filter(Boolean))];
+  const currencies = [...new Set(portfolio.map((h) => h.currency).filter((c): c is string => !!c && c !== user.currency))];
 
   // Investment accounts (and any other account holding trades), each with its cash and its own holdings.
   const valueOf = (ticker: string, quantity: number, cost: number) => {
-    const q = prices.get(ticker);
-    return q?.price ? quantity * q.price : cost;
+    const p = prices.get(ticker);
+    return p?.priced && p.price != null && p.fx != null ? quantity * p.price * p.fx : cost;
   };
   const [accounts, txnSums, cashFromTrades] = await Promise.all([
     prisma.account.findMany({
@@ -297,10 +327,26 @@ router.get("/portfolio", async (req, res) => {
       totalGainLossPct: pricedCost > 0 ? (totalGainLoss / pricedCost) * 100 : 0,
       holdingsCount: portfolio.length,
       unpricedCount: portfolio.length - priced.length,
+      // Currencies other than the user's that holdings are priced in (converted at today's rates).
       currencies,
+      baseCurrency: user.currency,
       lastUpdated: priced.length ? new Date().toISOString() : null,
     },
   });
+});
+
+// Exchange rate: value of 1 `from` in `to` (default: the user's currency), today or on ?date=YYYY-MM-DD
+router.get("/fx", async (req, res) => {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.userId }, select: { currency: true } });
+  const from = String(req.query.from ?? "").toUpperCase();
+  const to = String(req.query.to ?? user.currency).toUpperCase();
+  if (!CURRENCY_CODE.test(from) || !CURRENCY_CODE.test(to)) return res.status(400).json({ error: "from and to must be 3-letter currency codes" });
+  const date = req.query.date ? parseDate(req.query.date, "date")! : undefined;
+  try {
+    res.json({ from, to, date: date?.toISOString().slice(0, 10) ?? null, rate: await fxRate(from, to, date) });
+  } catch (e: any) {
+    res.status(502).json({ error: `No exchange rate for ${from} to ${to} right now` });
+  }
 });
 
 // Single ticker price

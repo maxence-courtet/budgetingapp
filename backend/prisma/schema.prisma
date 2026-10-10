@@ -190,6 +190,10 @@ model InvestmentTrade {
   quantity     Float
   pricePerUnit Float
   fees         Float    @default(0)
+  // Currency of pricePerUnit and fees (ISO code); null = the user's currency (trades from before currencies).
+  currency     String?
+  // Value of 1 unit of `currency` in the user's currency on the trade date; null = 1.
+  fxRate       Float?
   date         DateTime
   notes        String?
   createdAt    DateTime @default(now())

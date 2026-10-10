@@ -136,6 +136,8 @@ export const deleteTrade = (id: string) =>
   fetchApi(`/investments/trades/${id}`, { method: 'DELETE' });
 export const addInvestmentFee = (data: { accountId: string; amount: number; date?: string; description?: string }) =>
   fetchApi('/investments/fees', { method: 'POST', body: JSON.stringify(data) });
+export const getFxRate = (from: string, date?: string) =>
+  fetchApi(`/investments/fx?from=${encodeURIComponent(from)}${date ? `&date=${date}` : ''}`);
 export const getMarketPrice = (ticker: string) =>
   fetchApi(`/investments/market-price/${encodeURIComponent(ticker)}`);
 

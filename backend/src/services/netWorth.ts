@@ -1,6 +1,5 @@
 import prisma from "./prisma";
-import { aggregateHoldings, tradeCash } from "./portfolio";
-import { getQuotes } from "./marketPrice";
+import { aggregateHoldings, priceHoldings, tradeCash } from "./portfolio";
 import { endOfTodayUtc } from "./validate";
 
 export interface NetWorthPoint {
@@ -80,9 +79,10 @@ export async function netWorthHistory(userId: string, months: number | "all"): P
   let liveSource: NetWorthPoint["investmentsSource"] = holdings.length ? "cost" : "live";
   if (holdings.length) {
     try {
-      const quotes = await getQuotes(holdings.map((h) => h.ticker));
-      if (holdings.every((h) => quotes.get(h.ticker)?.price)) {
-        liveInvestments = holdings.reduce((s, h) => s + h.quantity * quotes.get(h.ticker)!.price, 0);
+      const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { currency: true } });
+      const priced = await priceHoldings(holdings, user.currency);
+      if (holdings.every((h) => priced.get(h.ticker)?.priced)) {
+        liveInvestments = holdings.reduce((s, h) => s + priced.get(h.ticker)!.value, 0);
         liveSource = "live";
       }
     } catch {
