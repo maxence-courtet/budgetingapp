@@ -119,9 +119,12 @@ export function SpendingRing({
           <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted truncate max-w-full">
             {current ? current.name : totalLabel}
           </span>
-          <span className="mt-0.5 text-[22px] leading-tight font-semibold font-mono text-fg">
-            {fmtWhole(current ? current.value : total)}
-          </span>
+          {(() => {
+            const label = fmtWhole(current ? current.value : total);
+            // Longer amounts (currency codes like "CHF", big totals) shrink to stay inside the ring.
+            const size = label.length > 11 ? "text-[16px]" : label.length > 8 ? "text-[18px]" : "text-[22px]";
+            return <span className={`mt-0.5 ${size} leading-tight font-semibold font-mono text-fg whitespace-nowrap`}>{label}</span>;
+          })()}
           <span className="text-xs text-muted">
             {current
               ? `${pct(current.value)}${isTransfer(current) ? " · moved" : ""}`
