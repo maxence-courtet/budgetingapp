@@ -13,6 +13,7 @@ import { useAppearance } from "@/components/AppearanceProvider";
 import { ACCENTS, ThemePref } from "@/lib/appearance";
 import { AiAssistantsSettings } from "@/components/AiAssistantsSettings";
 import { YourData, HelpAndLegal } from "@/components/AccountData";
+import { SecuritySettings } from "@/components/SecuritySettings";
 import { CURRENCIES } from "@/lib/currencies";
 
 const THEME_OPTIONS: { id: ThemePref; label: string; hint: string; icon: typeof Sun }[] = [
@@ -165,6 +166,8 @@ export default function SettingsPage() {
           </div>
         </fieldset>
       </section>
+
+      <SecuritySettings />
 
       <AiAssistantsSettings />
 

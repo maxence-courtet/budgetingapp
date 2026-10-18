@@ -12,7 +12,7 @@ import { PreferencesProvider } from "@/components/PreferencesProvider";
 import { QuickAddButton, QuickAddTransaction } from "@/components/QuickAddTransaction";
 
 // The login and consent pages render on their own, without the app navigation.
-const STANDALONE_PAGES = ["/login", "/consent"];
+const STANDALONE_PAGES = ["/login", "/consent", "/reset-password"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
