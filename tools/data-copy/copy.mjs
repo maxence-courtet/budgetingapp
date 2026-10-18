@@ -96,6 +96,23 @@ async function copy(src, dst) {
   }
 }
 
+/** Old-database transactions with no match (same date, amount and description) in the target. */
+async function missingFromTarget(old, dst) {
+  const ou = await findUser(old, env.OLD_EMAIL ?? "*");
+  const tu = await findUser(dst, env.TARGET_EMAIL);
+  const key = (t) => `${new Date(t.date).toISOString().slice(0, 10)}|${(+t.amount).toFixed(2)}|${t.description ?? ""}`;
+  const have = new Map();
+  for (const t of await q(dst, `SELECT date, amount, description FROM "Transaction" WHERE "userId"=$1`, [tu.id])) have.set(key(t), (have.get(key(t)) ?? 0) + 1);
+  const missing = [];
+  for (const t of await q(old, `SELECT t.date, t.amount, t.description, t.type, t.status, c.name AS category FROM "Transaction" t LEFT JOIN "Category" c ON c.id=t."categoryId" WHERE t."userId"=$1 ORDER BY t.date`, [ou.id])) {
+    const k = key(t);
+    if (have.get(k)) have.set(k, have.get(k) - 1);
+    else missing.push(t);
+  }
+  console.log(`[diff] ${missing.length} old-production transaction(s) not in the target:`);
+  for (const t of missing) console.log(`[diff]   ${new Date(t.date).toISOString().slice(0, 10)} ${t.type} ${(+t.amount).toFixed(2)} "${t.description ?? ""}" (${t.category ?? "?"}, ${t.status})`);
+}
+
 const src = await connect(env.SOURCE_DB);
 const dst = await connect(env.TARGET_DB);
 const old = env.OLD_DB ? await connect(env.OLD_DB).catch((e) => (console.log("old database:", e.message), null)) : null;
@@ -103,6 +120,7 @@ try {
   if (env.MODE === "copy") {
     await copy(src, dst);
     await report("target after copy", dst, env.TARGET_EMAIL);
+    if (old) await missingFromTarget(old, dst).catch((e) => console.log("diff:", e.message));
   } else {
     await report("source", src, env.SOURCE_EMAIL);
     await report("target", dst, env.TARGET_EMAIL);
