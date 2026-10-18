@@ -115,11 +115,69 @@ async function missingFromTarget(old, dst) {
   for (const t of missing) console.log(`[diff]   ${new Date(t.date).toISOString().slice(0, 10)} ${t.type} ${(+t.amount).toFixed(2)} "${t.description ?? ""}" (${t.category ?? "?"}, ${t.status})`);
 }
 
-const src = await connect(env.SOURCE_DB);
+/**
+ * MODE=templates: restore which transactions came from a budget template (fromTemplate) and which template each
+ * month used, from the old database into the target user. DRY_RUN=1 only reports.
+ */
+async function restoreTemplates(old, dst) {
+  const dry = env.DRY_RUN === "1";
+  const ou = await findUser(old, env.OLD_EMAIL ?? "*");
+  const tu = await findUser(dst, env.TARGET_EMAIL);
+  const log = (...a) => console.log("[templates]", ...a);
+  const oldTpl = new Map((await q(old, `SELECT id, name FROM "BudgetTemplate" WHERE "userId"=$1`, [ou.id])).map((t) => [t.id, t.name]));
+  const newTpl = new Map((await q(dst, `SELECT id, name FROM "BudgetTemplate" WHERE "userId"=$1`, [tu.id])).map((t) => [t.name, t.id]));
+  const newMonths = new Map((await q(dst, `SELECT id, year, month, "budgetTemplateId" FROM "Month" WHERE "userId"=$1`, [tu.id])).map((m) => [`${m.year}-${m.month}`, m]));
+
+  if (!dry) await dst.query("BEGIN");
+  try {
+    // Months: the template each one was planned with.
+    let monthsSet = 0;
+    for (const m of await q(old, `SELECT year, month, "budgetTemplateId" FROM "Month" WHERE "userId"=$1 AND "budgetTemplateId" IS NOT NULL`, [ou.id])) {
+      const target = newMonths.get(`${m.year}-${m.month}`);
+      const tplId = newTpl.get(oldTpl.get(m.budgetTemplateId));
+      if (!target || !tplId || target.budgetTemplateId === tplId) continue;
+      monthsSet++;
+      if (!dry) await dst.query(`UPDATE "Month" SET "budgetTemplateId"=$1 WHERE id=$2`, [tplId, target.id]);
+    }
+    log(`months linked to their template: ${monthsSet}`);
+
+    // Transactions: same month, date, type, amount, category and (trimmed) description.
+    const key = (t) => [t.year, t.month, new Date(t.date).toISOString().slice(0, 10), t.type, (+t.amount).toFixed(2), t.category ?? "", (t.description ?? "").trim()].join("|");
+    const sql = `SELECT t.id, t.date, t.type, t.amount, t.description, t."fromTemplate", c.name AS category, m.year, m.month
+      FROM "Transaction" t JOIN "Month" m ON m.id=t."monthId" LEFT JOIN "Category" c ON c.id=t."categoryId" WHERE t."userId"=$1`;
+    const pool = new Map();
+    for (const t of await q(dst, sql, [tu.id])) (pool.get(key(t)) ?? pool.set(key(t), []).get(key(t))).push(t);
+    const fromOld = (await q(old, sql, [ou.id])).filter((t) => t.fromTemplate);
+    let flagged = 0;
+    const unmatched = [];
+    for (const t of fromOld) {
+      const candidates = pool.get(key(t)) ?? [];
+      const match = candidates.shift();
+      if (!match) { unmatched.push(t); continue; }
+      if (!match.fromTemplate) {
+        flagged++;
+        if (!dry) await dst.query(`UPDATE "Transaction" SET "fromTemplate"=true WHERE id=$1`, [match.id]);
+      }
+    }
+    log(`old template transactions: ${fromOld.length}; marked in target: ${flagged}; already marked: ${fromOld.length - flagged - unmatched.length}; unmatched: ${unmatched.length}`);
+    for (const t of unmatched.slice(0, 40)) log(`  unmatched ${key(t)}`);
+    if (!dry) await dst.query("COMMIT");
+  } catch (e) {
+    if (!dry) await dst.query("ROLLBACK");
+    throw e;
+  }
+  const [after] = await q(dst, `SELECT count(*) FILTER (WHERE "fromTemplate") AS tpl, count(*) AS total FROM "Transaction" WHERE "userId"=$1`, [tu.id]);
+  const [months] = await q(dst, `SELECT count(*) FILTER (WHERE "budgetTemplateId" IS NOT NULL) AS linked, count(*) AS total FROM "Month" WHERE "userId"=$1`, [tu.id]);
+  log(`${dry ? "(dry run) " : ""}target now: ${after.tpl}/${after.total} transactions from a template, ${months.linked}/${months.total} months linked`);
+}
+
+const src = env.SOURCE_DB ? await connect(env.SOURCE_DB) : null;
 const dst = await connect(env.TARGET_DB);
 const old = env.OLD_DB ? await connect(env.OLD_DB).catch((e) => (console.log("old database:", e.message), null)) : null;
 try {
-  if (env.MODE === "copy") {
+  if (env.MODE === "templates") {
+    await restoreTemplates(old, dst);
+  } else if (env.MODE === "copy") {
     await copy(src, dst);
     await report("target after copy", dst, env.TARGET_EMAIL);
     if (old) await missingFromTarget(old, dst).catch((e) => console.log("diff:", e.message));
