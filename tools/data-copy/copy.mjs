@@ -67,13 +67,15 @@ async function copy(src, dst) {
   const from = await findUser(src, env.SOURCE_EMAIL);
   const to = await findUser(dst, env.TARGET_EMAIL);
   if (!from || !to) throw new Error(`user missing: source ${!!from}, target ${!!to}`);
-  for (const t of TABLES) {
+  // Net worth snapshots are a cache the home screen writes on every visit: replaced, not protected.
+  for (const t of TABLES.filter((t) => t !== "NetWorthSnapshot")) {
     const n = +(await q(dst, `SELECT count(*) FROM "${t}" WHERE "userId"=$1`, [to.id]))[0].count;
     if (n) throw new Error(`target already has ${n} rows in ${t}; not copying over existing data`);
   }
   const dstCols = async (t) => (await q(dst, `SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=$1`, [t])).map((r) => r.column_name);
   await dst.query("BEGIN");
   try {
+    await dst.query(`DELETE FROM "NetWorthSnapshot" WHERE "userId"=$1`, [to.id]);
     for (const t of TABLES) {
       const rows = await q(src, `SELECT * FROM "${t}" WHERE "userId"=$1`, [from.id]);
       if (!rows.length) continue;
