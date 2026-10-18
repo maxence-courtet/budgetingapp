@@ -1,0 +1,7 @@
+{
+  "name": "hive-instagram",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs" },
+  "devDependencies": { "playwright": "^1.56.0" }
+}

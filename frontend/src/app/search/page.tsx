@@ -1,33 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 import {
   searchTransactions,
   getAccounts,
   getCategories,
 } from "@/lib/api";
-
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
-
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
-
-const TYPE_COLORS: Record<string, string> = {
-  INCOME: "bg-green-100 text-green-700",
-  SPENDING: "bg-red-100 text-red-700",
-  TRANSFER: "bg-blue-100 text-blue-700",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  PLANNED: "bg-slate-100 text-slate-700",
-  PAID: "bg-green-100 text-green-700",
-  PENDING: "bg-yellow-100 text-yellow-700",
-  SKIPPED: "bg-slate-200 text-slate-400",
-};
+import { fmt } from "@/lib/format";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { TransactionList } from "@/components/TransactionList";
+import { TRANSACTIONS_CHANGED, openQuickAdd } from "@/components/QuickAddTransaction";
 
 interface Category {
   id: string;
@@ -53,12 +39,34 @@ interface SearchResult {
   month: { id: string; month: number; year: number };
 }
 
-export default function SearchPage() {
+const inputClass =
+  "w-full h-10 px-3 border border-line-strong bg-surface rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent";
+const labelClass = "block text-xs font-medium text-muted mb-1";
+
+export default function SearchPageWrapper() {
+  return (
+    <Suspense fallback={<LoadingState message="Loading search..." />}>
+      <SearchPage />
+    </Suspense>
+  );
+}
+
+function SearchPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [total, setTotal] = useState(0);
+  const urlQuery = searchParams.get("query") ?? "";
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  // Phones only (filters are always shown from sm up). Arriving without a query means the
+  // person came for the filters, so start with them open.
+  const [filtersOpen, setFiltersOpen] = useState(!urlQuery);
+  // The params of the last search run, so edits in the transaction sheet can refresh the same results.
+  const lastParams = useRef<Record<string, string> | null>(null);
 
   // Filters
   const [description, setDescription] = useState("");
@@ -71,42 +79,76 @@ export default function SearchPage() {
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
 
+  const activeFilters = [accountId, categoryId, type, status, dateFrom, dateTo, amountMin, amountMax].filter(
+    Boolean
+  ).length;
+
   useEffect(() => {
     Promise.all([getAccounts(), getCategories()])
       .then(([a, c]) => {
         setAccounts(a);
         setCategories(c);
       })
-      .catch(console.error);
+      .catch((e: any) => setError(e.message));
   }, []);
 
-  const handleSearch = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setLoading(true);
+  const runSearch = async (params: Record<string, string>, quiet = false) => {
+    lastParams.current = params;
+    if (!quiet) setLoading(true);
     setSearched(true);
     try {
-      const params: Record<string, string> = {};
-      if (description.trim()) params.query = description.trim();
-      if (accountId) params.accountId = accountId;
-      if (categoryId) params.categoryId = categoryId;
-      if (type) params.type = type;
-      if (status) params.status = status;
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
-      if (amountMin) params.amountMin = amountMin;
-      if (amountMax) params.amountMax = amountMax;
-
       const data = await searchTransactions(params);
-      setResults(Array.isArray(data) ? data : data.transactions ?? []);
-    } catch (e) {
-      console.error(e);
+      const rows = Array.isArray(data) ? data : data.transactions ?? [];
+      setResults(rows);
+      setTotal(Array.isArray(data) ? rows.length : data.total ?? rows.length);
+    } catch (e: any) {
+      setError(e.message);
       setResults([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // A query from the command bar (/search?query=…) runs immediately.
+  useEffect(() => {
+    if (urlQuery) {
+      setDescription(urlQuery);
+      handleSearch(undefined, urlQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlQuery]);
+
+  // Reload the results after a transaction is edited or deleted in the transaction sheet.
+  useEffect(() => {
+    const reload = () => {
+      if (lastParams.current) runSearch(lastParams.current, true);
+    };
+    window.addEventListener(TRANSACTIONS_CHANGED, reload);
+    return () => window.removeEventListener(TRANSACTIONS_CHANGED, reload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSearch = async (e?: React.FormEvent, queryOverride?: string) => {
+    e?.preventDefault();
+    const params: Record<string, string> = {};
+    const query = (queryOverride ?? description).trim();
+    if (query) params.query = query;
+    if (accountId) params.accountId = accountId;
+    if (categoryId) params.categoryId = categoryId;
+    if (type) params.type = type;
+    if (status) params.status = status;
+    if (dateFrom) params.dateFrom = dateFrom;
+    if (dateTo) params.dateTo = dateTo;
+    if (amountMin) params.amountMin = amountMin;
+    if (amountMax) params.amountMax = amountMax;
+    // On phones, fold the filters away so the results are what's on screen.
+    if (e) setFiltersOpen(false);
+    await runSearch(params);
+  };
+
   const handleClear = () => {
+    // Drop ?query= too, so a reload doesn't bring the old search back.
+    if (urlQuery) router.replace("/search");
     setDescription("");
     setAccountId("");
     setCategoryId("");
@@ -118,38 +160,71 @@ export default function SearchPage() {
     setAmountMax("");
     setResults([]);
     setSearched(false);
+    lastParams.current = null;
   };
+
+  const income = results.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+  const spending = results.filter((t) => t.type === "SPENDING").reduce((s, t) => s + t.amount, 0);
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">
-        Search Transactions
-      </h1>
+      <PageHeader title="Search" back={{ href: "/months", label: "Transactions" }} />
 
-      <form onSubmit={handleSearch}>
-        {/* Search bar */}
-        <div className="mb-4">
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Search by description..."
-            className="w-full px-4 py-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-          />
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
+      <form onSubmit={handleSearch} role="search" className="mb-5 sm:mb-6">
+        <div className="flex gap-2">
+          <label className="flex-1 min-w-0 flex items-center gap-3 h-11 px-4 rounded-xl border border-line-strong bg-surface focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
+            <Search size={17} className="text-muted shrink-0" aria-hidden="true" />
+            <span className="sr-only">Search by description</span>
+            <input
+              id="search-description"
+              type="search"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Search by description"
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm"
+            />
+          </label>
+          <button
+            type="submit"
+            className="h-11 px-4 shrink-0 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
+          >
+            Search
+          </button>
         </div>
 
-        {/* Filter row */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+          aria-controls="search-filters"
+          className="sm:hidden mt-3 flex items-center gap-2 h-9 px-3 -ml-1 rounded-lg text-sm font-medium text-fg-2 hover:bg-surface-2"
+        >
+          <SlidersHorizontal size={15} aria-hidden="true" />
+          Filters
+          {activeFilters > 0 && (
+            <span className="min-w-5 h-5 px-1.5 rounded-full bg-accent text-accent-ink text-[11px] font-semibold flex items-center justify-center">
+              {activeFilters}
+            </span>
+          )}
+          <ChevronDown
+            size={15}
+            aria-hidden="true"
+            className={`text-muted transition-transform ${filtersOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        <div
+          id="search-filters"
+          className={`${filtersOpen ? "block" : "hidden"} sm:block mt-3 bg-surface rounded-2xl border border-line p-4`}
+        >
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label htmlFor="f-account" className={labelClass}>
                 Account
               </label>
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-              >
+              <select id="f-account" value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inputClass}>
                 <option value="">All</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -160,14 +235,10 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label htmlFor="f-category" className={labelClass}>
                 Category
               </label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-              >
+              <select id="f-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={inputClass}>
                 <option value="">All</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -178,106 +249,92 @@ export default function SearchPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label htmlFor="f-type" className={labelClass}>
                 Type
               </label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-              >
+              <select id="f-type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
                 <option value="">All</option>
-                <option value="INCOME">INCOME</option>
-                <option value="SPENDING">SPENDING</option>
-                <option value="TRANSFER">TRANSFER</option>
+                <option value="INCOME">Income</option>
+                <option value="SPENDING">Spending</option>
+                <option value="TRANSFER">Transfer</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label htmlFor="f-status" className={labelClass}>
                 Status
               </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-              >
+              <select id="f-status" value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
                 <option value="">All</option>
-                <option value="PLANNED">PLANNED</option>
-                <option value="PAID">PAID</option>
-                <option value="PENDING">PENDING</option>
-                <option value="SKIPPED">SKIPPED</option>
+                <option value="PLANNED">Planned</option>
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Pending</option>
+                <option value="SKIPPED">Skipped</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
-                Date From
+              <label htmlFor="f-from" className={labelClass}>
+                From
               </label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-              />
+              <input id="f-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputClass} />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
-                Date To
+              <label htmlFor="f-to" className={labelClass}>
+                To
               </label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-              />
+              <input id="f-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputClass} />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
-                Amount Min
+              <label htmlFor="f-min" className={labelClass}>
+                Min amount
               </label>
               <input
+                id="f-min"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 value={amountMin}
                 onChange={(e) => setAmountMin(e.target.value)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className={inputClass}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
-                Amount Max
+              <label htmlFor="f-max" className={labelClass}>
+                Max amount
               </label>
               <input
+                id="f-max"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 value={amountMax}
                 onChange={(e) => setAmountMax(e.target.value)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className={inputClass}
               />
             </div>
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-2 mt-4">
             <button
               type="submit"
-              className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2 bg-accent text-accent-ink text-sm font-medium rounded-xl hover:bg-accent-hover transition-colors"
             >
-              Search
+              Apply filters
             </button>
             <button
               type="button"
               onClick={handleClear}
-              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-muted bg-surface-2 rounded-xl hover:bg-line transition-colors"
             >
-              Clear
+              Clear all
             </button>
           </div>
         </div>
@@ -285,134 +342,47 @@ export default function SearchPage() {
 
       {/* Results */}
       {loading ? (
-        <p className="text-slate-500 py-8 text-center">Searching...</p>
+        <LoadingState message="Searching..." />
       ) : searched ? (
-        <div>
-          <p className="text-sm text-slate-500 mb-3">
-            {results.length} result{results.length !== 1 ? "s" : ""} found
-          </p>
+        <section aria-labelledby="results-heading">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1 mb-2">
+            <h2 id="results-heading" className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+              {results.length} result{results.length !== 1 ? "s" : ""}
+            </h2>
+            {results.length > 0 && (
+              <p className="text-xs font-mono text-muted">
+                {income > 0 && <span className="text-pos">in +{fmt(income)}</span>}
+                {income > 0 && spending > 0 && <span className="mx-1.5 text-faint">·</span>}
+                {spending > 0 && <span>out −{fmt(spending)}</span>}
+              </p>
+            )}
+          </div>
+          {total > results.length && (
+            <p className="px-1 mb-2 text-xs text-muted">
+              Showing the {results.length} most recent of {total}. Narrow the filters to see the rest.
+            </p>
+          )}
 
           {results.length > 0 ? (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
-                        Date
-                      </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
-                        Description
-                      </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
-                        Type
-                      </th>
-                      <th className="text-right px-4 py-3 font-medium text-slate-600">
-                        Amount
-                      </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
-                        Category
-                      </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
-                        Account(s)
-                      </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
-                        Status
-                      </th>
-                      <th className="text-left px-4 py-3 font-medium text-slate-600">
-                        Month
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((tx) => {
-                      const accountStr =
-                        tx.type === "TRANSFER"
-                          ? `${tx.fromAccount?.name ?? "-"} → ${tx.toAccount?.name ?? "-"}`
-                          : tx.type === "SPENDING"
-                          ? tx.fromAccount?.name ?? "-"
-                          : tx.toAccount?.name ?? "-";
-
-                      const amountPrefix =
-                        tx.type === "INCOME"
-                          ? "+"
-                          : tx.type === "SPENDING"
-                          ? "-"
-                          : "";
-
-                      const amountColor =
-                        tx.type === "INCOME"
-                          ? "text-green-600"
-                          : tx.type === "SPENDING"
-                          ? "text-red-600"
-                          : "text-blue-600";
-
-                      return (
-                        <tr
-                          key={tx.id}
-                          className="border-b border-slate-100 hover:bg-slate-50"
-                        >
-                          <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                            {new Date(tx.date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </td>
-                          <td className="px-4 py-3 text-slate-900">
-                            {tx.description || "-"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                TYPE_COLORS[tx.type] || ""
-                              }`}
-                            >
-                              {tx.type}
-                            </span>
-                          </td>
-                          <td
-                            className={`px-4 py-3 text-right font-mono ${amountColor}`}
-                          >
-                            {amountPrefix}
-                            {fmt(tx.amount)}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {tx.category?.name ?? "-"}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                            {accountStr}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                STATUS_COLORS[tx.status] || ""
-                              }`}
-                            >
-                              {tx.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                            {tx.month
-                              ? `${MONTH_NAMES[tx.month.month - 1]} ${tx.month.year}`
-                              : "-"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+            <div className="bg-surface rounded-2xl border border-line overflow-hidden">
+              <TransactionList
+                transactions={results}
+                categories={categories}
+                onSelect={(tx) => openQuickAdd(tx)}
+                showYear
+              />
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
-              <p className="text-slate-500">
-                No transactions match your search criteria.
-              </p>
+            <div className="bg-surface rounded-2xl border border-line p-6 text-center">
+              <p className="text-muted">No transactions match your search.</p>
             </div>
           )}
-        </div>
-      ) : null}
+        </section>
+      ) : (
+        <p className="px-1 text-sm text-muted">
+          Search by description, or pick filters and apply them.
+        </p>
+      )}
     </div>
   );
 }

@@ -1,0 +1,26 @@
+server {
+  listen ${PORT};
+  root /usr/share/nginx/html;
+
+  # Railway's healthcheck.
+  location = /api/health {
+    default_type application/json;
+    return 200 '{"status":"ok"}';
+  }
+
+  # Hashed build assets never change.
+  location /_next/static/ {
+    expires 1y;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+
+  # Pages and screenshots: always check for a newer version, so a deploy shows up on the next visit.
+  location / {
+    add_header Cache-Control "no-cache";
+    try_files $uri $uri/ $uri.html =404;
+  }
+
+  error_page 404 /404.html;
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml;
+}

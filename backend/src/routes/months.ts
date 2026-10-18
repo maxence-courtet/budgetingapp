@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
+import { num, sendError } from '../services/validate';
 
 const router = Router();
 
@@ -87,14 +88,15 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const userId = req.userId!;
-    const { month: monthNum, year, budgetTemplateId } = req.body;
+    const { budgetTemplateId } = req.body;
+    const monthNum = num(req.body.month, 'month')!;
+    const year = num(req.body.year, 'year')!;
 
-    if (monthNum === undefined || year === undefined) {
-      return res.status(400).json({ error: 'month and year are required' });
-    }
-
-    if (monthNum < 1 || monthNum > 12) {
+    if (!Number.isInteger(monthNum) || monthNum < 1 || monthNum > 12) {
       return res.status(400).json({ error: 'month must be between 1 and 12' });
+    }
+    if (!Number.isInteger(year) || year < 1900 || year > 2200) {
+      return res.status(400).json({ error: 'year must be a 4-digit year' });
     }
 
     const existing = await prisma.month.findUnique({
@@ -138,8 +140,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json(result);
   } catch (error) {
-    console.error('Error creating month:', error);
-    res.status(500).json({ error: 'Failed to create month' });
+    sendError(res, error, 'Failed to create month');
   }
 });
 
@@ -219,6 +220,17 @@ router.post('/:id/apply-budget', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Budget template not found' });
     }
 
+    // Applying the same template twice used to duplicate every line.
+    // With { replace: true } the untouched (still PLANNED) template lines are replaced instead.
+    const alreadyApplied = month.budgetTemplateId === budgetTemplateId &&
+      (await prisma.transaction.count({ where: { monthId: id, userId, fromTemplate: true } })) > 0;
+    if (alreadyApplied && !req.body.replace) {
+      return res.status(409).json({ error: `"${template.name}" is already applied to this month` });
+    }
+    if (alreadyApplied) {
+      await prisma.transaction.deleteMany({ where: { monthId: id, userId, fromTemplate: true, status: 'PLANNED' } });
+    }
+
     await applyBudgetToMonth(id, budgetTemplateId, month.month, month.year, userId);
 
     await prisma.month.update({
@@ -239,8 +251,7 @@ router.post('/:id/apply-budget', async (req: Request, res: Response) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Error applying budget:', error);
-    res.status(500).json({ error: 'Failed to apply budget template' });
+    sendError(res, error, 'Failed to apply budget template');
   }
 });
 
@@ -256,7 +267,8 @@ async function applyBudgetToMonth(
     where: { budgetTemplateId },
   });
 
-  const firstDayOfMonth = new Date(year, monthNum - 1, 1);
+  // UTC midnight: a local-time date landed on the previous day once stored (e.g. Jan 1 → Dec 31 23:00Z).
+  const firstDayOfMonth = new Date(Date.UTC(year, monthNum - 1, 1));
 
   const createOps = definitions.map((def) =>
     prisma.transaction.create({

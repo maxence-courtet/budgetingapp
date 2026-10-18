@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
+import { endOfTodayUtc } from '../services/validate';
+import { tradeCashByAccount } from '../services/portfolio';
 
 const router = Router();
 
@@ -12,12 +14,14 @@ router.get('/account-summary', async (req: Request, res: Response) => {
       orderBy: { name: 'asc' },
     });
 
+    const trades = await tradeCashByAccount(userId);
     const result = await Promise.all(
       accounts.map(async (account) => {
         const paidTransactions = await prisma.transaction.findMany({
           where: {
             status: 'PAID',
             userId,
+            date: { lte: endOfTodayUtc() }, // same rule as account balances
             OR: [{ fromAccountId: account.id }, { toAccountId: account.id }],
           },
           include: { category: true },
@@ -45,7 +49,7 @@ router.get('/account-summary', async (req: Request, res: Response) => {
           }
         }
 
-        const categories = Array.from(categoryMap.values()).map((c) => ({
+        const categories = Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name)).map((c) => ({
           ...c,
           balance: c.in - c.out,
         }));
@@ -62,9 +66,11 @@ router.get('/account-summary', async (req: Request, res: Response) => {
           name: account.name,
           type: account.type,
           notes: account.notes,
-          balance: totalIn - totalOut,
+          balance: totalIn - totalOut + (trades.get(account.id) ?? 0),
           totalIn,
           totalOut,
+          // Cash spent on buys or received from sells (fees included), outside the categories.
+          tradesNet: trades.get(account.id) ?? 0,
           categories,
         };
       })
@@ -91,6 +97,7 @@ router.get('/category-detail', async (req: Request, res: Response) => {
       where: {
         status: 'PAID',
         userId,
+        date: { lte: endOfTodayUtc() },
         OR: [
           { fromAccountId: accountId as string, categoryId: categoryId as string },
           { toAccountId: accountId as string, categoryId: categoryId as string },
@@ -106,13 +113,18 @@ router.get('/category-detail', async (req: Request, res: Response) => {
       orderBy: { date: 'desc' },
     });
 
+    // A side counts when both its account and its category match: money arrives under toCategoryId (or
+    // categoryId for income) and leaves under categoryId. A transfer between two categories of the same account
+    // is "out" for one category and "in" for the other.
     let totalIn = 0;
     let totalOut = 0;
-    const result = transactions.map((t) => {
-      const isIncoming = t.toAccountId === (accountId as string);
+    const result = transactions.flatMap((t) => {
+      const isIncoming = t.toAccountId === accountId && (t.toCategoryId ?? t.categoryId) === categoryId;
+      const isOutgoing = t.fromAccountId === accountId && t.categoryId === categoryId;
+      if (!isIncoming && !isOutgoing) return [];
       if (isIncoming) totalIn += t.amount;
-      else totalOut += t.amount;
-      return { ...t, direction: isIncoming ? 'in' as const : 'out' as const };
+      if (isOutgoing) totalOut += t.amount;
+      return [{ ...t, direction: isIncoming ? 'in' as const : 'out' as const }];
     });
 
     res.json({
@@ -138,7 +150,7 @@ router.get('/monthly-summary/:monthId', async (req: Request, res: Response) => {
     const month = await prisma.month.findFirst({
       where: { id: monthId, userId },
       include: {
-        transactions: { include: { category: true } },
+        transactions: { include: { category: true, toAccount: { select: { name: true } } } },
       },
     });
 
@@ -165,10 +177,22 @@ router.get('/monthly-summary/:monthId', async (req: Request, res: Response) => {
       categoryMap.set(t.categoryId, cat);
     }
 
-    const categoryBreakdown = Array.from(categoryMap.values()).map((c) => ({
+    const categoryBreakdown = Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name)).map((c) => ({
       ...c,
       net: c.income - c.spending,
     }));
+
+    // Money moved to another account (savings, investments), per category and destination. A transfer
+    // between categories inside one account moves no money, so it isn't counted.
+    const transferMap = new Map<string, { id: string; name: string; toAccount: string | null; amount: number }>();
+    for (const t of paid) {
+      if (t.type !== 'TRANSFER' || !t.fromAccountId || !t.toAccountId || t.fromAccountId === t.toAccountId) continue;
+      const key = `${t.categoryId}:${t.toAccountId}`;
+      const entry = transferMap.get(key) || { id: key, name: t.category.name, toAccount: t.toAccount?.name ?? null, amount: 0 };
+      entry.amount += t.amount;
+      transferMap.set(key, entry);
+    }
+    const transferBreakdown = Array.from(transferMap.values()).sort((a, b) => b.amount - a.amount);
 
     res.json({
       monthId,
@@ -179,6 +203,7 @@ router.get('/monthly-summary/:monthId', async (req: Request, res: Response) => {
       planned: summarize(planned),
       all: summarize(month.transactions),
       categoryBreakdown,
+      transferBreakdown,
     });
   } catch (error) {
     console.error('Error getting monthly summary:', error);

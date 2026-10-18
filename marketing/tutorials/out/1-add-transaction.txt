@@ -1,0 +1,15 @@
+Hi, I'm Mia. Let me show you how to log a purchase in Hive. First, tap the plus button. It's on every screen.
+
+Type the amount.
+
+Add a short description, so you recognise it later.
+
+Pick a category, and the account you paid from.
+
+Then add the transaction.
+
+Done. Hive files it into the right month by itself. Let's check under Money.
+
+Every month is listed here, with what came in and what went out. Open October.
+
+And there's the lunch, already counted in your month. That's all it takes.

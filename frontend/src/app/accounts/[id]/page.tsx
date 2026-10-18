@@ -1,12 +1,21 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getAccount, getTransactions } from "@/lib/api";
+import { getAccount, getTransactions, getCategories } from "@/lib/api";
+import { fmt } from "@/lib/format";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { TransactionList } from "@/components/TransactionList";
+import { TRANSACTIONS_CHANGED, openQuickAdd } from "@/components/QuickAddTransaction";
 
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+const PAGE_SIZE = 50;
+const CATEGORY_PREVIEW = 5;
+
+function signed(n: number) {
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${fmt(n)}`;
+}
 
 export default function AccountDetail({
   params,
@@ -17,268 +26,152 @@ export default function AccountDetail({
 
   const [account, setAccount] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const [allCategories, setAllCategories] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [acct, txns] = await Promise.all([
-          getAccount(id),
-          getTransactions({ accountId: id }),
-        ]);
-        setAccount(acct);
-        setTransactions(Array.isArray(txns) ? txns : txns.data ?? []);
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      const [acct, txns, cats] = await Promise.all([
+        getAccount(id),
+        getTransactions({ accountId: id }),
+        getCategories().catch(() => []),
+      ]);
+      setAccount(acct);
+      setTransactions(Array.isArray(txns) ? txns : txns.data ?? []);
+      setCategories(Array.isArray(cats) ? cats : []);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-slate-500">Loading account...</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    load();
+    // Reload after a transaction is edited or deleted in the transaction sheet.
+    window.addEventListener(TRANSACTIONS_CHANGED, load);
+    return () => window.removeEventListener(TRANSACTIONS_CHANGED, load);
+  }, [load]);
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
-        {error}
-      </div>
-    );
+  if (loading) {
+    return <LoadingState message="Loading account..." />;
   }
 
   if (!account) {
     return (
-      <div className="bg-slate-50 border border-slate-200 text-slate-600 rounded-lg p-4">
-        Account not found.
+      <div className="space-y-4">
+        <PageHeader title="Account" back={{ href: "/accounts", label: "Accounts" }} />
+        {error && <ErrorBanner message={error} />}
+        <div className="bg-surface-2 border border-line text-muted rounded-xl p-4">
+          Account not found. <Link href="/accounts" className="text-accent font-medium">Back to accounts</Link>
+        </div>
       </div>
     );
   }
 
-  // Build category balances from transactions
-  const categoryMap = new Map<
-    string,
-    { name: string; balance: number }
-  >();
-  for (const t of transactions) {
-    if (t.type === "INCOME") {
-      const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
-      const catId = t.categoryId ?? catName;
-      if (!categoryMap.has(catId)) {
-        categoryMap.set(catId, { name: catName, balance: 0 });
-      }
-      categoryMap.get(catId)!.balance += t.amount ?? 0;
-    } else if (t.type === "SPENDING") {
-      const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
-      const catId = t.categoryId ?? catName;
-      if (!categoryMap.has(catId)) {
-        categoryMap.set(catId, { name: catName, balance: 0 });
-      }
-      categoryMap.get(catId)!.balance -= t.amount ?? 0;
-    } else if (t.type === "TRANSFER") {
-      // Outgoing transfer: use categoryId (from category)
-      if (t.fromAccountId === id) {
-        const catName = t.category?.name ?? t.categoryName ?? "Uncategorized";
-        const catId = t.categoryId ?? catName;
-        if (!categoryMap.has(catId)) {
-          categoryMap.set(catId, { name: catName, balance: 0 });
-        }
-        categoryMap.get(catId)!.balance -= t.amount ?? 0;
-      }
-      // Incoming transfer: use toCategoryId (to category)
-      if (t.toAccountId === id) {
-        const catName = t.toCategory?.name ?? "Uncategorized";
-        const catId = t.toCategoryId ?? t.categoryId ?? catName;
-        if (!categoryMap.has(catId)) {
-          categoryMap.set(catId, { name: catName, balance: 0 });
-        }
-        categoryMap.get(catId)!.balance += t.amount ?? 0;
-      }
-    }
-  }
-  const categoryBalances = Array.from(categoryMap.values()).sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+  // Per-category balances come from the API: PAID transactions up to today, signed for this account.
+  const categoryBalances: { id: string; name: string; balance: number }[] = account.categoryBalances ?? [];
+  // Largest balances first; the rest stay folded so the transactions aren't pushed far down on phones.
+  const sortedBalances = [...categoryBalances].sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
+  const visibleBalances = allCategories ? sortedBalances : sortedBalances.slice(0, CATEGORY_PREVIEW);
+  const balance = account.balance ?? 0;
+  const years = new Set(transactions.map((t) => new Date(t.date).getUTCFullYear()));
+  const visible = transactions.slice(0, shown);
 
   return (
-    <div className="space-y-8">
-      {/* Back link */}
-      <Link
-        href="/accounts"
-        className="text-sm text-slate-500 hover:text-slate-700"
-      >
-        &larr; Back to Accounts
-      </Link>
+    <div>
+      <PageHeader title={account.name} back={{ href: "/accounts", label: "Accounts" }} />
 
-      {/* Account Header */}
-      <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500 uppercase tracking-wide capitalize">
-              {account.type?.replace("_", " ")}
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6 lg:items-start">
+        {/* Balance first, with what it is made of right under it. */}
+        <div className="space-y-4 mb-6 lg:mb-0 lg:order-2 lg:sticky lg:top-6">
+          <section aria-label="Balance" className="bg-surface border border-line rounded-2xl p-5 sm:p-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+              {String(account.type ?? "").replace(/_/g, " ").toLowerCase()} · balance
             </p>
-            <h1 className="text-2xl font-bold text-slate-900 mt-1">
-              {account.name}
-            </h1>
-            {account.notes && (
-              <p className="text-sm text-slate-500 mt-2">{account.notes}</p>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-slate-500">Balance</p>
             <p
-              className={`text-3xl font-bold ${
-                (account.balance ?? 0) >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
+              className={`mt-2 font-mono text-[34px] sm:text-[40px] font-medium tracking-[-0.03em] leading-none ${
+                balance >= 0 ? "text-fg" : "text-neg"
               }`}
             >
-              {(account.balance ?? 0) < 0 ? "-" : ""}
-              {fmt(account.balance ?? 0)}
+              {balance < 0 ? "−" : ""}
+              {fmt(balance)}
             </p>
-          </div>
-        </div>
-      </div>
+            <p className="mt-2 text-xs text-muted">
+              {transactions.length} transaction{transactions.length === 1 ? "" : "s"}
+            </p>
+            {account.notes && <p className="mt-3 text-sm text-fg-2">{account.notes}</p>}
+          </section>
 
-      {/* Category Balances */}
-      {categoryBalances.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">
-            Category Balances
+          {categoryBalances.length > 0 && (
+            <section aria-labelledby="cat-balances" className="bg-surface border border-line rounded-2xl overflow-hidden">
+              <h2
+                id="cat-balances"
+                className="px-4 pt-4 pb-2 font-mono text-[11px] uppercase tracking-[0.08em] text-muted"
+              >
+                By category
+              </h2>
+              <ul role="list" className="divide-y divide-line">
+                {visibleBalances.map((c) => (
+                  <li key={c.id ?? c.name} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <span className="text-sm text-fg truncate">{c.name}</span>
+                    <span
+                      className={`shrink-0 font-mono text-sm font-medium ${
+                        c.balance > 0 ? "text-pos" : c.balance < 0 ? "text-neg" : "text-muted"
+                      }`}
+                    >
+                      {signed(c.balance)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {categoryBalances.length > CATEGORY_PREVIEW && (
+                <button
+                  type="button"
+                  onClick={() => setAllCategories((v) => !v)}
+                  aria-expanded={allCategories}
+                  className="w-full border-t border-line px-4 py-2.5 text-sm font-medium text-accent hover:bg-surface-2 transition-colors"
+                >
+                  {allCategories ? "Show fewer" : `Show all ${categoryBalances.length}`}
+                </button>
+              )}
+            </section>
+          )}
+        </div>
+
+        <section aria-labelledby="acct-tx" className="lg:order-1 min-w-0">
+          <h2 id="acct-tx" className="text-base font-semibold text-fg mb-3">
+            Transactions
           </h2>
-          <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Category
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
-                    Balance
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryBalances.map((c) => (
-                  <tr
-                    key={c.name}
-                    className="border-b border-slate-100 last:border-0"
-                  >
-                    <td className="px-4 py-3 text-slate-900 font-medium">
-                      {c.name}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right font-medium ${
-                        c.balance >= 0 ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {c.balance < 0 ? "-" : "+"}
-                      {fmt(c.balance)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Transactions */}
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-3">
-          Transactions
-        </h2>
-        {transactions.length === 0 ? (
-          <div className="bg-white border border-slate-200 shadow-sm rounded-lg p-6 text-center text-slate-500">
-            No transactions for this account.
-          </div>
-        ) : (
-          <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Date
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Description
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Type
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-600">
-                    Amount
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Category
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-600">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((t: any) => (
-                  <tr
-                    key={t.id}
-                    className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
-                  >
-                    <td className="px-4 py-3 text-slate-700">
-                      {t.date?.slice(0, 10)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-900 font-medium">
-                      {t.description}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                          t.type === "INCOME"
-                            ? "bg-green-100 text-green-700"
-                            : t.type === "TRANSFER"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {t.type}
-                      </span>
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right font-medium ${
-                        t.type === "INCOME"
-                          ? "text-green-600"
-                          : t.type === "SPENDING"
-                          ? "text-red-600"
-                          : "text-blue-600"
-                      }`}
-                    >
-                      {t.type === "INCOME"
-                        ? "+"
-                        : t.type === "SPENDING"
-                        ? "-"
-                        : ""}
-                      {fmt(t.amount ?? 0)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {t.category?.name ?? t.categoryName ?? "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs text-slate-500 uppercase">
-                        {t.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          {transactions.length === 0 ? (
+            <div className="bg-surface border border-line rounded-2xl px-5 py-10 text-center text-sm text-muted">
+              No transactions for this account.
+            </div>
+          ) : (
+            <div className="bg-surface border border-line rounded-2xl overflow-hidden">
+              <TransactionList
+                transactions={visible}
+                categories={categories}
+                onSelect={(tx) => openQuickAdd(tx)}
+                showYear={years.size > 1}
+              />
+              {transactions.length > shown && (
+                <button
+                  type="button"
+                  onClick={() => setShown((n) => n + PAGE_SIZE)}
+                  className="w-full border-t border-line px-4 py-3 text-sm font-medium text-accent hover:bg-surface-2 transition-colors"
+                >
+                  Show more ({transactions.length - shown} older)
+                </button>
+              )}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

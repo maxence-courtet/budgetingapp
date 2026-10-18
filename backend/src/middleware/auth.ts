@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { auth } from 'express-oauth2-jwt-bearer';
+import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 import prisma from '../services/prisma';
+import { trialPlan } from '../services/plans';
 
 declare global {
   namespace Express {
@@ -10,41 +11,73 @@ declare global {
   }
 }
 
-const jwtCheck = auth({
-  audience: process.env.AUTH0_AUDIENCE,
-  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
-});
+// Better Auth runs in the frontend and signs short-lived JWTs; its public keys are served at /api/auth/jwks.
+const authUrl = (process.env.BETTER_AUTH_URL ?? '').replace(/\/$/, '');
+const jwks = authUrl ? createRemoteJWKSet(new URL(`${authUrl}/api/auth/jwks`)) : null;
 
-async function attachUserId(req: Request, res: Response, next: NextFunction) {
-  try {
-    const auth0Id = req.auth?.payload.sub;
-    if (!auth0Id) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+interface AuthPayload extends JWTPayload {
+  email?: string;
+  emailVerified?: boolean;
+  name?: string;
+}
 
-    const user = await prisma.user.upsert({
-      where: { auth0Id },
-      update: {},
-      create: {
-        auth0Id,
-        email: (req.auth?.payload as any).email || '',
-        name: (req.auth?.payload as any).name || 'User',
-      },
+async function verifyToken(token: string): Promise<AuthPayload> {
+  if (!jwks) throw new Error('BETTER_AUTH_URL is not configured');
+  const { payload } = await jwtVerify(token, jwks, { issuer: authUrl, audience: authUrl });
+  return payload as AuthPayload;
+}
+
+async function findOrCreateUser(payload: AuthPayload) {
+  const authId = payload.sub!;
+  const existing = await prisma.user.findUnique({ where: { authId } });
+  if (existing) return existing;
+
+  // First sign-in after the move off Auth0: adopt the Auth0-era account with the same email.
+  // Only for verified emails, otherwise anyone could sign up with someone else's address.
+  if (payload.email && payload.emailVerified === true) {
+    const legacy = await prisma.user.findFirst({
+      where: { email: payload.email, authId: { startsWith: 'auth0|' } },
     });
+    if (legacy) {
+      return prisma.user.update({ where: { id: legacy.id }, data: { authId } });
+    }
+  }
 
+  return prisma.user.upsert({
+    where: { authId },
+    update: {},
+    // Every new account starts with the free trial.
+    create: { authId, email: payload.email || '', name: payload.name || 'User', ...trialPlan() },
+  });
+}
+
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Already authenticated by an earlier authMiddleware on this request (a plan guard in front of a router).
+  if (req.userId) return next();
+  // Every request acts as one signed-in user: the web app and the hosted MCP server both send a short-lived
+  // JWT signed by the frontend. There is no shared or service token.
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  let payload: AuthPayload;
+  try {
+    payload = await verifyToken(token);
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+  if (!payload.sub) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const user = await findOrCreateUser(payload);
     req.userId = user.id;
     next();
   } catch (error) {
     console.error('Error attaching user:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-}
-
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
-  jwtCheck(req, res, (err) => {
-    if (err) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-    attachUserId(req, res, next);
-  });
 }

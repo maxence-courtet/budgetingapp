@@ -1,5 +1,6 @@
 "use client";
 
+import { localISO } from "@/lib/date";
 import { useState, useEffect } from "react";
 
 interface TransactionFormProps {
@@ -9,6 +10,9 @@ interface TransactionFormProps {
   onSave: (data: any) => void;
   onCancel: () => void;
   initial?: any;
+  /** Status for new transactions (defaults to PLANNED). */
+  defaultStatus?: string;
+  saving?: boolean;
 }
 
 const STATUSES = ["PLANNED", "PAID", "PENDING", "SKIPPED"];
@@ -21,16 +25,18 @@ export default function TransactionForm({
   onSave,
   onCancel,
   initial,
+  defaultStatus = "PLANNED",
+  saving = false,
 }: TransactionFormProps) {
   const [type, setType] = useState(initial?.type ?? "SPENDING");
   const [amount, setAmount] = useState<string>(initial?.amount?.toString() ?? "");
-  const [date, setDate] = useState(initial?.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(initial?.date?.slice(0, 10) ?? localISO());
   const [description, setDescription] = useState(initial?.description ?? "");
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
   const [toCategoryId, setToCategoryId] = useState(initial?.toCategoryId ?? "");
   const [fromAccountId, setFromAccountId] = useState(initial?.fromAccountId ?? "");
   const [toAccountId, setToAccountId] = useState(initial?.toAccountId ?? "");
-  const [status, setStatus] = useState(initial?.status ?? "PLANNED");
+  const [status, setStatus] = useState(initial?.status ?? defaultStatus);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -38,12 +44,12 @@ export default function TransactionForm({
       setFromAccountId(accounts[0].id);
     }
     if (!toAccountId && accounts.length > 0 && type !== "SPENDING") {
-      setToAccountId(accounts[0].id);
+      // A transfer defaults to a different account than its source.
+      const other = type === "TRANSFER" ? accounts.find((a) => a.id !== (fromAccountId || accounts[0].id)) : null;
+      setToAccountId((other ?? accounts[0]).id);
     }
-    if (!categoryId && categories.length > 0) {
-      setCategoryId(categories[0].id);
-    }
-  }, [accounts, categories, type, fromAccountId, toAccountId, categoryId]);
+    // No default category: the user picks one, so income doesn't silently land in "Dining Out".
+  }, [accounts, type, fromAccountId, toAccountId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +62,11 @@ export default function TransactionForm({
     }
     if (!categoryId) {
       setError("Please select a category.");
+      return;
+    }
+    // Within one account, a transfer moves money between two categories.
+    if (type === "TRANSFER" && fromAccountId && fromAccountId === toAccountId && (toCategoryId || categoryId) === categoryId) {
+      setError("A transfer within one account must move money to a different category.");
       return;
     }
 
@@ -85,27 +96,24 @@ export default function TransactionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
           {error}
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">Type</label>
-        <div className="flex gap-2">
+        <label className="block text-sm font-medium text-fg-2 mb-2">Type</label>
+        <div id="tx-type-group" aria-label="Transaction type" className="flex gap-2">
           {TYPES.map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setType(t)}
-              className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+              aria-pressed={type === t}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-xl border transition-colors ${
                 type === t
-                  ? t === "INCOME"
-                    ? "bg-green-100 border-green-300 text-green-800"
-                    : t === "SPENDING"
-                    ? "bg-red-100 border-red-300 text-red-800"
-                    : "bg-blue-100 border-blue-300 text-blue-800"
-                  : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
+                  ? "bg-accent-soft border-accent text-accent"
+                  : "bg-surface border-line-strong text-muted hover:bg-surface-2"
               }`}
             >
               {t}
@@ -116,46 +124,52 @@ export default function TransactionForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
+          <label htmlFor="tx-amount" className="block text-sm font-medium text-fg-2 mb-1">Amount</label>
           <input
+            id="tx-amount"
             type="number"
             step="0.01"
             min="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="0.00"
+            required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+          <label htmlFor="tx-date" className="block text-sm font-medium text-fg-2 mb-1">Date</label>
           <input
+            id="tx-date"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+        <label htmlFor="tx-description" className="block text-sm font-medium text-fg-2 mb-1">Description</label>
         <input
+          id="tx-description"
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           placeholder="Transaction description"
         />
       </div>
 
       <div className={type === "TRANSFER" ? "grid grid-cols-2 gap-4" : ""}>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+          <label htmlFor="tx-category" className="block text-sm font-medium text-fg-2 mb-1">Category</label>
           <select
+            id="tx-category"
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+            className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            required
           >
             <option value="">Select category</option>
             {categories.map((c: any) => (
@@ -165,11 +179,12 @@ export default function TransactionForm({
         </div>
         {type === "TRANSFER" && (
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">To Category</label>
+            <label htmlFor="tx-to-category" className="block text-sm font-medium text-fg-2 mb-1">To Category</label>
             <select
+              id="tx-to-category"
               value={toCategoryId}
               onChange={(e) => setToCategoryId(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Same as category</option>
               {categories.map((c: any) => (
@@ -183,11 +198,12 @@ export default function TransactionForm({
       <div className="grid grid-cols-2 gap-4">
         {type !== "INCOME" && (
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">From Account</label>
+            <label htmlFor="tx-from-account" className="block text-sm font-medium text-fg-2 mb-1">From Account</label>
             <select
+              id="tx-from-account"
               value={fromAccountId}
               onChange={(e) => setFromAccountId(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Select account</option>
               {accounts.map((a: any) => (
@@ -198,11 +214,12 @@ export default function TransactionForm({
         )}
         {type !== "SPENDING" && (
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">To Account</label>
+            <label htmlFor="tx-to-account" className="block text-sm font-medium text-fg-2 mb-1">To Account</label>
             <select
+              id="tx-to-account"
               value={toAccountId}
               onChange={(e) => setToAccountId(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Select account</option>
               {accounts.map((a: any) => (
@@ -214,11 +231,12 @@ export default function TransactionForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+        <label htmlFor="tx-status" className="block text-sm font-medium text-fg-2 mb-1">Status</label>
         <select
+          id="tx-status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="w-full border border-line-strong rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
@@ -229,14 +247,15 @@ export default function TransactionForm({
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+          disabled={saving}
+          className="px-4 py-2 text-sm font-semibold bg-accent text-accent-ink rounded-xl hover:bg-accent-hover disabled:opacity-60 transition-colors"
         >
-          {initial ? "Update Transaction" : "Create Transaction"}
+          {saving ? "Saving…" : initial ? "Update transaction" : "Add transaction"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          className="px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
         >
           Cancel
         </button>

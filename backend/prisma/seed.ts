@@ -15,7 +15,7 @@ async function main() {
   // Create default user
   const user = await prisma.user.create({
     data: {
-      auth0Id: 'auth0|seed-user',
+      authId: 'auth0|seed-user',
       email: 'demo@budget.app',
       name: 'Demo User',
     },

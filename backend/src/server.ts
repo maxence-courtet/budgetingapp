@@ -1,5 +1,7 @@
+import { errorHandler } from './middleware/asyncErrors'; // first: patches routers before routes load
 import express from 'express';
 import cors from 'cors';
+import { rateLimit } from './middleware/rateLimit';
 import { authMiddleware } from './middleware/auth';
 import { accountRoutes } from './routes/accounts';
 import { categoryRoutes } from './routes/categories';
@@ -8,27 +10,64 @@ import { budgetRoutes } from './routes/budgets';
 import { monthRoutes } from './routes/months';
 import { reportRoutes } from './routes/reports';
 import { searchRoutes } from './routes/search';
+import investmentRoutes from './routes/investments';
+import habitRoutes from './routes/habits';
+import fitnessRoutes from './routes/fitness';
+import goalRoutes from './routes/goals';
+import noteRoutes from './routes/notes';
+import statsRoutes from './routes/stats';
+import meRoutes from './routes/me';
+import adminRoutes from './routes/admin';
+import { requireAccess, requireModule } from './services/plans';
+import { requireHealthConsent } from './routes/me';
+import { runDataFixes } from './services/dataFixes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+// Behind Railway's proxy: req.ip is the client, not the proxy.
+app.set('trust proxy', 1);
 
-// Public routes (no auth required)
+// CORS_ORIGIN: comma-separated allowed origins (e.g. https://lifehub.example.com). Unset = allow all (local dev).
+const allowedOrigins = (process.env.CORS_ORIGIN ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : undefined));
+app.use(express.json({ limit: '1mb' }));
+// RATE_LIMIT_PER_MINUTE requests per client IP (default 300; the dashboard makes ~10 per load).
+app.use('/api', rateLimit({ windowMs: 60_000, max: Number(process.env.RATE_LIMIT_PER_MINUTE) || 300 }));
+
+// Public routes
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', version: '2.0.0' });
 });
 
-// Protected routes (auth required)
-app.use('/api/accounts', authMiddleware, accountRoutes);
-app.use('/api/categories', authMiddleware, categoryRoutes);
-app.use('/api/transactions', authMiddleware, transactionRoutes);
-app.use('/api/budgets', authMiddleware, budgetRoutes);
-app.use('/api/months', authMiddleware, monthRoutes);
-app.use('/api/reports', authMiddleware, reportRoutes);
-app.use('/api/search', authMiddleware, searchRoutes);
+// Finance routes (existing)
+app.use('/api/me', authMiddleware, meRoutes);
+// Everything below needs an active trial or plan; /api/me (settings, export, deletion) never does.
+const active = [authMiddleware, requireAccess()];
+app.use('/api/accounts', active, accountRoutes);
+app.use('/api/categories', active, categoryRoutes);
+app.use('/api/transactions', active, transactionRoutes);
+app.use('/api/budgets', active, budgetRoutes);
+app.use('/api/months', active, monthRoutes);
+app.use('/api/reports', active, reportRoutes);
+app.use('/api/search', active, searchRoutes);
+
+// Paid modules: the plan guard runs before the router (services/plans.ts).
+app.use('/api/investments', authMiddleware, requireModule('investments'), investmentRoutes);
+app.use('/api/habits', authMiddleware, requireModule('habits'), habitRoutes);
+// Fitness holds health data, which needs the user's explicit consent.
+app.use('/api/fitness', authMiddleware, requireModule('fitness'), requireHealthConsent, fitnessRoutes);
+app.use('/api/goals', authMiddleware, requireModule('goals'), goalRoutes);
+app.use('/api/notes', authMiddleware, requireModule('notes'), noteRoutes);
+app.use('/api/stats', active, statsRoutes);
+
+// Setting plans by hand until the payment provider is wired in (ADMIN_TOKEN).
+app.use('/api/admin', adminRoutes);
+
+app.use(errorHandler);
+
+runDataFixes();
 
 app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`Budget API running on http://0.0.0.0:${PORT}`);
+  console.log(`Hive API running on http://0.0.0.0:${PORT}`);
 });

@@ -1,5 +1,9 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../services/prisma';
+import { text, normalizeAccountType, sendError, endOfTodayUtc } from '../services/validate';
+import { tradeCashByAccount } from '../services/portfolio';
+
+const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
 const router = Router();
 
@@ -12,23 +16,23 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { name: 'asc' },
     });
 
-    // Calculate balances for all accounts
-    const result = await Promise.all(
-      accounts.map(async (account) => {
-        const incoming = await prisma.transaction.aggregate({
-          where: { toAccountId: account.id, status: 'PAID', userId },
-          _sum: { amount: true },
-        });
-        const outgoing = await prisma.transaction.aggregate({
-          where: { fromAccountId: account.id, status: 'PAID', userId },
-          _sum: { amount: true },
-        });
-        const balance = (incoming._sum.amount || 0) - (outgoing._sum.amount || 0);
-        return { ...account, balance };
-      })
-    );
+    // Balances as of today in two grouped queries (not two per account):
+    // PAID transactions dated in the future don't count yet.
+    const asOfToday = { userId, status: 'PAID', date: { lte: endOfTodayUtc() } };
+    const [incoming, outgoing, trades] = await Promise.all([
+      prisma.transaction.groupBy({ by: ['toAccountId'], where: { ...asOfToday, toAccountId: { not: null } }, _sum: { amount: true } }),
+      prisma.transaction.groupBy({ by: ['fromAccountId'], where: { ...asOfToday, fromAccountId: { not: null } }, _sum: { amount: true } }),
+      tradeCashByAccount(userId),
+    ]);
+    const inBy = new Map(incoming.map((g) => [g.toAccountId, g._sum.amount ?? 0]));
+    const outBy = new Map(outgoing.map((g) => [g.fromAccountId, g._sum.amount ?? 0]));
+    const result = accounts.map((account) => ({
+      ...account,
+      // Buys and sells move the account's cash (see tradeCash).
+      balance: (inBy.get(account.id) ?? 0) - (outBy.get(account.id) ?? 0) + (trades.get(account.id) ?? 0),
+    }));
 
-    res.json(result);
+    res.json(result.sort(byName));
   } catch (error) {
     console.error('Error listing accounts:', error);
     res.status(500).json({ error: 'Failed to list accounts' });
@@ -51,6 +55,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       where: {
         status: 'PAID',
         userId,
+        date: { lte: endOfTodayUtc() },
         OR: [{ fromAccountId: id }, { toAccountId: id }],
       },
       include: { category: true },
@@ -119,9 +124,13 @@ router.get('/:id', async (req: Request, res: Response) => {
       .filter((t) => t.fromAccountId === id)
       .reduce((sum, t) => sum + t.amount, 0);
 
+    const tradesNet = (await tradeCashByAccount(userId, id)).get(id) ?? 0;
+
     res.json({
       ...account,
-      balance: incoming - outgoing,
+      balance: incoming - outgoing + tradesNet,
+      // Cash spent on buys (negative) or received from sells, fees included; not part of categoryBalances.
+      tradesNet,
       categoryBalances,
       transactions,
     });
@@ -134,12 +143,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST / - create account
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, type, notes } = req.body;
     const userId = req.userId!;
+    const name = text(req.body.name, 'Name', { max: 60 })!;
+    const type = normalizeAccountType(req.body.type);
+    const notes = text(req.body.notes, 'Notes', { optional: true, max: 500 });
 
-    if (!name || !type) {
-      return res.status(400).json({ error: 'Name and type are required' });
-    }
+    const clash = await prisma.account.findFirst({ where: { userId, name: { equals: name, mode: 'insensitive' } } });
+    if (clash) return res.status(409).json({ error: 'An account with this name already exists' });
 
     const account = await prisma.account.create({
       data: { name, type, notes, userId },
@@ -147,8 +157,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(201).json(account);
   } catch (error) {
-    console.error('Error creating account:', error);
-    res.status(500).json({ error: 'Failed to create account' });
+    sendError(res, error, 'Failed to create account');
   }
 });
 
@@ -156,7 +165,6 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, type, notes } = req.body;
     const userId = req.userId!;
 
     const existing = await prisma.account.findFirst({ where: { id, userId } });
@@ -164,15 +172,26 @@ router.put('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Account not found' });
     }
 
+    const data: { name?: string; type?: string; notes?: string | null } = {};
+    if (req.body.name !== undefined) {
+      data.name = text(req.body.name, 'Name', { max: 60 })!;
+      const clash = await prisma.account.findFirst({
+        where: { userId, id: { not: id }, name: { equals: data.name, mode: 'insensitive' } },
+      });
+      if (clash) return res.status(409).json({ error: 'An account with this name already exists' });
+    }
+    if (req.body.type !== undefined) data.type = normalizeAccountType(req.body.type);
+    // null or "" clears the notes
+    if (req.body.notes !== undefined) data.notes = text(req.body.notes, 'Notes', { optional: true, max: 500 });
+
     const account = await prisma.account.update({
       where: { id },
-      data: { name, type, notes },
+      data,
     });
 
     res.json(account);
   } catch (error) {
-    console.error('Error updating account:', error);
-    res.status(500).json({ error: 'Failed to update account' });
+    sendError(res, error, 'Failed to update account');
   }
 });
 
@@ -207,6 +226,11 @@ router.delete('/:id', async (req: Request, res: Response) => {
         error: 'Cannot delete account referenced by budget definitions',
         definitionCount,
       });
+    }
+
+    const tradeCount = await prisma.investmentTrade.count({ where: { accountId: id, userId } });
+    if (tradeCount > 0) {
+      return res.status(409).json({ error: 'Cannot delete account with investment trades', tradeCount });
     }
 
     await prisma.account.delete({ where: { id } });

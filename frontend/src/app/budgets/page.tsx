@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import { getBudgets, createBudget, deleteBudget } from "@/lib/api";
-
-const fmt = (n: number) =>
-  "$" +
-  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDelete } from "@/components/ui/ConfirmDelete";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface BudgetTemplate {
   id: string;
@@ -14,11 +16,16 @@ interface BudgetTemplate {
   createdAt: string;
   definitions: any[];
   months: any[];
+  definitionCount?: number;
+  monthsUsedCount?: number;
 }
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<BudgetTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [newName, setNewName] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -27,8 +34,8 @@ export default function BudgetsPage() {
     try {
       const data = await getBudgets();
       setBudgets(data);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -46,8 +53,8 @@ export default function BudgetsPage() {
       setNewName("");
       setShowForm(false);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -56,118 +63,120 @@ export default function BudgetsPage() {
       await deleteBudget(id);
       setDeleting(null);
       load();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-slate-500">Loading budgets...</p>
-      </div>
-    );
+    return <LoadingState message="Loading budget templates..." />;
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Budget Templates</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
-        >
-          {showForm ? "Cancel" : "New Budget"}
-        </button>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Budget templates"
+        back={{ href: "/settings", label: "Settings" }}
+        action={
+          !showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-accent text-accent-ink rounded-xl hover:bg-accent-hover transition-colors"
+            >
+              <Plus size={16} aria-hidden="true" /> New template
+            </button>
+          )
+        }
+      />
+
+      <p className="-mt-3 text-sm text-muted max-w-prose">
+        A template is the plan a month starts from: expected income, spending per category and transfers between accounts.
+      </p>
+
+      {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
 
       {showForm && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6">
-          <form onSubmit={handleCreate} className="flex items-center gap-3">
+        <form onSubmit={handleCreate} className="bg-surface rounded-2xl border border-line p-4 sm:p-5">
+          <label htmlFor="budget-name" className="block text-sm font-medium text-fg-2 mb-1">
+            Template name
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
+              id="budget-name"
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Budget template name"
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+              placeholder="e.g. Budget 2025"
+              className="w-full sm:flex-1 px-3 py-2 border border-line-strong rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               autoFocus
             />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Create
-            </button>
-          </form>
-        </div>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={!newName.trim()}
+                className="flex-1 sm:flex-none px-4 py-2 bg-accent hover:bg-accent-hover text-accent-ink text-sm font-medium rounded-xl disabled:opacity-50 transition-colors"
+              >
+                Create
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(false);
+                  setNewName("");
+                }}
+                className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium border border-line-strong text-fg-2 rounded-xl hover:bg-surface-2 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </form>
       )}
 
       {budgets.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
-          <p className="text-slate-500">
-            No budget templates yet. Create one to get started.
-          </p>
-        </div>
+        <EmptyState
+          message="No budget templates yet."
+          cta={showForm ? undefined : { label: "Create your first template", onClick: () => setShowForm(true) }}
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {budgets.map((b) => (
-            <div
-              key={b.id}
-              className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 flex flex-col justify-between"
-            >
-              <div>
-                <Link
-                  href={`/budgets/${b.id}`}
-                  className="text-lg font-semibold text-slate-900 hover:text-slate-700 transition-colors"
-                >
-                  {b.name}
-                </Link>
-                <div className="mt-2 flex gap-4 text-sm text-slate-500">
-                  <span>
-                    {b.definitions?.length ?? 0}{" "}
-                    {b.definitions?.length === 1 ? "definition" : "definitions"}
+        <ul role="list" className="bg-surface border border-line rounded-2xl divide-y divide-line overflow-hidden">
+          {budgets.map((b) => {
+            const lines = b.definitionCount ?? b.definitions?.length ?? 0;
+            const months = b.monthsUsedCount ?? b.months?.length ?? 0;
+            return (
+              <li key={b.id} className="flex items-center gap-2 pl-4 pr-2 py-3">
+                <Link href={`/budgets/${b.id}`} className="flex-1 min-w-0 flex items-center gap-2 group py-0.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-medium text-fg leading-snug break-words group-hover:underline">
+                      {b.name}
+                    </span>
+                    <span className="block text-xs text-muted">
+                      {plural(lines, "line")} · {months === 0 ? "not used yet" : `used by ${plural(months, "month")}`}
+                    </span>
                   </span>
-                  <span>
-                    {b.months?.length ?? 0}{" "}
-                    {b.months?.length === 1 ? "month" : "months"}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-4 flex items-center gap-2">
-                <Link
-                  href={`/budgets/${b.id}`}
-                  className="px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                >
-                  Edit
+                  {deleting !== b.id && (
+                    <ChevronRight size={16} className="text-faint shrink-0 sm:hidden" aria-hidden="true" />
+                  )}
                 </Link>
                 {deleting === b.id ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-red-600">Delete?</span>
-                    <button
-                      onClick={() => handleDelete(b.id)}
-                      className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setDeleting(null)}
-                      className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  <ConfirmDelete
+                    onConfirm={() => handleDelete(b.id)}
+                    onCancel={() => setDeleting(null)}
+                    label="Delete?"
+                  />
                 ) : (
                   <button
                     onClick={() => setDeleting(b.id)}
-                    className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    aria-label={`Delete ${b.name}`}
+                    className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-muted hover:text-neg hover:bg-surface-2"
                   >
-                    Delete
+                    <Trash2 size={15} aria-hidden="true" />
                   </button>
                 )}
-              </div>
-            </div>
-          ))}
-        </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
