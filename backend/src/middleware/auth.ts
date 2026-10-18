@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 import prisma from '../services/prisma';
-import { trialPlan } from '../services/plans';
+import { startingPlan } from '../services/plans';
 
 declare global {
   namespace Express {
@@ -47,7 +47,7 @@ async function findOrCreateUser(payload: AuthPayload) {
     where: { authId },
     update: {},
     // Every new account starts with the free trial.
-    create: { authId, email: payload.email || '', name: payload.name || 'User', ...trialPlan() },
+    create: { authId, email: payload.email || '', name: payload.name || 'User', ...startingPlan(payload.email) },
   });
 }
 
