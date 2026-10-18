@@ -31,6 +31,11 @@ async function tablesWithUser(c) {
 }
 
 async function findUser(c, email) {
+  // "*": the user with the most transactions (older databases didn't store emails).
+  if (email === "*") {
+    const [u] = await q(c, `SELECT u.* FROM "User" u JOIN "Transaction" t ON t."userId"=u.id GROUP BY u.id ORDER BY count(*) DESC LIMIT 1`);
+    return u ?? null;
+  }
   const [u] = await q(c, `SELECT * FROM "User" WHERE lower(email)=lower($1) ORDER BY "createdAt" LIMIT 1`, [email]);
   return u ?? null;
 }
