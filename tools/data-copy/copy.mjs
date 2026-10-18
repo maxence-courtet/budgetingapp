@@ -36,7 +36,8 @@ async function findUser(c, email) {
 }
 
 async function report(label, c, email) {
-  console.log(`\n=== ${label} (${email}) ===`);
+  const console = { log: (...a) => globalThis.console.log(`[${label}]`, ...a) };
+  console.log(`=== ${email} ===`);
   const users = await q(c, `SELECT email, "createdAt" FROM "User" ORDER BY "createdAt"`);
   console.log(`users in database: ${users.length} → ${users.map((u) => u.email).join(", ")}`);
   const u = await findUser(c, email);
