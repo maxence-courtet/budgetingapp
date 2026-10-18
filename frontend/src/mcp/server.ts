@@ -22,15 +22,17 @@ const allTools = [
 const READ_ONLY = new Set(["generate_fitness_plan"]);
 const isReadOnly = (name: string) => /^(get|search)_/.test(name) || READ_ONLY.has(name);
 // Writes that replace a stored value. Every other write only adds records (journal entries append).
-const OVERWRITES = new Set(["update_goal_progress"]);
+const OVERWRITES = new Set(["update_goal_progress", "update_transaction"]);
+// Writes that remove data.
+const DELETES = new Set(["delete_transaction"]);
 
 function annotationsFor(name: string) {
   const readOnly = isReadOnly(name);
   return {
     title: name.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
     readOnlyHint: readOnly,
-    // No tool deletes anything.
-    destructiveHint: OVERWRITES.has(name),
+    // Overwrites and deletes are flagged so assistants can ask before using them.
+    destructiveHint: OVERWRITES.has(name) || DELETES.has(name),
     idempotentHint: readOnly || OVERWRITES.has(name),
     openWorldHint: name === "get_market_price",
   };

@@ -177,6 +177,63 @@ export const setupTools = [
     },
   },
   {
+    name: "update_transaction",
+    description:
+      "Change an existing transaction: amount, date, description, type, status (e.g. PLANNED → PAID), category or " +
+      "accounts. Find its `id` with search_transactions first. Only the fields given change. Moving the date into " +
+      "another month moves the transaction to that month (created if needed).",
+    inputSchema: z.object({
+      id: z.string().describe("Transaction ID (from search_transactions or get_month_detail)"),
+      type: z.enum(TX_TYPES).optional(),
+      amount: z.number().positive().optional(),
+      date: z.string().optional().describe("ISO date YYYY-MM-DD"),
+      description: z.string().optional().describe("New description; an empty string clears it"),
+      status: z.enum(TX_STATUSES).optional(),
+      categoryId: z.string().optional(),
+      category: z.string().optional().describe("Category name"),
+      fromAccountId: z.string().optional(),
+      fromAccount: z.string().optional().describe("Account name"),
+      toAccountId: z.string().optional(),
+      toAccount: z.string().optional().describe("Account name"),
+      toCategoryId: z.string().optional(),
+      toCategory: z.string().optional().describe("TRANSFER only: receiving category name"),
+    }),
+    handler: async ({ id, ...input }: Record<string, any>) => {
+      const current = (await api(`/transactions/${encodeURIComponent(id)}`)) as { monthId: string; month?: { year: number; month: number } };
+      const names = await nameResolver();
+      const resolved = names.resolve(input);
+      names.check();
+      // Only send what was given: the backend keeps every other field as it is.
+      const body: Record<string, unknown> = Object.fromEntries(Object.entries(resolved).filter(([, v]) => v !== undefined));
+      if (typeof input.description === "string") body.description = input.description.trim() || null;
+      if (input.date) {
+        const d = new Date(`${input.date}T00:00:00Z`);
+        if (Number.isNaN(d.getTime())) throw new Error("date must be YYYY-MM-DD");
+        const year = d.getUTCFullYear(), month = d.getUTCMonth() + 1;
+        if (!current.month || current.month.year !== year || current.month.month !== month) {
+          const months = (await api("/months")) as { id: string; year: number; month: number }[];
+          const target = months.find((m) => m.year === year && m.month === month)
+            ?? ((await api("/months", { method: "POST", body: { year, month } })) as { id: string });
+          body.monthId = target.id;
+        }
+      }
+      return api(`/transactions/${encodeURIComponent(id)}`, { method: "PUT", body });
+    },
+  },
+  {
+    name: "delete_transaction",
+    description:
+      "Permanently delete one transaction. Find its `id` with search_transactions first, and confirm with the user " +
+      "which transaction it is before deleting. To skip a planned item without losing it, set its status to SKIPPED " +
+      "with update_transaction instead.",
+    inputSchema: z.object({ id: z.string().describe("Transaction ID") }),
+    handler: async ({ id }: { id: string }) => {
+      const t = (await api(`/transactions/${encodeURIComponent(id)}`)) as { date: string; amount: number; description?: string | null };
+      await api(`/transactions/${encodeURIComponent(id)}`, { method: "DELETE" });
+      return { deleted: { id, date: t.date?.slice(0, 10), amount: t.amount, description: t.description ?? null } };
+    },
+  },
+  {
     name: "import_transactions",
     description:
       "Bulk-create up to 500 transactions in one call (all or nothing), e.g. to bring in history from a bank export or " +

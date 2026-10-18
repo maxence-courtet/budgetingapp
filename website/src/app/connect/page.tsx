@@ -257,7 +257,7 @@ export default function ConnectPage() {
             <p>
               A good setup: read-only tools on <strong className="text-fg">Always allow</strong>, so questions get answered without
               interruptions, and write tools on <strong className="text-fg">Needs approval</strong>, so Claude asks you before it
-              saves anything. You can also set single tools differently, or block one entirely. None of Hive&apos;s tools delete data.
+              saves anything. You can also set single tools differently, or block one entirely: for example, set &ldquo;delete transaction&rdquo; to Blocked if you never want an assistant to delete.
             </p>
           </Step>
         </ol>
