@@ -54,6 +54,9 @@ function createAuth() {
     // The OAuth provider must not be bypassed through the JWT plugin's own /token endpoint; the app's
     // /api/auth/token route (a separate Next route) issues the backend JWT instead.
     disabledPaths: ["/token"],
+    // Railway's proxy puts the visitor's address in x-real-ip; x-forwarded-for carries several hops, which
+    // Better Auth won't trust, so without this every visitor would share one rate-limit bucket.
+    advanced: { ipAddress: { ipAddressHeaders: ["x-real-ip", "x-forwarded-for"] } },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 10,
