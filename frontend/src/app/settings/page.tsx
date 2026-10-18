@@ -206,6 +206,8 @@ function PlanSection() {
               ? `Active until ${until}.`
               : planSource === "grandfathered"
               ? "Included for early users, with no end date."
+              : planSource === "grant"
+              ? "Included for life."
               : "No end date."}
           </p>
         </div>

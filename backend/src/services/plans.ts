@@ -35,6 +35,21 @@ export const ENTITLEMENTS: Record<PlanId, Entitlements> = {
 const PLAN_NAMES: Record<PaidPlan, string> = { PLUS: "Plus", PRO: "Pro" };
 
 /** Plan fields for a brand-new account: a free trial of Plus. */
+/** Emails with Pro for life, from PLAN_GRANTS (comma-separated, case-insensitive). */
+export function lifetimeGrants(): string[] {
+  return (process.env.PLAN_GRANTS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export const LIFETIME_PLAN = { plan: "PRO", planExpiresAt: null, planSource: "grant" } as const;
+
+/** The plan a new account starts on: Pro for life when its email is granted, otherwise the free trial. */
+export function startingPlan(email: string | undefined, now = new Date()) {
+  return email && lifetimeGrants().includes(email.toLowerCase()) ? { ...LIFETIME_PLAN } : trialPlan(now);
+}
+
 export function trialPlan(now = new Date()) {
   return { plan: "PLUS", planExpiresAt: new Date(now.getTime() + TRIAL_DAYS * 86_400_000), planSource: "trial" };
 }

@@ -1,5 +1,5 @@
 import prisma from "./prisma";
-import { trialPlan } from "./plans";
+import { LIFETIME_PLAN, lifetimeGrants, trialPlan } from "./plans";
 
 // Accounts created before plans existed keep full access (Pro, no end date). GRANDFATHER_BEFORE moves the cut-off.
 const GRANDFATHER_BEFORE = process.env.GRANDFATHER_BEFORE || "2026-10-07T15:30:00Z";
@@ -9,6 +9,7 @@ const GRANDFATHER_BEFORE = process.env.GRANDFATHER_BEFORE || "2026-10-07T15:30:0
  * - Plans: accounts from the Free-plan era (plan FREE) get the free trial, counted from when they signed up.
  * - Account types: older rows used "CHECKING" / "CREDIT_CARD"; the app stores "checking" / "credit card".
  * - Plans: users from before plans existed (never assigned one) get Pro without an end date.
+ * - Plans: emails listed in PLAN_GRANTS get Pro for life (new sign-ups get it when their account is created).
  */
 export async function runDataFixes() {
   try {
@@ -23,6 +24,13 @@ export async function runDataFixes() {
     const legacyFree = await prisma.user.findMany({ where: { plan: "FREE" }, select: { id: true, createdAt: true } });
     for (const u of legacyFree) await prisma.user.update({ where: { id: u.id }, data: trialPlan(u.createdAt) });
     if (legacyFree.length) console.log(`Plans: ${legacyFree.length} Free account(s) moved to the free trial`);
+    for (const email of lifetimeGrants()) {
+      const granted = await prisma.user.updateMany({
+        where: { email: { equals: email, mode: "insensitive" }, NOT: { plan: "PRO", planExpiresAt: null } },
+        data: { ...LIFETIME_PLAN },
+      });
+      if (granted.count) console.log(`Plans: ${email} granted Pro for life`);
+    }
   } catch (err) {
     console.error("Data fixes failed (continuing):", err);
   }
