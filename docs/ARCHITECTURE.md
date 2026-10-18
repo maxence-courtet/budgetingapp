@@ -58,6 +58,7 @@ How Hive is built, what it depends on, and how it grows. For running it locally 
 | **GitHub** | Source code, CI (`.github/workflows/ci.yml`: typecheck and build for backend, frontend, website) | Code only | Free for this size |
 | **Better Auth** (library, self-hosted) | Sign-in, sessions, JWT/JWKS, OAuth server for assistants, API keys | Runs inside the frontend | Free (open source) |
 | **Google OAuth** (optional) | "Continue with Google" when `GOOGLE_CLIENT_ID/SECRET` are set | Sign-in only | Free |
+| **Resend** (optional) | Password-reset e-mails when `RESEND_API_KEY` and `MAIL_FROM` are set; without them the reset link is written to the frontend log | Recipient e-mail, reset link | Free tier (3,000 e-mails/month) |
 | **Yahoo Finance chart API** | Investment prices by ticker | Ticker symbols only | Free, unofficial: can rate-limit or change; replace before relying on it at scale |
 | **Payment provider** (to add) | Subscriptions, invoices, VAT | Billing data | Fees per transaction |
 | **Assistants** (Claude, ChatGPT, …) | Chosen by each user | What the user lets them read | Paid by the user |
@@ -78,6 +79,7 @@ How Hive is built, what it depends on, and how it grows. For running it locally 
 | frontend | `NEXT_PUBLIC_API_URL` (build arg) | Backend URL baked into the browser bundle |
 | frontend | `WEBSITE_URL` | Legal links on the sign-up page |
 | frontend | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional Google sign-in |
+| frontend | `RESEND_API_KEY`, `MAIL_FROM` | Optional: send password-reset e-mails (e.g. `MAIL_FROM="Hive <hello@yourdomain.ch>"`, domain verified in Resend) |
 | website | `NEXT_PUBLIC_APP_URL` (build arg) | Where "Sign in" / "Start your free month" point |
 
 ### Environments

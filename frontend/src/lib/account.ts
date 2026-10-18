@@ -32,6 +32,8 @@ export async function authRecords(userId: string) {
     sessions: pick(await find("session", byUser), ["createdAt", "expiresAt", "ipAddress", "userAgent"]),
     personalAccessTokens: pick(await find("apikey", [{ field: "referenceId", value: userId }]), ["name", "start", "createdAt", "expiresAt", "lastRequest"]),
     connectedAssistants: pick(await find("oauthConsent", byUser), ["clientId", "scopes", "createdAt", "updatedAt"]),
+    // Whether two-factor sign-in is on; its secret and backup codes are never exported.
+    twoFactor: (await find("twoFactor", byUser)).length > 0,
   };
 }
 
@@ -45,6 +47,7 @@ export async function deleteAuthUser(userId: string) {
   await del("oauthRefreshToken", byUser);
   await del("oauthConsent", byUser);
   await del("session", byUser);
+  await del("twoFactor", byUser);
   await ctx.internalAdapter.deleteAccounts(userId);
   await ctx.internalAdapter.deleteUser(userId);
 }
