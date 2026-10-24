@@ -110,7 +110,7 @@ router.get('/category-detail', async (req: Request, res: Response) => {
         toAccount: true,
         month: true,
       },
-      orderBy: { date: 'desc' },
+      orderBy: [{ date: 'desc' }, { description: 'asc' }, { id: 'asc' }],
     });
 
     // A side counts when both its account and its category match: money arrives under toCategoryId (or

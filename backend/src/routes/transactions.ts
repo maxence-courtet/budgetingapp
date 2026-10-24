@@ -45,7 +45,7 @@ router.get('/', async (req: Request, res: Response) => {
         toAccount: true,
         month: true,
       },
-      orderBy: { date: 'desc' },
+      orderBy: [{ date: 'desc' }, { description: 'asc' }, { id: 'asc' }],
       take: limit ? Math.max(1, parseInt(limit as string, 10) || 50) : undefined,
       skip: offset ? Math.max(0, parseInt(offset as string, 10) || 0) : undefined,
     });
