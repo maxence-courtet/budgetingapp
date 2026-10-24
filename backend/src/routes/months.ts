@@ -68,7 +68,7 @@ router.get('/:id', async (req: Request, res: Response) => {
             fromAccount: true,
             toAccount: true,
           },
-          orderBy: { date: 'asc' },
+          orderBy: [{ date: 'asc' }, { description: 'asc' }, { id: 'asc' }],
         },
       },
     });
@@ -244,7 +244,7 @@ router.post('/:id/apply-budget', async (req: Request, res: Response) => {
         budgetTemplate: { select: { id: true, name: true } },
         transactions: {
           include: { category: true, fromAccount: true, toAccount: true },
-          orderBy: { date: 'asc' },
+          orderBy: [{ date: 'asc' }, { description: 'asc' }, { id: 'asc' }],
         },
       },
     });

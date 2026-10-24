@@ -86,7 +86,7 @@ router.get('/', async (req: Request, res: Response) => {
         toAccount: true,
         month: true,
       },
-      orderBy: { date: 'desc' },
+      orderBy: [{ date: 'desc' }, { description: 'asc' }, { id: 'asc' }],
       take: LIMIT,
     })]);
 

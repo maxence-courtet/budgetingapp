@@ -102,7 +102,7 @@ router.get('/:id', async (req: Request, res: Response) => {
         toAccount: true,
         month: true,
       },
-      orderBy: { date: 'desc' },
+      orderBy: [{ date: 'desc' }, { description: 'asc' }, { id: 'asc' }],
     });
 
     // Enrich transfers with toCategory data

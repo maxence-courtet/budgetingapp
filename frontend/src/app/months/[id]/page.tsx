@@ -111,7 +111,14 @@ export default function MonthDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const transactions = month.transactions || [];
-  const sortedTx = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Same-day items are listed alphabetically (then by id), so changing one, e.g. ticking it off as paid,
+  // never moves it in the list.
+  const sortedTx = [...transactions].sort(
+    (a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime() ||
+      (a.description ?? "").localeCompare(b.description ?? "", undefined, { sensitivity: "base" }) ||
+      String(a.id).localeCompare(String(b.id))
+  );
   const templateCount = sortedTx.filter((t) => t.fromTemplate).length;
   const shown = sortedTx.filter((t) => (filter === "all" ? true : filter === "budget" ? t.fromTemplate : !t.fromTemplate));
 
