@@ -34,7 +34,7 @@ export function TransactionList({ transactions, categories = [], onSelect, onSta
             : tx.toAccount?.name;
         const title = tx.description || category || "Transaction";
         const sign = tx.type === "INCOME" ? "+" : tx.type === "SPENDING" ? "−" : "";
-        const color = tx.type === "INCOME" ? "text-pos" : tx.type === "SPENDING" ? "text-fg" : "text-muted";
+        const color = tx.type === "INCOME" ? "text-gain" : tx.type === "SPENDING" ? "text-loss" : "text-muted";
 
         const body = (
           <>

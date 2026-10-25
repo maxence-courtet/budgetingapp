@@ -672,10 +672,10 @@ export default function BudgetDetailPage({
                         <>
                           <span
                             className={`font-mono text-[15px] font-semibold tabular-nums whitespace-nowrap ${
-                              d.type === "INCOME" ? "text-pos" : "text-fg"
+                              d.type === "INCOME" ? "text-gain" : d.type === "SPENDING" ? "text-loss" : "text-muted"
                             }`}
                           >
-                            {d.type === "INCOME" ? "+" : d.type === "SPENDING" ? "-" : ""}
+                            {d.type === "INCOME" ? "+" : d.type === "SPENDING" ? "−" : ""}
                             {fmt(d.amount)}
                           </span>
                           <div className="flex shrink-0">

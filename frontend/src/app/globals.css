@@ -20,6 +20,9 @@
   --accent: #6d4ae8;
   --accent-ink: #ffffff;
   --neg: #b4410e;
+  /* Transaction amounts: money in (green) and money out (red), 4.5:1 or more on the surfaces. */
+  --gain: #15803d;
+  --loss: #b91c1c;
 }
 
 :root[data-theme="dark"] {
@@ -38,6 +41,8 @@
   --accent: #a78bfa;
   --accent-ink: #0a0a0b;
   --neg: #ff9a62;
+  --gain: #4ade80;
+  --loss: #f87171;
 }
 
 /* Accent presets: light-mode values keep 4.5:1 with white text, dark-mode values with near-black text. */
@@ -102,6 +107,8 @@
   --color-accent-strong: var(--accent-strong);
   --color-pos: var(--pos);
   --color-neg: var(--neg);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
 }
 
 /* Light mode: darker steps where Tailwind's default fails 4.5:1 (white text on green-600, yellow/orange/amber text on white). */
